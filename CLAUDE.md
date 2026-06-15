@@ -1,3 +1,35 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Before Writing Any Code
+
+You MUST invoke the `/laravel-best-practices` skill before analyzing or writing any code. Do not skip this step, even for small changes.
+
+## Project Overview
+
+This is a **Laravel 13 REST API** backend for a matches/dating domain. It is a pure API — no Blade views, no frontend. Auth is handled via Laravel Sanctum.
+
+Local development uses SQLite; sessions, cache, and queues all use the database driver.
+
+## Architecture Invariants
+
+- **All primary and foreign key IDs are UUIDs** — enforced by the `laravel-scaffold` skill and must be reflected in migrations and models.
+- **PHP Enum columns are stored as strings in the database** — cast to a PHP-backed Enum in the model. Never use a DB-level ENUM type.
+- **API versioning is standard** — all routes live under `/api/v1/`.
+- **Eloquent API Resources are mandatory** for all API responses.
+- Use `.claude/skills/laravel-scaffold/` to generate a full artifact set (migration, model, observer, scopes, resource, controller, form requests, seeder) from a DBML schema.
+
+## Key Commands
+
+```bash
+vendor/bin/sail up -d                                           # start dev stack
+vendor/bin/sail artisan test --compact                         # full test suite
+vendor/bin/sail artisan test --compact --filter=testName       # single test
+vendor/bin/sail bin pint --dirty --format agent                # format changed PHP files
+vendor/bin/sail artisan route:list --path=api --except-vendor  # inspect API routes
+```
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

@@ -8,7 +8,9 @@ use App\Enums\MatchStatus;
 use App\Models\Scopes\MatchRecordScope;
 use App\Observers\MatchRecordObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -54,5 +56,11 @@ class MatchRecord extends Model
             'status' => MatchStatus::class,
             'judges_points' => 'array',
         ];
+    }
+
+    #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder;
     }
 }

@@ -22,6 +22,10 @@ class AthleteController extends Controller
 
         $athletes = Athlete::with($validated['with'] ?? [])->orderByRaw("CONCAT(athletes.first_name, ' ', athletes.last_name)");
 
+        if (isset($validated['search'])) {
+            $athletes->search($validated['search']);
+        }
+
         if (isset($validated['tournament_id'])) {
             $athletes->inTournament($validated['tournament_id'], ($validated['discipline_id'] ?? null), ($validated['weight_category_id'] ?? null));
         }

@@ -50,6 +50,12 @@ class Athlete extends Model
     }
 
     #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder;
+    }
+
+    #[Scope]
     public function inTournament(Builder $builder, string $tournamentId, ?string $disciplineId, ?string $weightCategoryId): Builder
     {
         $registrationsAthletes = Registration::query()

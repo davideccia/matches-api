@@ -21,6 +21,10 @@ class WeightCategoryController extends Controller
 
         $weightCategories = WeightCategory::with($validated['with'] ?? []);
 
+        if (isset($validated['search'])) {
+            $weightCategories->search($validated['search']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $weightCategories = $weightCategories->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

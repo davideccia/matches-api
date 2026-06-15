@@ -6,7 +6,9 @@ use App\Enums\TournamentStatus;
 use App\Models\Scopes\TournamentScope;
 use App\Observers\TournamentObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,5 +33,11 @@ class Tournament extends Model
             'date' => 'date',
             'status' => TournamentStatus::class,
         ];
+    }
+
+    #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder;
     }
 }

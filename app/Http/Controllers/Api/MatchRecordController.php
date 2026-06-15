@@ -21,6 +21,10 @@ class MatchRecordController extends Controller
 
         $matchRecords = MatchRecord::with($validated['with'] ?? []);
 
+        if (isset($validated['search'])) {
+            $matchRecords->search($validated['search']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $matchRecords = $matchRecords->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

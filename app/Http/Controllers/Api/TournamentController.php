@@ -21,6 +21,10 @@ class TournamentController extends Controller
 
         $tournaments = Tournament::with($validated['with'] ?? []);
 
+        if (isset($validated['search'])) {
+            $tournaments->search($validated['search']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $tournaments = $tournaments->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

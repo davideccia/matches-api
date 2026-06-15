@@ -21,6 +21,10 @@ class DisciplineController extends Controller
 
         $disciplines = Discipline::with($validated['with'] ?? []);
 
+        if (isset($validated['search'])) {
+            $disciplines->search($validated['search']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $disciplines = $disciplines->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

@@ -21,6 +21,10 @@ class RegistrationController extends Controller
 
         $registrations = Registration::with($validated['with'] ?? []);
 
+        if (isset($validated['search'])) {
+            $registrations->search($validated['search']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $registrations = $registrations->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

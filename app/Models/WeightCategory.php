@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Models\Scopes\WeightCategoryScope;
 use App\Observers\WeightCategoryObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,5 +27,11 @@ class WeightCategory extends Model
         return [
             'value' => 'decimal:2',
         ];
+    }
+
+    #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder;
     }
 }

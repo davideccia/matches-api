@@ -21,6 +21,10 @@ class UserController extends Controller
 
         $users = User::with($validated['with'] ?? []);
 
+        if (isset($validated['search'])) {
+            $users->search($validated['search']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $users = $users->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

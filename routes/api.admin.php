@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\DisciplineController;
 use App\Http\Controllers\Api\MatchRecordController;
 use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\TournamentController;
+use App\Http\Controllers\Api\TournamentMatchController;
+use App\Http\Controllers\Api\TournamentRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeightCategoryController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +28,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('athletes', AthleteController::class);
 
     Route::apiResource('tournaments', TournamentController::class);
+    Route::apiResource('tournaments.registrations', TournamentRegistrationController::class)->only(['index', 'store']);
+    Route::apiResource('tournaments.match_records', TournamentMatchController::class)->only(['index', 'store']);
 
     Route::apiResource('registrations', RegistrationController::class);
 

@@ -40,4 +40,11 @@ class MatchRecordStoreRequest extends FormRequest
             'with.*' => ['string'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
+        ]);
+    }
 }

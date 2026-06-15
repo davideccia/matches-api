@@ -19,6 +19,7 @@ class AthleteSeeder extends Seeder
             Athlete::create([
                 'first_name' => 'Atleta',
                 'last_name' => "M{$n}",
+                'full_name' => "Atleta M{$n}",
                 'birth_date' => '1995-01-01',
                 'gender' => Gender::MALE,
                 'tax_number' => "ATLTM{$n}00000000",
@@ -31,6 +32,7 @@ class AthleteSeeder extends Seeder
             Athlete::create([
                 'first_name' => 'Atleta',
                 'last_name' => "F{$n}",
+                'full_name' => "Atleta F{$n}",
                 'birth_date' => '1995-01-01',
                 'gender' => Gender::FEMALE,
                 'tax_number' => "ATLTF{$n}00000000",

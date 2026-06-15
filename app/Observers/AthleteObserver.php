@@ -14,6 +14,11 @@ class AthleteObserver
 
     public function updated(Athlete $athlete): void {}
 
+    public function saving(Athlete $athlete): void
+    {
+        $athlete->full_name = "{$athlete->first_name}, {$athlete->last_name}";
+    }
+
     public function deleting(Athlete $athlete): void {}
 
     public function deleted(Athlete $athlete): void {}

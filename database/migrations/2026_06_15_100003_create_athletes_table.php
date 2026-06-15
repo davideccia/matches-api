@@ -12,6 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('first_name');
             $table->string('last_name');
+            $table->string('full_name');
             $table->date('birth_date');
             $table->string('gender');
             $table->string('tax_number')->unique();

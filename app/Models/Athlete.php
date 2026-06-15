@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,6 +21,7 @@ class Athlete extends Model
     protected $fillable = [
         'first_name',
         'last_name',
+        'full_name',
         'birth_date',
         'gender',
         'tax_number',
@@ -29,8 +29,6 @@ class Athlete extends Model
         'default_weight_category_id',
         'default_discipline_id',
     ];
-
-    protected $appends = ['full_name'];
 
     protected function casts(): array
     {
@@ -40,13 +38,6 @@ class Athlete extends Model
             'default_weight_category_id' => 'string',
             'default_discipline_id' => 'string',
         ];
-    }
-
-    protected function fullName(): Attribute
-    {
-        return Attribute::make(
-            get: fn (mixed $value, array $attributes) => "{$this->first_name} {$this->last_name}",
-        );
     }
 
     #[Scope]

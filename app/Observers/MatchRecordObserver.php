@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Actions\ReorderMatchRecordsAction;
+use App\Events\MatchRecordChanged;
 use App\Models\MatchRecord;
 
 class MatchRecordObserver
@@ -12,19 +13,28 @@ class MatchRecordObserver
         ReorderMatchRecordsAction::handleCreating($matchRecord);
     }
 
-    public function created(MatchRecord $matchRecord): void {}
+    public function created(MatchRecord $matchRecord): void
+    {
+        event(new MatchRecordChanged($matchRecord));
+    }
 
     public function updating(MatchRecord $matchRecord): void
     {
         ReorderMatchRecordsAction::handleUpdating($matchRecord);
     }
 
-    public function updated(MatchRecord $matchRecord): void {}
+    public function updated(MatchRecord $matchRecord): void
+    {
+        event(new MatchRecordChanged($matchRecord));
+    }
 
     public function deleting(MatchRecord $matchRecord): void
     {
         ReorderMatchRecordsAction::handleDeleting($matchRecord);
     }
 
-    public function deleted(MatchRecord $matchRecord): void {}
+    public function deleted(MatchRecord $matchRecord): void
+    {
+        event(new MatchRecordChanged($matchRecord));
+    }
 }

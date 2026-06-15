@@ -70,6 +70,7 @@ namespace App\Models;
 
 use App\Models\Scopes\{Model}Scope;
 use App\Observers\{Model}Observer;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -78,9 +79,7 @@ use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 #[ScopedBy([{Model}Scope::class])]
 class {Model} extends Model
 {
-    protected $keyType = 'string';
-
-    public $incrementing = false;
+    use HasUuids;
 
     protected $fillable = {fillable_array};
 

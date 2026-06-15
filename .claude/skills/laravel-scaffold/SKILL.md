@@ -49,7 +49,7 @@ Generates the full Laravel artifact set for every table in a given schema, using
 
 ## Conventions enforced
 
-- **All `id` columns and any `*_id` FK columns are UUIDs** — use `$table->uuid('id')->primary()` and `$table->foreignUuid('{col}_id')->constrained()->cascadeOnDelete()` in migrations; add `protected $keyType = 'string'` and `public $incrementing = false` to models; cast FK columns as `'string'`
+- **All `id` columns and any `*_id` FK columns are UUIDs** — use `$table->uuid('id')->primary()` and `$table->foreignUuid('{col}_id')->constrained()->cascadeOnDelete()` in migrations; add `use Illuminate\Database\Eloquent\Concerns\HasUuids` trait to every model (replaces manual `$keyType`/`$incrementing`); cast FK columns as `'string'`
 - `$fillable` lists every non-auto column
 - `$casts` maps dates → `'datetime'`, booleans → `'boolean'`, JSON → `'array'`, enums → the PHP-backed enum class
 - **Enum columns are always `string` in the migration** (`$table->string('col')`); a PHP string-backed enum must be created at `app/Enums/{EnumName}.php` and cast via `'col' => {EnumName}::class` in the model

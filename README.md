@@ -1,58 +1,148 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Matches API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A REST API backend for managing combat sports tournaments — athletes, registrations, brackets, and live match tracking.
 
-## About Laravel
+Built with **Laravel 13**, **Sanctum** authentication, and **Laravel Reverb** for real-time match broadcasting.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Tournament management** — create and manage tournaments through their full lifecycle (`SCHEDULED → REGISTRATIONS_OPENED → IN_PROGRESS → COMPLETED`)
+- **Athlete registry** — athlete profiles with gender, weight category, discipline defaults, and team affiliation
+- **Registrations** — link athletes to tournaments with per-registration discipline, weight category, arrival, and weigh-in tracking
+- **Match records** — full fight card management: corners, scores, judges points (per-round, per-judge), end method, and winner
+- **Real-time broadcasting** — match record changes broadcast over WebSocket via Laravel Reverb on the `tournaments/{id}/match_records` channel
+- **Sanctum token auth** — token-based API authentication with per-client token abilities
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Tech Stack
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Layer | Technology |
+|---|---|
+| Framework | Laravel 13 (PHP 8.3+) |
+| Auth | Laravel Sanctum 4 |
+| WebSockets | Laravel Reverb |
+| Database | SQLite (local dev) |
+| Dev environment | Laravel Sail (Docker) |
+| Testing | PHPUnit 12 |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## Getting Started
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Prerequisites
+
+- Docker Desktop
+- [Laravel Sail](https://laravel.com/docs/sail) (included via Composer)
+
+### Setup
 
 ```bash
-composer require laravel/boost --dev
+# Install dependencies and scaffold the environment
+composer install
+cp .env.example .env
+php artisan key:generate
 
-php artisan boost:install
+# Start the dev stack
+vendor/bin/sail up -d
+
+# Run migrations and seed dev data
+vendor/bin/sail artisan migrate --seed
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The API is available at `http://localhost/api/v1/`.
 
-## Contributing
+### Default credentials
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+After seeding, a superadmin account is available:
 
-## Code of Conduct
+```
+email:    superadmin@matches.it
+password: 12345678
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## API Reference
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+All routes require `Authorization: Bearer <token>` except the login endpoint.
 
-## License
+### Authentication
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/auth/login` | Obtain a Sanctum token |
+| `GET` | `/api/v1/auth/user` | Get the authenticated user |
+| `POST` | `/api/v1/auth/logout` | Revoke the current token |
+
+### Resources
+
+| Resource | Base path | Notes |
+|----------|-----------|-------|
+| Users | `/api/v1/users` | Full CRUD |
+| Athletes | `/api/v1/athletes` | Full CRUD, searchable |
+| Disciplines | `/api/v1/disciplines` | Full CRUD |
+| Weight Categories | `/api/v1/weight_categories` | Full CRUD |
+| Tournaments | `/api/v1/tournaments` | Full CRUD |
+| Registrations | `/api/v1/registrations` | Full CRUD |
+| Match Records | `/api/v1/match_records` | Full CRUD |
+| Tournament Registrations | `/api/v1/tournaments/{id}/registrations` | `index`, `store` |
+| Tournament Matches | `/api/v1/tournaments/{id}/match_records` | `index`, `store` |
+
+---
+
+## Data Model
+
+See [`DB.md`](DB.md) for the full DBML schema. Key entities:
+
+```
+Tournament ──< Registration >── Athlete
+Tournament ──< MatchRecord ──── red_corner / blue_corner / winner (Athlete)
+MatchRecord ──< judges_points (JSON: per-round, per-judge scores)
+```
+
+Enum values are stored as strings in the database and cast to PHP-backed enums in models:
+
+- `MatchStatus`: `SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`
+- `TournamentStatus`: `SCHEDULED`, `REGISTRATIONS_OPENED`, `REGISTRATIONS_CLOSED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`
+- `EndMethod`: `VICTORY_UNANIMOUS_DECISION`, `VICTORY_SPLIT_DECISION`, `VICTORY_KO`, `VICTORY_TKO`, `VICTORY_DISQUALIFICATION`, `DRAW`, `NO_CONTEST`
+- `Gender`: `MALE`, `FEMALE`, `HYBRID`
+
+All primary and foreign keys are UUIDs.
+
+---
+
+## Real-time Events
+
+Match record changes fire a `MatchRecordChanged` event that broadcasts over the public channel:
+
+```
+tournaments/{tournament_id}/match_records
+```
+
+Payload: `{ "refresh": true }`
+
+Clients should subscribe to this channel and refetch match data on receipt.
+
+---
+
+## Development
+
+```bash
+# Run tests
+vendor/bin/sail artisan test --compact
+
+# Lint and format PHP
+vendor/bin/sail bin pint --dirty
+
+# Inspect routes
+vendor/bin/sail artisan route:list --path=api --except-vendor
+
+# Tail logs
+vendor/bin/sail artisan pail
+```
+
+> [!NOTE]
+> The dev seed data includes 160 athletes, 3 tournaments, 180 registrations, and 90 match records. See [`DB_SEED.md`](DB_SEED.md) for full details.

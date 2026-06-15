@@ -22,7 +22,7 @@ class UserController extends Controller
         $users = User::with($validated['with'] ?? []);
 
         if ($validated['paginate'] ?? false) {
-            $users = $users->paginate($validated['limit'] ?? null);
+            $users = $users->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {
             $users = $users->get();
         }

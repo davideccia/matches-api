@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\MatchRecord;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UserIndexRequest extends FormRequest
+class MatchRecordIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {

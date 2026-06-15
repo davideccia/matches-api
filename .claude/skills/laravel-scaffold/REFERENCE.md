@@ -252,7 +252,7 @@ class {Model}Controller extends Controller
         ${model}s = {Model}::with($validated['with'] ?? []);
 
         if ($validated['paginate'] ?? false) {
-            ${model}s = ${model}s->paginate($validated['limit'] ?? null);
+            ${model}s = ${model}s->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {
             ${model}s = ${model}s->get();
         }
@@ -320,8 +320,9 @@ class {Model}IndexRequest extends FormRequest
         return [
             'with'     => ['nullable', 'array'],
             'with.*'   => ['string'],
-            'paginate' => ['nullable', 'boolean'],
-            'limit'    => ['nullable', 'integer', 'min:1'],
+            'paginate'  => ['nullable', 'boolean'],
+            'per_page'  => ['nullable', 'integer', 'min:1'],
+            'page'      => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\Discipline;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UserIndexRequest extends FormRequest
+class DisciplineShowRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,9 +16,6 @@ class UserIndexRequest extends FormRequest
         return [
             'with' => ['nullable', 'array'],
             'with.*' => ['string'],
-            'paginate' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:1'],
-            'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

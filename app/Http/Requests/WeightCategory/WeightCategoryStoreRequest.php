@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\WeightCategory;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UserIndexRequest extends FormRequest
+class WeightCategoryStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,11 +14,10 @@ class UserIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'label' => ['required', 'string', 'max:255'],
+            'value' => ['required', 'numeric'],
             'with' => ['nullable', 'array'],
             'with.*' => ['string'],
-            'paginate' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:1'],
-            'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

@@ -54,7 +54,7 @@ Generates the full Laravel artifact set for every table in a given schema, using
 - `$casts` maps dates → `'datetime'`, booleans → `'boolean'`, JSON → `'array'`, enums → the PHP-backed enum class
 - **Enum columns are always `string` in the migration** (`$table->string('col')`); a PHP string-backed enum must be created at `app/Enums/{EnumName}.php` and cast via `'col' => {EnumName}::class` in the model
 - UpdateRequest **extends** StoreRequest and overrides only what changes (usually `sometimes` rules)
-- Controller returns `{Model}Resource` / `{Model}Resource::collection()`; uses `fill()->saveOrFail()`; supports `with` eager loading and `paginate`/`limit` on index
+- Controller returns `{Model}Resource` / `{Model}Resource::collection()`; uses `fill()->saveOrFail()`; supports `with` eager loading and `paginate`/`per_page`/`page` on index
 - Each controller action has its own dedicated Request class (Index, Store, Show, Update, Destroy)
 - Seeder uses `DB::table()->insert()` or `{Model}::create()` with static fixture data; use `Str::uuid()` for UUID primary keys
 - Observer stubs all six events: `creating`, `created`, `updating`, `updated`, `deleting`, `deleted`

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\Gender;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Athlete\AthleteDestroyRequest;
 use App\Http\Requests\Athlete\AthleteIndexRequest;
@@ -20,6 +21,14 @@ class AthleteController extends Controller
         $validated = $request->validated();
 
         $athletes = Athlete::with($validated['with'] ?? []);
+
+        if (isset($validated['tournament_id'])) {
+            $athletes->inTournament($validated['tournament_id'], ($validated['discipline_id'] ?? null), ($validated['weight_category_id'] ?? null));
+        }
+
+        if (isset($validated['gender']) && $validated['gender'] !== Gender::HYBRID->value) {
+            $athletes->where('gender', $validated['gender']);
+        }
 
         if ($validated['paginate'] ?? false) {
             $athletes = $athletes->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));

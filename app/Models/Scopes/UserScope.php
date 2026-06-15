@@ -10,6 +10,6 @@ class UserScope implements Scope
 {
     public function apply(Builder $builder, Model $model): void
     {
-        $builder->orderBy('id', 'desc');
+        //
     }
 }

@@ -27,7 +27,7 @@ class MatchRecordStoreRequest extends FormRequest
             'forced' => ['required', 'boolean'],
             'red_corner_team' => ['required', 'string', 'max:255'],
             'blue_corner_team' => ['required', 'string', 'max:255'],
-            'sort' => ['required', 'integer'],
+            'sort' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'scheduled_time' => ['nullable', 'date_format:H:i:s'],
             'winner_id' => ['nullable', 'string', 'uuid', 'exists:athletes,id'],
             'end_round' => ['nullable', 'string', 'max:255'],

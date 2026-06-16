@@ -19,7 +19,7 @@ class DisciplineController extends Controller
     {
         $validated = $request->validated();
 
-        $disciplines = Discipline::with($validated['with'] ?? []);
+        $disciplines = Discipline::with($validated['with'] ?? [])->orderBy('label')->orderBy('id');
 
         if (isset($validated['search'])) {
             $disciplines->search($validated['search']);

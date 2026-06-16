@@ -30,7 +30,9 @@ class Discipline extends Model
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
-        return $builder;
+        return $builder->where(fn (Builder $q) => $q
+            ->where('label', 'ilike', "%{$search}%")
+        );
     }
 
     public function registrations(): HasMany

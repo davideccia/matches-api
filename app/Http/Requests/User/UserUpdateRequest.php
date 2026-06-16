@@ -16,7 +16,7 @@ class UserUpdateRequest extends UserStoreRequest
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user)],
             'password' => ['sometimes', Password::min(8)],
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
     }
 }

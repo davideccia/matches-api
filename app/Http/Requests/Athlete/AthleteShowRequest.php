@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\Athlete;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AthleteShowRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -15,7 +19,12 @@ class AthleteShowRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

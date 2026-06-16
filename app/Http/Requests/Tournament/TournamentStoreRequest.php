@@ -3,11 +3,15 @@
 namespace App\Http\Requests\Tournament;
 
 use App\Enums\TournamentStatus;
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class TournamentStoreRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -23,7 +27,12 @@ class TournamentStoreRequest extends FormRequest
             'date' => ['required', 'date'],
             'status' => ['required', new Enum(TournamentStatus::class)],
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

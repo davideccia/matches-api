@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\MatchRecord;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class MatchRecordShowRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -15,7 +19,12 @@ class MatchRecordShowRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

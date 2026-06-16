@@ -5,11 +5,15 @@ namespace App\Http\Requests\MatchRecord;
 use App\Enums\EndMethod;
 use App\Enums\Gender;
 use App\Enums\MatchStatus;
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class MatchRecordStoreRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -37,12 +41,14 @@ class MatchRecordStoreRequest extends FormRequest
             'minutes_per_round' => ['required', 'numeric'],
             'judges_points' => ['nullable', 'array'],
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $this->injectWith();
+
         $this->merge([
             'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
         ]);

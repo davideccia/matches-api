@@ -3,11 +3,15 @@
 namespace App\Http\Requests\Athlete;
 
 use App\Enums\Gender;
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class AthleteStoreRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -25,7 +29,12 @@ class AthleteStoreRequest extends FormRequest
             'default_weight_category_id' => ['nullable', 'string', 'uuid', 'exists:weight_categories,id'],
             'default_discipline_id' => ['nullable', 'string', 'uuid', 'exists:disciplines,id'],
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

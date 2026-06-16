@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\User;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UserShowRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -15,7 +19,12 @@ class UserShowRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

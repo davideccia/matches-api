@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Athlete;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class AthleteIndexRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -16,7 +19,7 @@ class AthleteIndexRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
             'paginate' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -25,5 +28,10 @@ class AthleteIndexRequest extends FormRequest
             'discipline_id' => ['nullable', Rule::exists('disciplines', 'id')],
             'weight_category_id' => ['nullable', Rule::exists('weight_categories', 'id')],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

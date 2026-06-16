@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\Discipline;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class DisciplineIndexRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -15,11 +19,16 @@ class DisciplineIndexRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
             'paginate' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\User;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class UserStoreRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -20,7 +23,12 @@ class UserStoreRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', Rule::unique('users')],
             'password' => ['required', Password::min(8)],
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }

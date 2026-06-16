@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\Registration;
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RegistrationStoreRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -23,12 +27,14 @@ class RegistrationStoreRequest extends FormRequest
             'weight_in' => ['nullable', 'numeric'],
             'notes' => ['nullable', 'string'],
             'with' => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([])],
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $this->injectWith();
+
         $this->merge([
             'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
         ]);

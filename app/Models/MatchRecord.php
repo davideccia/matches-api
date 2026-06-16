@@ -62,7 +62,12 @@ class MatchRecord extends Model
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
-        return $builder;
+        return $builder->where(function (Builder $query) use ($search): void {
+            $query->whereHas('redCorner', fn (Builder $q) => $q->where('full_name', 'ilike', "%{$search}%"))
+                ->orWhereHas('blueCorner', fn (Builder $q) => $q->where('full_name', 'ilike', "%{$search}%"))
+                ->orWhereHas('weightCategory', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"))
+                ->orWhereHas('discipline', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"));
+        });
     }
 
     public function tournament(): BelongsTo

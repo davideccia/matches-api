@@ -19,11 +19,19 @@ class MatchRecordIndexRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => [Rule::in([])],
+            'with.*' => [Rule::in([
+                'tournament',
+                'redCorner',
+                'blueCorner',
+                'winner',
+                'weightCategory',
+                'discipline',
+            ])],
             'paginate' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string'],
+            'tournament_id' => ['nullable', Rule::exists('tournaments', 'id')],
         ];
     }
 

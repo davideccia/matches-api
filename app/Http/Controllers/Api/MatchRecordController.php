@@ -19,10 +19,14 @@ class MatchRecordController extends Controller
     {
         $validated = $request->validated();
 
-        $matchRecords = MatchRecord::with($validated['with'] ?? []);
+        $matchRecords = MatchRecord::with($validated['with'] ?? [])->orderBy('sort');
 
         if (isset($validated['search'])) {
             $matchRecords->search($validated['search']);
+        }
+
+        if (isset($validated['tournament_id'])) {
+            $matchRecords->where('tournament_id', $validated['tournament_id']);
         }
 
         if ($validated['paginate'] ?? false) {

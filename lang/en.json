@@ -146,5 +146,16 @@
     "validation.uppercase": "The :attribute field must be uppercase.",
     "validation.url": "The :attribute field must be a valid URL.",
     "validation.ulid": "The :attribute field must be a valid ULID.",
-    "validation.uuid": "The :attribute field must be a valid UUID."
+    "validation.uuid": "The :attribute field must be a valid UUID.",
+
+    "errors.athlete_has_registrations": "Cannot delete: athlete has existing registrations.",
+    "errors.athlete_has_match_records": "Cannot delete: athlete has existing match records.",
+    "errors.tournament_has_registrations": "Cannot delete: tournament has existing registrations.",
+    "errors.tournament_has_match_records": "Cannot delete: tournament has existing match records.",
+    "errors.discipline_has_registrations": "Cannot delete: discipline has existing registrations.",
+    "errors.discipline_has_match_records": "Cannot delete: discipline has existing match records.",
+    "errors.discipline_has_athletes": "Cannot delete: discipline has athletes assigned to it.",
+    "errors.weight_category_has_registrations": "Cannot delete: weight category has existing registrations.",
+    "errors.weight_category_has_match_records": "Cannot delete: weight category has existing match records.",
+    "errors.weight_category_has_athletes": "Cannot delete: weight category has athletes assigned to it."
 }

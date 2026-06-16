@@ -20,7 +20,13 @@ class AthleteObserver
         $athlete->tax_number = \Str::upper($athlete->tax_number);
     }
 
-    public function deleting(Athlete $athlete): void {}
+    public function deleting(Athlete $athlete): void
+    {
+        abort_if($athlete->registrations()->exists(), 409, __('errors.athlete_has_registrations'));
+        abort_if($athlete->redCornerMatches()->exists(), 409, __('errors.athlete_has_match_records'));
+        abort_if($athlete->blueCornerMatches()->exists(), 409, __('errors.athlete_has_match_records'));
+        abort_if($athlete->wonMatches()->exists(), 409, __('errors.athlete_has_match_records'));
+    }
 
     public function deleted(Athlete $athlete): void {}
 }

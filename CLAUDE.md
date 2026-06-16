@@ -12,6 +12,16 @@ This is a **Laravel 13 REST API** backend for a matches/dating domain. It is a p
 
 Local development uses SQLite; sessions, cache, and queues all use the database driver.
 
+## Domain Model
+
+Combat sports tournament management. Core entities and their relationships:
+
+- **Tournament** → has many Registrations, MatchRecords; status flows through `TournamentStatus` enum
+- **Athlete** → has many Registrations, MatchRecords (as red/blue corner or winner); looked up publicly by `tax_number`
+- **Registration** — join of Athlete + Tournament + Discipline + WeightCategory; tracks `paid_at`, `arrived`, `weight_in`
+- **MatchRecord** — a bout between two athletes; has `sort` (ordered within tournament), `status` (`MatchStatus`), `end_method` (`EndMethod`), `judges_points` (JSON array)
+- **Discipline** and **WeightCategory** are reference data shared across tournaments
+
 ## Architecture Invariants
 
 - **All primary and foreign key IDs are UUIDs** — enforced by the `laravel-scaffold` skill and must be reflected in migrations and models.
@@ -19,6 +29,37 @@ Local development uses SQLite; sessions, cache, and queues all use the database 
 - **API versioning is standard** — all routes live under `/api/v1/`.
 - **Eloquent API Resources are mandatory** for all API responses.
 - Use `.claude/skills/laravel-scaffold/` to generate a full artifact set (migration, model, observer, scopes, resource, controller, form requests, seeder) from a DBML schema.
+
+## Route Files
+
+`routes/api.php` is the bootstrap file (currently empty beyond the include mechanism). Routes live in:
+- `routes/api.admin.php` — all authenticated routes (Sanctum middleware); covers `auth/*`, and all apiResources
+- `routes/api.public.php` — unauthenticated routes; `registration_form/*` (public athlete lookup, registration PDF) and `tournaments/*` (public match records)
+
+## Request / Controller Patterns
+
+Every resource has five FormRequests named `{Model}{Action}Request` (e.g., `MatchRecordStoreRequest`), stored in `app/Http/Requests/{Model}/`.
+
+**`InjectWith` trait** (`app/Traits/InjectWith.php`): all index/show/store requests use this trait. Clients pass `?with=relation1,relation2` as a comma-separated string; the trait converts it to a camelCase array that is then validated against an allowlist in `with.*` rules. Controllers call `$model->loadMissing($validated['with'] ?? [])` to eager-load.
+
+**Pagination**: index requests expose `paginate` (bool), `per_page`, `page` params. When `paginate=true`, the controller calls `->paginate()`; otherwise `->get()`.
+
+**Nested route injection**: for nested routes like `tournaments/{tournament}/match_records`, the store request's `prepareForValidation` injects `tournament_id` from the route-bound model.
+
+## Observers
+
+Each model has an observer (`app/Observers/`) wired via `#[ObservedBy]` attribute. Key responsibilities:
+- **Delete guards**: `TournamentObserver::deleting` aborts with 409 if related registrations or match_records exist
+- **Sort management**: `MatchRecordObserver` delegates creating/updating/deleting to `ReorderMatchRecordsAction` to maintain contiguous `sort` ordering per tournament
+- **WebSocket broadcast**: `MatchRecordObserver` fires `MatchRecordChanged` event on every CRUD operation
+
+## Events & Broadcasting
+
+`MatchRecordChanged` (`app/Events/`) implements `ShouldBroadcast` and `ShouldDispatchAfterCommit`. It broadcasts a `{"refresh": true}` payload on the channel `tournaments.{tournament_id}.match_records`. Use this pattern when real-time push is needed for future resources.
+
+## Actions
+
+`app/Actions/` holds stateless classes for complex business logic extracted from observers/controllers. Currently: `ReorderMatchRecordsAction` — handles insert/update/delete of the `sort` column across a tournament's match records within DB transactions.
 
 ## Key Commands
 

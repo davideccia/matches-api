@@ -19,7 +19,7 @@ class RegistrationController extends Controller
     {
         $validated = $request->validated();
 
-        $registrations = Registration::with($validated['with'] ?? []);
+        $registrations = Registration::with($validated['with'] ?? [])->orderByDesc('registrations.created_at')->orderByDesc('registrations.id');
 
         if (isset($validated['search'])) {
             $registrations->search($validated['search']);
@@ -27,6 +27,18 @@ class RegistrationController extends Controller
 
         if (isset($validated['tournament_id'])) {
             $registrations->where('registrations.tournament_id', $validated['tournament_id']);
+        }
+
+        if (isset($validated['unpaid'])) {
+            $registrations->unpaid($validated['unpaid']);
+        }
+
+        if (isset($validated['unarrived'])) {
+            $registrations->unarrived($validated['unarrived']);
+        }
+
+        if (isset($validated['weight_in_exceeded'])) {
+            $registrations->weightInExceeded($validated['weight_in_exceeded']);
         }
 
         if ($validated['paginate'] ?? false) {

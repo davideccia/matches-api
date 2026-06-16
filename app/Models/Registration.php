@@ -45,7 +45,34 @@ class Registration extends Model
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
-        return $builder;
+        return $builder->where(function (Builder $query) use ($search): void {
+            $query->whereHas('athlete', fn (Builder $q) => $q->where('full_name', 'ilike', "%{$search}%"))
+                ->orWhereHas('tournament', fn (Builder $q) => $q->where('name', 'ilike', "%{$search}%"))
+                ->orWhereHas('discipline', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"))
+                ->orWhereHas('weightCategory', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"));
+        });
+    }
+
+    #[Scope]
+    public function unpaid(Builder $query, bool $value): Builder
+    {
+        return $value ? $query->whereNull('paid_at') : $query->whereNotNull('paid_at');
+    }
+
+    #[Scope]
+    public function unarrived(Builder $query, bool $value): Builder
+    {
+        return $query->where('arrived', ! $value);
+    }
+
+    #[Scope]
+    public function weightInExceeded(Builder $query, bool $value): Builder
+    {
+        $operator = $value ? '>' : '<=';
+
+        return $query->whereRaw(
+            "weight_in {$operator} (SELECT value FROM weight_categories WHERE weight_categories.id = registrations.weight_category_id)"
+        );
     }
 
     public function athlete(): BelongsTo

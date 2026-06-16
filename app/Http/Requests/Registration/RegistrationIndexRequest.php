@@ -30,6 +30,9 @@ class RegistrationIndexRequest extends FormRequest
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string'],
             'tournament_id' => ['nullable', Rule::exists('tournaments', 'id')],
+            'unpaid' => ['nullable', 'boolean'],
+            'unarrived' => ['nullable', 'boolean'],
+            'weight_in_exceeded' => ['nullable', 'boolean'],
         ];
     }
 

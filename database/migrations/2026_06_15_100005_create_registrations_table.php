@@ -19,8 +19,6 @@ return new class extends Migration
             $table->decimal('weight_in')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-
-            $table->unique(['athlete_id', 'tournament_id'], 'uq_registrations_athlete_tournament');
         });
     }
 

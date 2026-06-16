@@ -17,7 +17,7 @@ class AthleteObserver
     public function saving(Athlete $athlete): void
     {
         $athlete->full_name = "{$athlete->first_name} {$athlete->last_name}";
-        $athlete->tax_number = \Str::upper($athlete->tax_number);
+        $athlete->tax_number = \Str::of($athlete->tax_number)->trim()->upper();
     }
 
     public function deleting(Athlete $athlete): void

@@ -157,5 +157,6 @@
     "errors.discipline_has_athletes": "Cannot delete: discipline has athletes assigned to it.",
     "errors.weight_category_has_registrations": "Cannot delete: weight category has existing registrations.",
     "errors.weight_category_has_match_records": "Cannot delete: weight category has existing match records.",
-    "errors.weight_category_has_athletes": "Cannot delete: weight category has athletes assigned to it."
+    "errors.weight_category_has_athletes": "Cannot delete: weight category has athletes assigned to it.",
+    "errors.registration_duplicate": "Cannot save: athlete is already registered for this tournament, discipline and weight category."
 }

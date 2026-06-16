@@ -62,7 +62,7 @@ class Registration extends Model
     #[Scope]
     public function unarrived(Builder $query, bool $value): Builder
     {
-        return $query->where('arrived', ! $value);
+        return $query->where('arrived', !$value);
     }
 
     #[Scope]
@@ -73,6 +73,17 @@ class Registration extends Model
         return $query->whereRaw(
             "weight_in {$operator} (SELECT value FROM weight_categories WHERE weight_categories.id = registrations.weight_category_id)"
         );
+    }
+
+    public function isDuplicateRegistration(): bool
+    {
+        return self::query()
+            ->where('athlete_id', $this->athlete_id)
+            ->where('tournament_id', $this->tournament_id)
+            ->where('discipline_id', $this->discipline_id)
+            ->where('weight_category_id', $this->weight_category_id)
+            ->when($this->exists, fn ($q) => $q->whereNot('id', $this->id))
+            ->exists();
     }
 
     public function athlete(): BelongsTo

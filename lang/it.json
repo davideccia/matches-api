@@ -157,5 +157,6 @@
     "errors.discipline_has_athletes": "Impossibile eliminare: la disciplina è assegnata ad alcuni atleti.",
     "errors.weight_category_has_registrations": "Impossibile eliminare: la categoria di peso ha delle iscrizioni associate.",
     "errors.weight_category_has_match_records": "Impossibile eliminare: la categoria di peso ha degli incontri associati.",
-    "errors.weight_category_has_athletes": "Impossibile eliminare: la categoria di peso è assegnata ad alcuni atleti."
+    "errors.weight_category_has_athletes": "Impossibile eliminare: la categoria di peso è assegnata ad alcuni atleti.",
+    "errors.registration_duplicate": "Impossibile salvare: l'atleta è già iscritto a questo torneo, disciplina e categoria di peso."
 }

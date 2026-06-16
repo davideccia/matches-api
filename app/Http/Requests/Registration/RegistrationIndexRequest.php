@@ -35,9 +35,4 @@ class RegistrationIndexRequest extends FormRequest
             'weight_in_exceeded' => ['nullable', 'boolean'],
         ];
     }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWith();
-    }
 }

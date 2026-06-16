@@ -22,9 +22,4 @@ class TournamentShowRequest extends FormRequest
             'with.*' => [Rule::in([])],
         ];
     }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWith();
-    }
 }

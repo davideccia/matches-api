@@ -29,9 +29,4 @@ class AthleteIndexRequest extends FormRequest
             'weight_category_id' => ['nullable', Rule::exists('weight_categories', 'id')],
         ];
     }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWith();
-    }
 }

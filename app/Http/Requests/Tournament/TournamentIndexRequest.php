@@ -26,9 +26,4 @@ class TournamentIndexRequest extends FormRequest
             'search' => ['nullable', 'string'],
         ];
     }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWith();
-    }
 }

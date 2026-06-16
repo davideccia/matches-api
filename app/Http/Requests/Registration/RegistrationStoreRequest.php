@@ -8,7 +8,9 @@ use Illuminate\Validation\Rule;
 
 class RegistrationStoreRequest extends FormRequest
 {
-    use InjectWith;
+    use InjectWith {
+        prepareForValidation as injectWithPrepare;
+    }
 
     public function authorize(): bool
     {
@@ -33,7 +35,7 @@ class RegistrationStoreRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->injectWith();
+        $this->injectWithPrepare();
 
         $this->merge([
             'tournament_id' => $this->input('tournament_id', $this->tournament?->id),

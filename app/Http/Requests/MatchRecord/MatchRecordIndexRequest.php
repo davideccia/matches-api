@@ -34,9 +34,4 @@ class MatchRecordIndexRequest extends FormRequest
             'tournament_id' => ['nullable', Rule::exists('tournaments', 'id')],
         ];
     }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWith();
-    }
 }

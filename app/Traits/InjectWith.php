@@ -6,7 +6,7 @@ use Illuminate\Support\Str;
 
 trait InjectWith
 {
-    private function injectWith(): void
+    protected function prepareForValidation(): void
     {
         $with = collect($this->with ? explode(',', $this->with) : [])
             ->map(fn ($w) => Str::camel($w))

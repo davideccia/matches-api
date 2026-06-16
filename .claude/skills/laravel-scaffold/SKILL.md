@@ -54,6 +54,10 @@ Generates the full Laravel artifact set for every table in a given schema, using
 - `$casts` maps dates → `'datetime'`, booleans → `'boolean'`, JSON → `'array'`, enums → the PHP-backed enum class
 - **Enum columns are always `string` in the migration** (`$table->string('col')`); a PHP string-backed enum must be created at `app/Enums/{EnumName}.php` and cast via `'col' => {EnumName}::class` in the model
 - UpdateRequest **extends** StoreRequest and overrides only what changes (usually `sometimes` rules)
+- **Index, Store, and Show requests** use the `InjectWith` trait (`use App\Traits\InjectWith`) and call `$this->injectWith()` in `prepareForValidation()` — this normalises the `with` query param from a comma-separated string to a camelCase array
+- **`with.*` validation** always uses `Rule::in([...camelCase relationships...])` instead of `['string']` — explicitly whitelist every eager-loadable relationship; leave the array empty if none are allowed
+- **IndexRequest** always includes a `'search' => ['nullable', 'string']` rule
+- **DestroyRequest** does not use the `InjectWith` trait
 - Controller returns `{Model}Resource` / `{Model}Resource::collection()`; uses `fill()->saveOrFail()`; supports `with` eager loading and `paginate`/`per_page`/`page` on index
 - Each controller action has its own dedicated Request class (Index, Store, Show, Update, Destroy)
 - Seeder uses `DB::table()->insert()` or `{Model}::create()` with static fixture data; use `Str::uuid()` for UUID primary keys

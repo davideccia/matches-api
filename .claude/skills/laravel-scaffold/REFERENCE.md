@@ -306,10 +306,14 @@ class {Model}Controller extends Controller
 
 namespace App\Http\Requests\{Model};
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class {Model}IndexRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -319,11 +323,19 @@ class {Model}IndexRequest extends FormRequest
     {
         return [
             'with'     => ['nullable', 'array'],
-            'with.*'   => ['string'],
-            'paginate'  => ['nullable', 'boolean'],
-            'per_page'  => ['nullable', 'integer', 'min:1'],
-            'page'      => ['nullable', 'integer', 'min:1'],
+            'with.*'   => [Rule::in([
+                // list all eager-loadable camelCase relationships here
+            ])],
+            'paginate' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1'],
+            'page'     => ['nullable', 'integer', 'min:1'],
+            'search'   => ['nullable', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }
 ```
@@ -339,10 +351,14 @@ class {Model}IndexRequest extends FormRequest
 
 namespace App\Http\Requests\{Model};
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class {Model}StoreRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -353,8 +369,15 @@ class {Model}StoreRequest extends FormRequest
         return [
             ...{validation_rules},
             'with'   => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([
+                // list all eager-loadable camelCase relationships here
+            ])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }
 ```
@@ -384,10 +407,14 @@ class {Model}StoreRequest extends FormRequest
 
 namespace App\Http\Requests\{Model};
 
+use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class {Model}ShowRequest extends FormRequest
 {
+    use InjectWith;
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -397,8 +424,15 @@ class {Model}ShowRequest extends FormRequest
     {
         return [
             'with'   => ['nullable', 'array'],
-            'with.*' => ['string'],
+            'with.*' => [Rule::in([
+                // list all eager-loadable camelCase relationships here
+            ])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->injectWith();
     }
 }
 ```

@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[ObservedBy([AthleteObserver::class])]
 #[ScopedBy([AthleteScope::class])]
@@ -56,5 +58,35 @@ class Athlete extends Model
             ->select('registrations.athlete_id');
 
         return $builder->whereIn('id', $registrationsAthletes);
+    }
+
+    public function defaultWeightCategory(): BelongsTo
+    {
+        return $this->belongsTo(WeightCategory::class, 'default_weight_category_id');
+    }
+
+    public function defaultDiscipline(): BelongsTo
+    {
+        return $this->belongsTo(Discipline::class, 'default_discipline_id');
+    }
+
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(Registration::class);
+    }
+
+    public function redCornerMatches(): HasMany
+    {
+        return $this->hasMany(MatchRecord::class, 'red_corner_id');
+    }
+
+    public function blueCornerMatches(): HasMany
+    {
+        return $this->hasMany(MatchRecord::class, 'blue_corner_id');
+    }
+
+    public function wonMatches(): HasMany
+    {
+        return $this->hasMany(MatchRecord::class, 'winner_id');
     }
 }

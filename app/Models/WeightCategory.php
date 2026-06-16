@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[ObservedBy([WeightCategoryObserver::class])]
 #[ScopedBy([WeightCategoryScope::class])]
@@ -33,5 +34,20 @@ class WeightCategory extends Model
     public function search(Builder $builder, string $search): Builder
     {
         return $builder;
+    }
+
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(Registration::class);
+    }
+
+    public function matchRecords(): HasMany
+    {
+        return $this->hasMany(MatchRecord::class);
+    }
+
+    public function defaultAthletes(): HasMany
+    {
+        return $this->hasMany(Athlete::class, 'default_weight_category_id');
     }
 }

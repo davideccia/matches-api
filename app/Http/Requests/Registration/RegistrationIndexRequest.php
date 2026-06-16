@@ -23,6 +23,7 @@ class RegistrationIndexRequest extends FormRequest
                 'weightCategory',
                 'athlete',
                 'tournament',
+                'discipline',
             ])],
             'paginate' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1'],

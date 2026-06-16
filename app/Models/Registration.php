@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[ObservedBy([RegistrationObserver::class])]
 #[ScopedBy([RegistrationScope::class])]
@@ -44,5 +45,25 @@ class Registration extends Model
     public function search(Builder $builder, string $search): Builder
     {
         return $builder;
+    }
+
+    public function athlete(): BelongsTo
+    {
+        return $this->belongsTo(Athlete::class);
+    }
+
+    public function tournament(): BelongsTo
+    {
+        return $this->belongsTo(Tournament::class);
+    }
+
+    public function discipline(): BelongsTo
+    {
+        return $this->belongsTo(Discipline::class);
+    }
+
+    public function weightCategory(): BelongsTo
+    {
+        return $this->belongsTo(WeightCategory::class);
     }
 }

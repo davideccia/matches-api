@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[ObservedBy([MatchRecordObserver::class])]
 #[ScopedBy([MatchRecordScope::class])]
@@ -62,5 +63,35 @@ class MatchRecord extends Model
     public function search(Builder $builder, string $search): Builder
     {
         return $builder;
+    }
+
+    public function tournament(): BelongsTo
+    {
+        return $this->belongsTo(Tournament::class);
+    }
+
+    public function redCorner(): BelongsTo
+    {
+        return $this->belongsTo(Athlete::class, 'red_corner_id');
+    }
+
+    public function blueCorner(): BelongsTo
+    {
+        return $this->belongsTo(Athlete::class, 'blue_corner_id');
+    }
+
+    public function winner(): BelongsTo
+    {
+        return $this->belongsTo(Athlete::class, 'winner_id');
+    }
+
+    public function weightCategory(): BelongsTo
+    {
+        return $this->belongsTo(WeightCategory::class);
+    }
+
+    public function discipline(): BelongsTo
+    {
+        return $this->belongsTo(Discipline::class);
     }
 }

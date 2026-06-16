@@ -45,7 +45,9 @@ class Athlete extends Model
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
-        return $builder;
+        return $builder->where(fn (Builder $q) => $q
+            ->where('full_name', 'ilike', "%{$search}%")
+        );
     }
 
     #[Scope]

@@ -20,7 +20,7 @@ class AthleteController extends Controller
     {
         $validated = $request->validated();
 
-        $athletes = Athlete::with($validated['with'] ?? [])->orderByRaw("CONCAT(athletes.first_name, ' ', athletes.last_name)");
+        $athletes = Athlete::with($validated['with'] ?? [])->orderBy('full_name')->orderBy('id');
 
         if (isset($validated['search'])) {
             $athletes->search($validated['search']);

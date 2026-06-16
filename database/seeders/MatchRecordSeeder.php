@@ -14,21 +14,21 @@ use Illuminate\Database\Seeder;
 class MatchRecordSeeder extends Seeder
 {
     private const JP_A = [
-        ['round' => 1, 'judge1Red' => 10, 'judge1Blue' => 9, 'judge2Red' => 10, 'judge2Blue' => 9, 'judge3Red' => 10, 'judge3Blue' => 9],
-        ['round' => 2, 'judge1Red' => 10, 'judge1Blue' => 10, 'judge2Red' => 9, 'judge2Blue' => 9, 'judge3Red' => 9, 'judge3Blue' => 10],
-        ['round' => 3, 'judge1Red' => 9, 'judge1Blue' => 10, 'judge2Red' => 10, 'judge2Blue' => 10, 'judge3Red' => 9, 'judge3Blue' => 9],
+        ['round' => 1, 'judge1_red' => 10, 'judge1_blue' => 9, 'judge2_red' => 10, 'judge2_blue' => 9, 'judge3_red' => 10, 'judge3_blue' => 9],
+        ['round' => 2, 'judge1_red' => 10, 'judge1_blue' => 10, 'judge2_red' => 9, 'judge2_blue' => 9, 'judge3_red' => 9, 'judge3_blue' => 10],
+        ['round' => 3, 'judge1_red' => 9, 'judge1_blue' => 10, 'judge2_red' => 10, 'judge2_blue' => 10, 'judge3_red' => 9, 'judge3_blue' => 9],
     ];
 
     private const JP_B = [
-        ['round' => 1, 'judge1Red' => 10, 'judge1Blue' => 10, 'judge2Red' => 10, 'judge2Blue' => 9, 'judge3Red' => 9, 'judge3Blue' => 9],
-        ['round' => 2, 'judge1Red' => 10, 'judge1Blue' => 10, 'judge2Red' => null, 'judge2Blue' => 9, 'judge3Red' => 9, 'judge3Blue' => null],
-        ['round' => 3, 'judge1Red' => null, 'judge1Blue' => null, 'judge2Red' => null, 'judge2Blue' => null, 'judge3Red' => null, 'judge3Blue' => null],
+        ['round' => 1, 'judge1_red' => 10, 'judge1_blue' => 10, 'judge2_red' => 10, 'judge2_blue' => 9, 'judge3_red' => 9, 'judge3_blue' => 9],
+        ['round' => 2, 'judge1_red' => 10, 'judge1_blue' => 10, 'judge2_red' => null, 'judge2_blue' => 9, 'judge3_red' => 9, 'judge3_blue' => null],
+        ['round' => 3, 'judge1_red' => null, 'judge1_blue' => null, 'judge2_red' => null, 'judge2_blue' => null, 'judge3_red' => null, 'judge3_blue' => null],
     ];
 
     private const JP_C = [
-        ['round' => 1, 'judge1Red' => 10, 'judge1Blue' => 10, 'judge2Red' => null, 'judge2Blue' => 9, 'judge3Red' => 9, 'judge3Blue' => null],
-        ['round' => 2, 'judge1Red' => null, 'judge1Blue' => null, 'judge2Red' => null, 'judge2Blue' => null, 'judge3Red' => null, 'judge3Blue' => null],
-        ['round' => 3, 'judge1Red' => null, 'judge1Blue' => null, 'judge2Red' => null, 'judge2Blue' => null, 'judge3Red' => null, 'judge3Blue' => null],
+        ['round' => 1, 'judge1_red' => 10, 'judge1_blue' => 10, 'judge2_red' => null, 'judge2_blue' => 9, 'judge3_red' => 9, 'judge3_blue' => null],
+        ['round' => 2, 'judge1_red' => null, 'judge1_blue' => null, 'judge2_red' => null, 'judge2_blue' => null, 'judge3_red' => null, 'judge3_blue' => null],
+        ['round' => 3, 'judge1_red' => null, 'judge1_blue' => null, 'judge2_red' => null, 'judge2_blue' => null, 'judge3_red' => null, 'judge3_blue' => null],
     ];
 
     public function run(): void

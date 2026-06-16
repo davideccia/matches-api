@@ -19,7 +19,7 @@ class WeightCategoryController extends Controller
     {
         $validated = $request->validated();
 
-        $weightCategories = WeightCategory::with($validated['with'] ?? []);
+        $weightCategories = WeightCategory::with($validated['with'] ?? [])->orderBy('label')->orderBy('id');
 
         if (isset($validated['search'])) {
             $weightCategories->search($validated['search']);

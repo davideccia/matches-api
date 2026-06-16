@@ -26,7 +26,7 @@ class WeightCategory extends Model
     protected function casts(): array
     {
         return [
-            'value' => 'decimal:2',
+            'value' => 'float',
         ];
     }
 

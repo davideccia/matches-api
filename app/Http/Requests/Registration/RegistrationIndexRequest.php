@@ -29,6 +29,7 @@ class RegistrationIndexRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string'],
+            'tournament_id' => ['nullable', Rule::exists('tournaments', 'id')],
         ];
     }
 

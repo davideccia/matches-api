@@ -25,6 +25,10 @@ class RegistrationController extends Controller
             $registrations->search($validated['search']);
         }
 
+        if (isset($validated['tournament_id'])) {
+            $registrations->where('registrations.tournament_id', $validated['tournament_id']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $registrations = $registrations->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

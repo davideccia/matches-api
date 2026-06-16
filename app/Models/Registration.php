@@ -37,6 +37,7 @@ class Registration extends Model
             'discipline_id' => 'string',
             'weight_category_id' => 'string',
             'paid_at' => 'datetime',
+            'weight_in' => 'float',
             'arrived' => 'boolean',
         ];
     }

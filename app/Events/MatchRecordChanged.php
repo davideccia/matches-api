@@ -21,7 +21,7 @@ class MatchRecordChanged implements ShouldBroadcast, ShouldDispatchAfterCommit
     public function broadcastOn(): array
     {
         return [
-            new Channel("tournaments/{$this->matchRecord->tournament_id}/match_records"),
+            new Channel("tournaments.{$this->matchRecord->tournament_id}.match_records"),
         ];
     }
 

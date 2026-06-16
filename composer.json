@@ -39,6 +39,9 @@
         }
     },
     "scripts": {
+        "queue-ws": [
+            "npx concurrently -n \"queue,reverb\" -c \"blue,green\" \"php artisan queue:work\" \"php artisan reverb:start\""
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",

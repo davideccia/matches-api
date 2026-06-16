@@ -49,6 +49,6 @@ class Tournament extends Model
 
     public function matchRecords(): HasMany
     {
-        return $this->hasMany(MatchRecord::class);
+        return $this->hasMany(MatchRecord::class)->orderBy('sort');
     }
 }

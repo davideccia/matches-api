@@ -4,23 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\TournamentStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormDisciplineIndexRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormRegistrationPdfRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormRegistrationStoreRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormShowRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormStoreRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormTournamentIndexRequest;
-use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormWeightCategoryIndexRequest;
 use App\Http\Resources\AthleteResource;
-use App\Http\Resources\DisciplineResource;
 use App\Http\Resources\RegistrationResource;
 use App\Http\Resources\TournamentResource;
-use App\Http\Resources\WeightCategoryResource;
 use App\Models\Athlete;
-use App\Models\Discipline;
 use App\Models\Registration;
 use App\Models\Tournament;
-use App\Models\WeightCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
@@ -51,16 +45,6 @@ class PublicRegistrationFormController extends Controller
             ->get();
 
         return TournamentResource::collection($tournaments);
-    }
-
-    public function disciplinesIndex(PublicRegistrationFormDisciplineIndexRequest $request): ResourceCollection
-    {
-        return DisciplineResource::collection(Discipline::orderBy('label')->orderBy('id')->get());
-    }
-
-    public function weightCategoriesIndex(PublicRegistrationFormWeightCategoryIndexRequest $request): ResourceCollection
-    {
-        return WeightCategoryResource::collection(WeightCategory::orderBy('value')->orderBy('id')->get());
     }
 
     public function storeRegistration(PublicRegistrationFormRegistrationStoreRequest $request): RegistrationResource

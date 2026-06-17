@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AthleteController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DisciplineController;
 use App\Http\Controllers\Api\MatchRecordController;
 use App\Http\Controllers\Api\RegistrationController;
@@ -17,6 +18,8 @@ Route::post('auth/forgot_password', [AuthController::class, 'forgotPassword']);
 Route::post('auth/reset_password', [AuthController::class, 'resetPassword']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
+
+    Route::get('dashboard', [DashboardController::class, 'index']);
 
     Route::post('auth/logout', [AuthController::class, 'logout']);
 

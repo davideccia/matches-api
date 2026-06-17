@@ -38,8 +38,16 @@ class TournamentController extends Controller
     {
         $validated = $request->validated();
 
-        $tournament = new Tournament;
-        $tournament->fill($validated)->saveOrFail();
+        \DB::beginTransaction();
+
+        $tournament = (new Tournament)->fill($validated);
+        $tournament->saveOrFail();
+
+        if (isset($validated['cover'])) {
+            $tournament->addMediaFromTemporaryFile($validated['cover'], Tournament::COVER_MEDIA_COLLECTION_NAME);
+        }
+
+        \DB::commit();
 
         return new TournamentResource($tournament->loadMissing($validated['with'] ?? []));
     }
@@ -55,7 +63,16 @@ class TournamentController extends Controller
     {
         $validated = $request->validated();
 
-        $tournament->fill($validated)->saveOrFail();
+        \DB::beginTransaction();
+
+        $tournament->fill($validated);
+        $tournament->saveOrFail();
+
+        if (isset($validated['cover'])) {
+            $tournament->addMediaFromTemporaryFile($validated['cover'], Tournament::COVER_MEDIA_COLLECTION_NAME);
+        }
+
+        \DB::commit();
 
         return new TournamentResource($tournament->loadMissing($validated['with'] ?? []));
     }

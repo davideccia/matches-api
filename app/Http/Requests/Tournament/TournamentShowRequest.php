@@ -19,7 +19,9 @@ class TournamentShowRequest extends FormRequest
     {
         return [
             'with' => ['nullable', 'array'],
-            'with.*' => [Rule::in([])],
+            'with.*' => [Rule::in([
+                'coverMedia',
+            ])],
         ];
     }
 }

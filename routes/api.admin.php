@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DisciplineController;
 use App\Http\Controllers\Api\MatchRecordController;
 use App\Http\Controllers\Api\RegistrationController;
+use App\Http\Controllers\Api\TemporaryUploadController;
 use App\Http\Controllers\Api\TournamentController;
 use App\Http\Controllers\Api\TournamentMatchController;
 use App\Http\Controllers\Api\TournamentRegistrationController;
@@ -44,5 +45,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('registrations', RegistrationController::class);
 
     Route::apiResource('match_records', MatchRecordController::class);
+
+    Route::post('temporary_uploads', [TemporaryUploadController::class, 'store']);
 
 });

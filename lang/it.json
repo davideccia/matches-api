@@ -2,16 +2,13 @@
     "auth.failed": "Credenziali non valide.",
     "auth.password": "La password fornita non è corretta.",
     "auth.throttle": "Troppi tentativi di accesso. Riprova tra :seconds secondi.",
-
     "pagination.previous": "&laquo; Precedente",
     "pagination.next": "Successivo &raquo;",
-
     "passwords.reset": "La tua password è stata reimpostata.",
     "passwords.sent": "Abbiamo inviato il link per reimpostare la password via email.",
     "passwords.throttled": "Attendi prima di riprovare.",
     "passwords.token": "Il token per la reimpostazione della password non è valido.",
     "passwords.user": "Non troviamo un utente con quell'indirizzo email.",
-
     "validation.accepted": "Il campo :attribute deve essere accettato.",
     "validation.accepted_if": "Il campo :attribute deve essere accettato quando :other è :value.",
     "validation.active_url": "Il campo :attribute deve essere un URL valido.",
@@ -147,7 +144,7 @@
     "validation.url": "Il campo :attribute deve essere un URL valido.",
     "validation.ulid": "Il campo :attribute deve essere un ULID valido.",
     "validation.uuid": "Il campo :attribute deve essere un UUID valido.",
-
+    "validation.temporary_file_rule": "Il campo :attribute non fa riferimento a un file caricato valido.",
     "errors.athlete_has_registrations": "Impossibile eliminare: l'atleta ha delle iscrizioni associate.",
     "errors.athlete_has_match_records": "Impossibile eliminare: l'atleta ha degli incontri associati.",
     "errors.tournament_has_registrations": "Impossibile eliminare: il torneo ha delle iscrizioni associate.",

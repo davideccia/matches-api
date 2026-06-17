@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('end_method')->nullable();
             $table->string('status');
             $table->integer('rounds');
-            $table->float('minutes_per_round');
+            $table->string('minutes_per_round');
             $table->json('judges_points')->nullable();
             $table->timestamps();
         });

@@ -20,6 +20,8 @@ class Discipline extends Model
 
     protected $fillable = [
         'label',
+        'rounds',
+        'minutes_per_round',
     ];
 
     protected function casts(): array

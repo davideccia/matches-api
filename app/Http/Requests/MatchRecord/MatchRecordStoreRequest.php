@@ -40,7 +40,7 @@ class MatchRecordStoreRequest extends FormRequest
             'end_method' => ['nullable', new Enum(EndMethod::class)],
             'status' => ['required', new Enum(MatchStatus::class)],
             'rounds' => ['required', 'integer'],
-            'minutes_per_round' => ['required', 'numeric'],
+            'minutes_per_round' => ['required', 'date_format:H:i'],
             'judges_points' => ['nullable', 'array'],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],

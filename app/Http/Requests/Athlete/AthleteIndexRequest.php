@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Athlete;
 
+use App\Enums\Gender;
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,7 @@ class AthleteIndexRequest extends FormRequest
             'tournament_id' => ['nullable', Rule::exists('tournaments', 'id')],
             'discipline_id' => ['nullable', Rule::exists('disciplines', 'id')],
             'weight_category_id' => ['nullable', Rule::exists('weight_categories', 'id')],
+            'gender' => ['nullable', Rule::enum(Gender::class)],
         ];
     }
 }

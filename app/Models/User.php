@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Scopes\UserScope;
+use App\Notifications\ResetPasswordNotification;
 use App\Observers\UserObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -29,6 +30,12 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $url = config('app.frontend_url').'/reset-password?token='.$token.'&email='.urlencode($this->email);
+        $this->notify(new ResetPasswordNotification($url));
     }
 
     #[Scope]

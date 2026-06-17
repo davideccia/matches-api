@@ -3,11 +3,13 @@
         "claude_code"
     ],
     "cloud": false,
-    "guidelines": true,
-    "mcp": true,
-    "nightwatch": false,
-    "sail": true,
+    "packages": [
+        "spatie/laravel-medialibrary"
+    ],
     "skills": [
-        "laravel-best-practices"
+        "laravel-best-practices",
+        "echo-development",
+        "tailwindcss-development",
+        "medialibrary-development"
     ]
 }

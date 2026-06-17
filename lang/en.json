@@ -2,16 +2,13 @@
     "auth.failed": "These credentials do not match our records.",
     "auth.password": "The provided password is incorrect.",
     "auth.throttle": "Too many login attempts. Please try again in :seconds seconds.",
-
     "pagination.previous": "&laquo; Previous",
     "pagination.next": "Next &raquo;",
-
     "passwords.reset": "Your password has been reset.",
     "passwords.sent": "We have emailed your password reset link.",
     "passwords.throttled": "Please wait before retrying.",
     "passwords.token": "This password reset token is invalid.",
     "passwords.user": "We can't find a user with that email address.",
-
     "validation.accepted": "The :attribute field must be accepted.",
     "validation.accepted_if": "The :attribute field must be accepted when :other is :value.",
     "validation.active_url": "The :attribute field must be a valid URL.",
@@ -147,7 +144,7 @@
     "validation.url": "The :attribute field must be a valid URL.",
     "validation.ulid": "The :attribute field must be a valid ULID.",
     "validation.uuid": "The :attribute field must be a valid UUID.",
-
+    "validation.temporary_file_rule": "The :attribute does not reference a valid temporary upload.",
     "errors.athlete_has_registrations": "Cannot delete: athlete has existing registrations.",
     "errors.athlete_has_match_records": "Cannot delete: athlete has existing match records.",
     "errors.tournament_has_registrations": "Cannot delete: tournament has existing registrations.",

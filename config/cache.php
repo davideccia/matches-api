@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\TemporaryFile;
 use Illuminate\Support\Str;
 
 return [
@@ -131,6 +132,6 @@ return [
     |
     */
 
-    'serializable_classes' => false,
+    'serializable_classes' => [TemporaryFile::class],
 
 ];

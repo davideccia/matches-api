@@ -10,7 +10,9 @@ use App\Http\Resources\MatchRecordResource;
 use App\Http\Resources\TournamentResource;
 use App\Models\Tournament;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Spatie\ResponseCache\Attributes\Cache;
 
+#[Cache(lifetime: 60)]
 class PublicTournamentController extends Controller
 {
     public function tournamentsIndex(PublicTournamentIndexRequest $request): ResourceCollection

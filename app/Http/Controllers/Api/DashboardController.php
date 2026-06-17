@@ -27,7 +27,8 @@ class DashboardController extends Controller
                 'matchRecords as completedMatches' => fn ($q) => $q->where('status', MatchStatus::COMPLETED),
                 'matchRecords as cancelledMatches' => fn ($q) => $q->where('status', MatchStatus::CANCELLED),
             ])
-            ->orderBy('date')
+            ->orderByDesc('date')
+            ->orderBy('id')
             ->get();
 
         return DashboardResource::collection($tournaments);

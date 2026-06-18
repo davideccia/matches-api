@@ -18,7 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[ObservedBy([UserObserver::class])]
 #[ScopedBy([UserScope::class])]
-#[Fillable(['username', 'email', 'password'])]
+#[Fillable(['username', 'email', 'password', 'superadmin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,6 +29,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'superadmin' => 'boolean',
         ];
     }
 

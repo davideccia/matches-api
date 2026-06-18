@@ -17,6 +17,7 @@ class UserSeeder extends Seeder
             'username' => 'superadmin',
             'email' => 'superadmin@matches.it',
             'password' => '12345678',
+            'superadmin' => true,
         ]);
     }
 }

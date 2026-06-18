@@ -25,7 +25,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pcntl \
         posix \
     && pecl install igbinary \
-    && pecl install --configureopts 'enable-redis-igbinary="yes"' redis \
+    && cd $(mktemp -d) \
+        && pecl download redis \
+        && tar xzf redis-*.tgz \
+        && cd redis-* \
+        && phpize \
+        && ./configure --enable-redis-igbinary \
+        && make -j$(nproc) \
+        && make install \
     && pecl install imagick \
     && docker-php-ext-enable igbinary redis imagick \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

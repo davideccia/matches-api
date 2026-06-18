@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Tournament;
 
-use App\Enums\TournamentStatus;
+use App\Enums\TournamentStatusEnum;
 use App\Rules\TemporaryFileRule;
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,7 +26,7 @@ class TournamentStoreRequest extends FormRequest
             'location_address' => ['required', 'string', 'max:255'],
             'location_city' => ['required', 'string', 'max:255'],
             'date' => ['required', 'date'],
-            'status' => ['required', new Enum(TournamentStatus::class)],
+            'status' => ['required', new Enum(TournamentStatusEnum::class)],
             'cover' => ['nullable', new TemporaryFileRule],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([

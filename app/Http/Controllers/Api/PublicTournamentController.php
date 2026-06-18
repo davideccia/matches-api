@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\TournamentStatus;
+use App\Enums\TournamentStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicTournament\PublicTournamentIndexRequest;
 use App\Http\Requests\PublicTournament\PublicTournamentMatchRecordIndexRequest;
@@ -20,7 +20,7 @@ class PublicTournamentController extends Controller
         $validated = $request->validated();
 
         $tournaments = Tournament::with($validated['with'] ?? [])
-            ->whereIn('status', [TournamentStatus::IN_PROGRESS, TournamentStatus::COMPLETED])
+            ->whereIn('status', [TournamentStatusEnum::IN_PROGRESS, TournamentStatusEnum::COMPLETED])
             ->orderByDesc('date')
             ->orderByDesc('id');
 
@@ -40,7 +40,7 @@ class PublicTournamentController extends Controller
     public function tournamentMatchRecords(PublicTournamentMatchRecordIndexRequest $request, Tournament $tournament): ResourceCollection
     {
         abort_unless(
-            in_array($tournament->status->value, [TournamentStatus::IN_PROGRESS->value, TournamentStatus::COMPLETED->value], true),
+            in_array($tournament->status->value, [TournamentStatusEnum::IN_PROGRESS->value, TournamentStatusEnum::COMPLETED->value], true),
             404
         );
 

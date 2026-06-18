@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\MatchRecord;
 
-use App\Enums\EndMethod;
-use App\Enums\Gender;
-use App\Enums\MatchStatus;
+use App\Enums\AthleteGenderEnum;
+use App\Enums\MatchRecordEndMethodEnum;
+use App\Enums\MatchRecordStatusEnum;
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,7 +29,7 @@ class MatchRecordStoreRequest extends FormRequest
             'blue_corner_id' => ['required', 'string', 'uuid', 'exists:athletes,id'],
             'weight_category_id' => ['required', 'string', 'uuid', 'exists:weight_categories,id'],
             'discipline_id' => ['required', 'string', 'uuid', 'exists:disciplines,id'],
-            'gender' => ['required', new Enum(Gender::class)],
+            'gender' => ['required', new Enum(AthleteGenderEnum::class)],
             'forced' => ['required', 'boolean'],
             'red_corner_team' => ['required', 'string', 'max:255'],
             'blue_corner_team' => ['required', 'string', 'max:255'],
@@ -37,8 +37,8 @@ class MatchRecordStoreRequest extends FormRequest
             'scheduled_time' => ['nullable', 'date_format:H:i:s'],
             'winner_id' => ['nullable', 'string', 'uuid', 'exists:athletes,id'],
             'end_round' => ['nullable', 'string', 'max:255'],
-            'end_method' => ['nullable', new Enum(EndMethod::class)],
-            'status' => ['required', new Enum(MatchStatus::class)],
+            'end_method' => ['nullable', new Enum(MatchRecordEndMethodEnum::class)],
+            'status' => ['required', new Enum(MatchRecordStatusEnum::class)],
             'rounds' => ['required', 'integer'],
             'minutes_per_round' => ['required', 'date_format:H:i'],
             'judges_points' => ['nullable', 'array'],

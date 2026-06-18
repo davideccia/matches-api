@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\Gender;
+use App\Enums\AthleteGenderEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Athlete\AthleteDestroyRequest;
 use App\Http\Requests\Athlete\AthleteIndexRequest;
@@ -33,7 +33,7 @@ class AthleteController extends Controller
             $athletes->inTournament($validated['tournament_id'], ($validated['discipline_id'] ?? null), ($validated['weight_category_id'] ?? null));
         }
 
-        if (isset($validated['gender']) && $validated['gender'] !== Gender::HYBRID->value) {
+        if (isset($validated['gender']) && $validated['gender'] !== AthleteGenderEnum::HYBRID->value) {
             $athletes->where('gender', $validated['gender']);
         }
 

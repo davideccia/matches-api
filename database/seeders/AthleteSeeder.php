@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Gender;
+use App\Enums\AthleteGenderEnum;
 use App\Models\Athlete;
 use Illuminate\Database\Seeder;
 
@@ -21,7 +21,7 @@ class AthleteSeeder extends Seeder
                 'last_name' => "M{$n}",
                 'full_name' => "Atleta M{$n}",
                 'birth_date' => '1995-01-01',
-                'gender' => Gender::MALE,
+                'gender' => AthleteGenderEnum::MALE,
                 'tax_number' => "ATLTM{$n}00000000",
                 'team_name' => "Team M{$n}",
             ]);
@@ -34,7 +34,7 @@ class AthleteSeeder extends Seeder
                 'last_name' => "F{$n}",
                 'full_name' => "Atleta F{$n}",
                 'birth_date' => '1995-01-01',
-                'gender' => Gender::FEMALE,
+                'gender' => AthleteGenderEnum::FEMALE,
                 'tax_number' => "ATLTF{$n}00000000",
                 'team_name' => "Team F{$n}",
             ]);

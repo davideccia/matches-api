@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum EndMethod: string
+enum MatchRecordEndMethodEnum: string
 {
     case VICTORY_UNANIMOUS_DECISION = 'victory_unanimous_decision';
     case VICTORY_SPLIT_DECISION = 'victory_split_decision';

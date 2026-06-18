@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\Gender;
+use App\Enums\AthleteGenderEnum;
 use App\Models\Scopes\AthleteScope;
 use App\Observers\AthleteObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -36,7 +36,7 @@ class Athlete extends Model
     {
         return [
             'birth_date' => 'date',
-            'gender' => Gender::class,
+            'gender' => AthleteGenderEnum::class,
             'default_weight_category_id' => 'string',
             'default_discipline_id' => 'string',
         ];

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\TournamentStatus;
+use App\Enums\TournamentStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormRegistrationPdfRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormRegistrationStoreRequest;
@@ -39,7 +39,7 @@ class PublicRegistrationFormController extends Controller
 
     public function tournamentsIndex(PublicRegistrationFormTournamentIndexRequest $request): ResourceCollection
     {
-        $tournaments = Tournament::where('status', TournamentStatus::REGISTRATIONS_OPENED)
+        $tournaments = Tournament::where('status', TournamentStatusEnum::REGISTRATIONS_OPENED)
             ->orderBy('date')
             ->orderBy('id')
             ->get();

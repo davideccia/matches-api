@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Athlete;
 
-use App\Enums\Gender;
+use App\Enums\AthleteGenderEnum;
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,7 +23,7 @@ class AthleteStoreRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
-            'gender' => ['required', new Enum(Gender::class)],
+            'gender' => ['required', new Enum(AthleteGenderEnum::class)],
             'tax_number' => ['required', 'string', 'max:255'],
             'team_name' => ['nullable', 'string', 'max:255'],
             'default_weight_category_id' => ['nullable', 'string', 'uuid', 'exists:weight_categories,id'],

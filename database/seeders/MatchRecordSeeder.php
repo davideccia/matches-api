@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Enums\EndMethod;
-use App\Enums\MatchStatus;
+use App\Enums\MatchRecordEndMethodEnum;
+use App\Enums\MatchRecordStatusEnum;
 use App\Models\Athlete;
 use App\Models\Discipline;
 use App\Models\MatchRecord;
@@ -66,11 +66,11 @@ class MatchRecordSeeder extends Seeder
         ];
 
         $endMethods = [
-            EndMethod::VICTORY_KO,
-            EndMethod::VICTORY_UNANIMOUS_DECISION,
-            EndMethod::VICTORY_TKO,
-            EndMethod::VICTORY_SPLIT_DECISION,
-            EndMethod::VICTORY_DISQUALIFICATION,
+            MatchRecordEndMethodEnum::VICTORY_KO,
+            MatchRecordEndMethodEnum::VICTORY_UNANIMOUS_DECISION,
+            MatchRecordEndMethodEnum::VICTORY_TKO,
+            MatchRecordEndMethodEnum::VICTORY_SPLIT_DECISION,
+            MatchRecordEndMethodEnum::VICTORY_DISQUALIFICATION,
         ];
 
         $completedCount = 0;
@@ -98,13 +98,13 @@ class MatchRecordSeeder extends Seeder
                 $endMethod = $endMethods[$completedCount];
                 $winnerId = $completedCount % 2 === 0 ? $redAthlete->id : $blueAthlete->id;
 
-                $data['status'] = MatchStatus::COMPLETED;
+                $data['status'] = MatchRecordStatusEnum::COMPLETED;
                 $data['end_method'] = $endMethod;
                 $data['winner_id'] = $winnerId;
 
                 $completedCount++;
             } else {
-                $data['status'] = MatchStatus::CANCELLED;
+                $data['status'] = MatchRecordStatusEnum::CANCELLED;
             }
 
             MatchRecord::create($data);
@@ -210,12 +210,12 @@ class MatchRecordSeeder extends Seeder
         ];
 
         $endMethods = [
-            EndMethod::VICTORY_KO,
-            EndMethod::VICTORY_UNANIMOUS_DECISION,
-            EndMethod::VICTORY_TKO,
-            EndMethod::VICTORY_SPLIT_DECISION,
-            EndMethod::VICTORY_DISQUALIFICATION,
-            EndMethod::DRAW,
+            MatchRecordEndMethodEnum::VICTORY_KO,
+            MatchRecordEndMethodEnum::VICTORY_UNANIMOUS_DECISION,
+            MatchRecordEndMethodEnum::VICTORY_TKO,
+            MatchRecordEndMethodEnum::VICTORY_SPLIT_DECISION,
+            MatchRecordEndMethodEnum::VICTORY_DISQUALIFICATION,
+            MatchRecordEndMethodEnum::DRAW,
         ];
 
         $judgesPointsPatterns = [self::JP_A, self::JP_B, self::JP_C];
@@ -245,23 +245,23 @@ class MatchRecordSeeder extends Seeder
                 if ($i % 3 !== 2) {
                     $endMethod = $endMethods[$completedCount % 6];
                     $judgesPoints = $judgesPointsPatterns[$completedCount % 3];
-                    $winnerId = $endMethod === EndMethod::DRAW
+                    $winnerId = $endMethod === MatchRecordEndMethodEnum::DRAW
                         ? null
                         : ($completedCount % 2 === 0 ? $redAthlete->id : $blueAthlete->id);
 
-                    $data['status'] = MatchStatus::COMPLETED;
+                    $data['status'] = MatchRecordStatusEnum::COMPLETED;
                     $data['end_method'] = $endMethod;
                     $data['winner_id'] = $winnerId;
                     $data['judges_points'] = $judgesPoints;
 
                     $completedCount++;
                 } else {
-                    $data['status'] = MatchStatus::CANCELLED;
+                    $data['status'] = MatchRecordStatusEnum::CANCELLED;
                 }
             } elseif ($i === 39) {
-                $data['status'] = MatchStatus::IN_PROGRESS;
+                $data['status'] = MatchRecordStatusEnum::IN_PROGRESS;
             } else {
-                $data['status'] = MatchStatus::SCHEDULED;
+                $data['status'] = MatchRecordStatusEnum::SCHEDULED;
             }
 
             MatchRecord::create($data);

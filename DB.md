@@ -1,92 +1,98 @@
 # Tournament ER Schema
 
 ```dbml
-enum match_status {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+enum match_record_status {
+  scheduled
+  in_progress
+  completed
+  cancelled
 }
 
 enum tournament_status {
-  SCHEDULED
-  REGISTRATIONS_OPENED
-  REGISTRATIONS_CLOSED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+  scheduled
+  registrations_opened
+  registrations_closed
+  in_progress
+  completed
+  cancelled
 }
 
-enum end_method {
-  VICTORY_UNANIMOUS_DECISION
-  VICTORY_SPLIT_DECISION
-  VICTORY_KO
-  VICTORY_TKO
-  VICTORY_DISQUALIFICATION
-  DRAW
-  NO_CONTEST
+enum match_record_end_method {
+  victory_unanimous_decision
+  victory_split_decision
+  victory_ko
+  victory_tko
+  victory_disqualification
+  draw
+  no_contest
 }
 
-enum gender {
-  MALE
-  FEMALE
-  HYBRID
-}
-
-enum client_type {
-  DESKTOP
-  MOBILE
+enum athlete_gender {
+  male
+  female
+  hybrid
 }
 
 Table users {
-  id         uuid        [pk, default: `gen_random_uuid()`]
-  email      varchar     [not null, unique]
-  superadmin boolean     [not null, default: false]
-  password   varchar     [not null]
-  created_at timestamptz [not null, default: `now()`]
+  id                uuid        [pk, default: `gen_random_uuid()`]
+  username          varchar     [not null, unique]
+  email             varchar     [not null, unique]
+  email_verified_at timestamptz [null]
+  superadmin        boolean     [not null, default: false]
+  password          varchar     [not null]
+  remember_token    varchar(100) [null]
+  created_at        timestamptz [null]
+  updated_at        timestamptz [null]
 }
 
 Table personal_access_tokens {
-  id           bigint      [pk, increment]
-  user_id      uuid        [not null, ref: > users.id]
-  name         varchar     [not null]
-  token_hash   varchar(64) [not null, unique]
-  client_type  client_type [not null]
-  last_used_at timestamptz [null]
-  expires_at   timestamptz [null]
-  created_at   timestamptz [not null, default: `now()`]
+  id              bigint      [pk, increment]
+  tokenable_type  varchar     [not null]
+  tokenable_id    uuid        [not null]
+  name            text        [not null]
+  token           varchar(64) [not null, unique]
+  abilities       text        [null]
+  last_used_at    timestamptz [null]
+  expires_at      timestamptz [null]
+  created_at      timestamptz [null]
+  updated_at      timestamptz [null]
 
   indexes {
-    token_hash [name: 'idx_pat_token_hash']
+    (tokenable_type, tokenable_id) [name: 'personal_access_tokens_tokenable_type_tokenable_id_index']
+    expires_at [name: 'personal_access_tokens_expires_at_index']
   }
 }
 
-Table token_abilities {
-  token_id bigint  [not null, ref: > personal_access_tokens.id]
-  ability  varchar [not null]
-}
-
 Table weight_categories {
-  id    uuid        [pk]
-  label varchar     [not null]
-  value decimal     [not null]
+  id         uuid        [pk]
+  label      varchar     [not null]
+  value      decimal(8,2) [not null]
+  created_at timestamptz [null]
+  updated_at timestamptz [null]
 }
 
 Table disciplines {
-  id    uuid    [pk]
-  label varchar [not null]
+  id                uuid    [pk]
+  label             varchar [not null]
+  rounds            int     [not null]
+  minutes_per_round varchar [not null]
+  created_at        timestamptz [null]
+  updated_at        timestamptz [null]
 }
 
 Table athletes {
-  id                          uuid   [pk]
-  first_name                  varchar [not null]
-  last_name                   varchar [not null]
-  birth_date                  date    [not null]
-  gender                      gender  [not null]
-  tax_number                  varchar [not null, unique]
-  team_name                   varchar [null]
-  default_weight_category_id  uuid    [null, ref: > weight_categories.id]
-  default_discipline_id       uuid    [null, ref: > disciplines.id]
+  id                         uuid    [pk]
+  first_name                 varchar [not null]
+  last_name                  varchar [not null]
+  full_name                  varchar [not null]
+  birth_date                 date    [not null]
+  gender                     athlete_gender [not null]
+  tax_number                 varchar [not null, unique]
+  team_name                  varchar [null]
+  default_weight_category_id uuid    [null, ref: > weight_categories.id]
+  default_discipline_id      uuid    [null, ref: > disciplines.id]
+  created_at                 timestamptz [null]
+  updated_at                 timestamptz [null]
 }
 
 Table tournaments {
@@ -97,32 +103,32 @@ Table tournaments {
   location_city    varchar           [not null]
   date             date              [not null]
   status           tournament_status [not null]
+  created_at       timestamptz       [null]
+  updated_at       timestamptz       [null]
 }
 
 Table registrations {
-  id                 uuid    [pk]
-  athlete_id         uuid    [not null, ref: > athletes.id]
-  tournament_id      uuid    [not null, ref: > tournaments.id]
-  discipline_id      uuid    [not null, ref: > disciplines.id]
-  weight_category_id uuid    [not null, ref: > weight_categories.id]
+  id                 uuid        [pk]
+  athlete_id         uuid        [not null, ref: > athletes.id]
+  tournament_id      uuid        [not null, ref: > tournaments.id]
+  discipline_id      uuid        [not null, ref: > disciplines.id]
+  weight_category_id uuid        [not null, ref: > weight_categories.id]
   paid_at            timestamptz [null]
-  arrived            boolean [not null, default: false]
-  weight_in          decimal [null]
-  notes              text    [null]
-
-  indexes {
-    (athlete_id, tournament_id) [unique, name: 'uq_registrations_athlete_tournament']
-  }
+  arrived            boolean     [not null, default: false]
+  weight_in          decimal(8,2) [null]
+  notes              text        [null]
+  created_at         timestamptz [null]
+  updated_at         timestamptz [null]
 }
 
-Table matches {
+Table match_records {
   id                 uuid         [pk]
   tournament_id      uuid         [not null, ref: > tournaments.id]
   red_corner_id      uuid         [not null, ref: > athletes.id]
   blue_corner_id     uuid         [not null, ref: > athletes.id]
   weight_category_id uuid         [not null, ref: > weight_categories.id]
   discipline_id      uuid         [not null, ref: > disciplines.id]
-  gender             gender       [not null]
+  gender             athlete_gender [not null]
   forced             boolean      [not null, default: false]
   red_corner_team    varchar      [not null]
   blue_corner_team   varchar      [not null]
@@ -130,10 +136,33 @@ Table matches {
   scheduled_time     time         [null]
   winner_id          uuid         [null, ref: > athletes.id]
   end_round          varchar      [null]
-  end_method         end_method   [null]
-  status             match_status [not null]
+  end_method         match_record_end_method [null]
+  status             match_record_status     [not null]
   rounds             int          [not null]
-  minutes_per_round  float        [not null]
-  judges_points      jsonb        [null]   // array of per-round scores: [{round, redCornerJudge1, redCornerJudge2, redCornerJudge3, blueCornerJudge1, blueCornerJudge2, blueCornerJudge3}] — int or null if judge not assigned
+  minutes_per_round  varchar      [not null]
+  judges_points      json         [null]   // array of per-round scores: [{round, redCornerJudge1, redCornerJudge2, redCornerJudge3, blueCornerJudge1, blueCornerJudge2, blueCornerJudge3}] — int or null if judge not assigned
+  created_at         timestamptz  [null]
+  updated_at         timestamptz  [null]
+}
+
+Table media {
+  id                   bigint  [pk, increment]
+  model_type           varchar [not null]
+  model_id             uuid    [not null]
+  uuid                 uuid    [null, unique]
+  collection_name      varchar [not null]
+  name                 varchar [not null]
+  file_name            varchar [not null]
+  mime_type            varchar [null]
+  disk                 varchar [not null]
+  conversions_disk     varchar [null]
+  size                 bigint  [not null]
+  manipulations        json    [not null]
+  custom_properties    json    [not null]
+  generated_conversions json   [not null]
+  responsive_images    json    [not null]
+  order_column         int     [null]
+  created_at           timestamptz [null]
+  updated_at           timestamptz [null]
 }
 ```

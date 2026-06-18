@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\EndMethod;
-use App\Enums\Gender;
-use App\Enums\MatchStatus;
+use App\Enums\AthleteGenderEnum;
+use App\Enums\MatchRecordEndMethodEnum;
+use App\Enums\MatchRecordStatusEnum;
 use App\Models\Scopes\MatchRecordScope;
 use App\Observers\MatchRecordObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -50,11 +50,11 @@ class MatchRecord extends Model
             'blue_corner_id' => 'string',
             'weight_category_id' => 'string',
             'discipline_id' => 'string',
-            'gender' => Gender::class,
+            'gender' => AthleteGenderEnum::class,
             'forced' => 'boolean',
             'winner_id' => 'string',
-            'end_method' => EndMethod::class,
-            'status' => MatchStatus::class,
+            'end_method' => MatchRecordEndMethodEnum::class,
+            'status' => MatchRecordStatusEnum::class,
             'judges_points' => 'array',
         ];
     }

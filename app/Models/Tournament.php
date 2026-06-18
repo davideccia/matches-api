@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\TournamentStatus;
+use App\Enums\TournamentStatusEnum;
 use App\Models\Scopes\TournamentScope;
 use App\Observers\TournamentObserver;
 use App\Traits\InteractsWithMedia;
@@ -37,7 +37,7 @@ class Tournament extends Model implements HasMedia
     {
         return [
             'date' => 'date',
-            'status' => TournamentStatus::class,
+            'status' => TournamentStatusEnum::class,
         ];
     }
 

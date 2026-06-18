@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Enums\TournamentStatus;
+use App\Enums\TournamentStatusEnum;
 use App\Models\Tournament;
 use Illuminate\Database\Seeder;
 
@@ -21,7 +21,7 @@ class TournamentSeeder extends Seeder
                 'location_address' => 'Via Lomazzo 10',
                 'location_city' => 'Milano',
                 'date' => now()->subMonths(),
-                'status' => TournamentStatus::COMPLETED,
+                'status' => TournamentStatusEnum::COMPLETED,
             ],
             [
                 'name' => 'Torneo 2',
@@ -29,7 +29,7 @@ class TournamentSeeder extends Seeder
                 'location_address' => 'Via Amoroso 2',
                 'location_city' => 'Bari',
                 'date' => now(),
-                'status' => TournamentStatus::IN_PROGRESS,
+                'status' => TournamentStatusEnum::IN_PROGRESS,
             ],
             [
                 'name' => 'Torneo 3',
@@ -37,7 +37,7 @@ class TournamentSeeder extends Seeder
                 'location_address' => 'Via Gino Cervi 2',
                 'location_city' => 'Bologna',
                 'date' => now()->addMonths(),
-                'status' => TournamentStatus::SCHEDULED,
+                'status' => TournamentStatusEnum::SCHEDULED,
             ],
         ];
 

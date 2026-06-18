@@ -20,7 +20,10 @@ class AthleteController extends Controller
     {
         $validated = $request->validated();
 
-        $athletes = Athlete::with($validated['with'] ?? [])->orderBy('full_name')->orderBy('id');
+        $athletes = Athlete::query()
+            ->withCount(['blueCornerMatches', 'redCornerMatches'])
+            ->with($validated['with'] ?? [])
+            ->orderBy('full_name')->orderBy('id');
 
         if (isset($validated['search'])) {
             $athletes->search($validated['search']);
@@ -56,6 +59,8 @@ class AthleteController extends Controller
     public function show(AthleteShowRequest $request, Athlete $athlete): AthleteResource
     {
         $validated = $request->validated();
+
+        $athlete->loadCount(['blueCornerMatches', 'redCornerMatches']);
 
         return new AthleteResource($athlete->loadMissing($validated['with'] ?? []));
     }

@@ -42,26 +42,6 @@ class Athlete extends Model
         ];
     }
 
-    #[Scope]
-    public function search(Builder $builder, string $search): Builder
-    {
-        return $builder->where(fn (Builder $q) => $q
-            ->where('full_name', 'ilike', "%{$search}%")
-        );
-    }
-
-    #[Scope]
-    public function inTournament(Builder $builder, string $tournamentId, ?string $disciplineId, ?string $weightCategoryId): Builder
-    {
-        $registrationsAthletes = Registration::query()
-            ->where('tournament_id', $tournamentId)
-            ->when($disciplineId, fn (Builder $q) => $q->where('discipline_id', $disciplineId))
-            ->when($weightCategoryId, fn (Builder $q) => $q->where('weight_category_id', $weightCategoryId))
-            ->select('registrations.athlete_id');
-
-        return $builder->whereIn('id', $registrationsAthletes);
-    }
-
     public function defaultWeightCategory(): BelongsTo
     {
         return $this->belongsTo(WeightCategory::class, 'default_weight_category_id');
@@ -90,5 +70,25 @@ class Athlete extends Model
     public function wonMatches(): HasMany
     {
         return $this->hasMany(MatchRecord::class, 'winner_id');
+    }
+
+    #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder->where(fn (Builder $q) => $q
+            ->where('full_name', 'ilike', "%{$search}%")
+        );
+    }
+
+    #[Scope]
+    public function inTournament(Builder $builder, string $tournamentId, ?string $disciplineId, ?string $weightCategoryId): Builder
+    {
+        $registrationsAthletes = Registration::query()
+            ->where('tournament_id', $tournamentId)
+            ->when($disciplineId, fn (Builder $q) => $q->where('discipline_id', $disciplineId))
+            ->when($weightCategoryId, fn (Builder $q) => $q->where('weight_category_id', $weightCategoryId))
+            ->select('registrations.athlete_id');
+
+        return $builder->whereIn('id', $registrationsAthletes);
     }
 }

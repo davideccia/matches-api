@@ -4,12 +4,15 @@
     ],
     "cloud": false,
     "packages": [
-        "spatie/laravel-medialibrary"
+        "spatie/laravel-medialibrary",
+        "spatie/laravel-responsecache"
     ],
     "skills": [
         "laravel-best-practices",
+        "configuring-horizon",
         "echo-development",
         "tailwindcss-development",
-        "medialibrary-development"
+        "medialibrary-development",
+        "responsecache-development"
     ]
 }

@@ -1,0 +1,865 @@
+<title>Stima VPS — matches stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ── Reset & tokens ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ground:   #111118;
+  --ground-2: #1A1A24;
+  --ground-3: #23232F;
+  --text:     #EAE6DE;
+  --mid:      #8A8A9E;
+  --accent:   #D44444;
+  --green:    #4AAD78;
+  --warn:     #E07838;
+  --border:   #2A2A3A;
+  --mono:     'JetBrains Mono', 'Courier New', monospace;
+  --serif:    Georgia, 'Times New Roman', serif;
+  --sans:     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html { background: var(--ground); }
+body {
+  font-family: var(--sans);
+  background: var(--ground);
+  color: var(--text);
+  line-height: 1.55;
+  font-size: 15px;
+  font-feature-settings: 'cv02','cv03','cv04','cv11';
+  padding: 0 1.25rem 5rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Animation ──────────────────────────────────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bar-grow {
+  from { width: 0; }
+  to   { width: var(--w, 0%); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .anim { animation: rise 0.45s ease both; }
+  .anim:nth-child(1) { animation-delay: 0.00s; }
+  .anim:nth-child(2) { animation-delay: 0.09s; }
+  .anim:nth-child(3) { animation-delay: 0.18s; }
+  .anim:nth-child(4) { animation-delay: 0.27s; }
+  .anim:nth-child(5) { animation-delay: 0.36s; }
+  .anim:nth-child(6) { animation-delay: 0.45s; }
+  .bar-fill { animation: bar-grow 0.75s cubic-bezier(0.22,1,0.36,1) both; }
+  .bar-row:nth-child(1) .bar-fill { animation-delay: 0.35s; }
+  .bar-row:nth-child(2) .bar-fill { animation-delay: 0.42s; }
+  .bar-row:nth-child(3) .bar-fill { animation-delay: 0.49s; }
+  .bar-row:nth-child(4) .bar-fill { animation-delay: 0.56s; }
+  .bar-row:nth-child(5) .bar-fill { animation-delay: 0.63s; }
+  .bar-row:nth-child(6) .bar-fill { animation-delay: 0.70s; }
+  .bar-row:nth-child(7) .bar-fill { animation-delay: 0.77s; }
+  .bar-row:nth-child(8) .bar-fill { animation-delay: 0.84s; }
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.page { max-width: 1000px; margin: 0 auto; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 1.5rem;
+  padding: 3rem 0 1.5rem;
+  border-bottom: 2px solid var(--text);
+  margin-bottom: 3rem;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin-bottom: 0.6rem;
+}
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  font-weight: normal;
+  line-height: 1.12;
+}
+h1 em { font-style: normal; color: var(--accent); }
+
+.verdict {
+  background: var(--ground-3);
+  color: var(--text);
+  padding: 1.1rem 1.4rem;
+  min-width: 210px;
+  border-left: 3px solid var(--green);
+}
+.verdict-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.60rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  margin-bottom: 0.4rem;
+}
+.verdict-name {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  margin-bottom: 0.1rem;
+}
+.verdict-spec {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  opacity: 0.48;
+  margin-bottom: 0.55rem;
+}
+.verdict-price {
+  font-family: var(--mono);
+  font-size: 1.75rem;
+  color: var(--green);
+  display: block;
+  line-height: 1;
+}
+.verdict-price-sub {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--green);
+  opacity: 0.65;
+  margin-top: 0.25rem;
+}
+
+/* ── Section header ─────────────────────────────────────────── */
+section { margin-bottom: 3.5rem; }
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+/* ── Weight-class badges ─────────────────────────────────────── */
+.wc {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  padding: 0.07rem 0.36rem;
+  border-radius: 0;
+  white-space: nowrap;
+}
+.wc-p { color: var(--accent); }
+.wc-m { color: var(--warn); }
+.wc-l { color: var(--green); }
+.wc-d { color: var(--mid); }
+
+/* ── Memory bars ─────────────────────────────────────────────── */
+.bars { display: flex; flex-direction: column; gap: 0.75rem; }
+.bar-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 180px;
+  align-items: center;
+  gap: 0.9rem;
+}
+.bar-name {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.bar-track {
+  height: 10px;
+  background: var(--ground-2);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--col, var(--text));
+  border-radius: 1px;
+  width: var(--w, 0%);
+}
+.bar-meta {
+  font-family: var(--mono);
+  font-size: 0.67rem;
+  color: var(--mid);
+  text-align: right;
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+
+thead th {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--mid);
+  text-align: left;
+  padding: 0 0.8rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-weight: 500;
+}
+thead th.r { text-align: right; }
+
+tbody td {
+  padding: 0.68rem 0.8rem;
+  border-bottom: 1px solid var(--ground-2);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+
+.mono { font-family: var(--mono); font-size: 0.79rem; }
+.r    { text-align: right; }
+.bold { font-weight: 600; }
+
+.svc-name { font-weight: 600; display: block; font-size: 0.875rem; }
+.svc-sub  { font-size: 0.74rem; color: var(--mid); margin-top: 0.07rem; line-height: 1.4; }
+
+.tr-h { background: rgba(74, 173, 120, 0.07); }
+.tr-h td { border-bottom-color: rgba(74, 173, 120, 0.18); }
+.tr-sep td { border-top: 1px solid var(--border); }
+.tr-total { background: var(--ground-2); }
+.tr-total td {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--mid);
+  letter-spacing: 0.03em;
+}
+.tr-total .total-num {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.prov-name { font-weight: 600; display: block; font-size: 0.875rem; }
+.prov-sub  { font-family: var(--mono); font-size: 0.64rem; color: var(--mid); margin-top: 0.07rem; }
+
+.price { font-family: var(--mono); font-size: 0.94rem; font-weight: 600; white-space: nowrap; }
+.price-g { color: var(--green); }
+
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.59rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  padding: 0.09rem 0.38rem;
+  border-radius: 0;
+  white-space: nowrap;
+}
+.tag-rec  { color: var(--green); }
+.tag-min  { color: var(--mid); }
+.tag-over { color: var(--mid); opacity: 0.45; border-color: transparent; }
+
+/* ── Warning / info blocks ───────────────────────────────────── */
+.warn-block {
+  background: #201418;
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.3rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  margin-top: 1.3rem;
+}
+.warn-block strong {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+.warn-block code, .info-block code {
+  font-family: var(--mono);
+  font-size: 0.79rem;
+  background: rgba(0,0,0,0.06);
+  padding: 0.05rem 0.28rem;
+}
+.info-block {
+  background: #111A28;
+  border-left: 3px solid #4A8CC4;
+  padding: 1rem 1.3rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+}
+.info-block strong {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: #7AB8E8;
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+}
+
+/* ── Storage cost cards ──────────────────────────────────────── */
+.storage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.storage-card {
+  background: var(--ground-2);
+  border: 1px solid var(--border);
+  padding: 1.1rem 1.25rem;
+}
+.storage-card-title {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin-bottom: 0.6rem;
+  font-weight: 500;
+}
+.storage-card-price {
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text);
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.storage-card-price.green { color: var(--green); }
+.storage-card-desc { font-size: 0.80rem; color: var(--mid); line-height: 1.55; }
+.storage-card-desc strong { color: var(--text); font-weight: 600; }
+
+/* ── Recommendation panel ────────────────────────────────────── */
+.rec {
+  background: var(--ground-2);
+  color: var(--text);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border);
+}
+.rec-col { padding: 2rem; }
+.rec-col + .rec-col { border-left: 1px solid var(--border); }
+
+.rec-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.60rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.40;
+  margin-bottom: 0.6rem;
+  font-weight: 500;
+}
+.rec-title {
+  font-family: var(--serif);
+  font-size: 1.45rem;
+  font-weight: normal;
+  line-height: 1.15;
+  margin-bottom: 0.25rem;
+}
+.rec-spec {
+  font-family: var(--mono);
+  font-size: 0.67rem;
+  opacity: 0.45;
+  margin-bottom: 0.65rem;
+}
+.rec-price {
+  font-family: var(--mono);
+  font-size: 2.1rem;
+  color: var(--green);
+  display: block;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+.rec-price-detail {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--green);
+  opacity: 0.65;
+  margin-bottom: 1.1rem;
+}
+.rec-body { font-size: 0.83rem; line-height: 1.65; opacity: 0.78; }
+.rec-body code {
+  font-family: var(--mono);
+  font-size: 0.79rem;
+  opacity: 0.85;
+}
+
+.rec-alt-label {
+  font-family: var(--mono);
+  font-size: 0.60rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  opacity: 0.40;
+  margin-bottom: 0.45rem;
+  font-weight: 500;
+}
+.rec-alt-name {
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  color: var(--green);
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.rec-alt-body { font-size: 0.82rem; line-height: 1.60; opacity: 0.76; margin-bottom: 1.25rem; }
+
+.rec-danger-label {
+  font-family: var(--mono);
+  font-size: 0.60rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-bottom: 0.35rem;
+  margin-top: 1.5rem;
+  font-weight: 500;
+}
+.rec-danger-body { font-size: 0.82rem; line-height: 1.60; color: var(--accent); opacity: 0.80; }
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--mid);
+  text-align: right;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+  letter-spacing: 0.03em;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .header { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: 140px 1fr; }
+  .bar-meta { display: none; }
+  .rec { grid-template-columns: 1fr; }
+  .rec-col + .rec-col { border-left: none; border-top: 1px solid rgba(255,255,255,0.09); }
+  .storage-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header anim">
+    <div>
+      <div class="eyebrow">matches-api-laravel · infrastruttura · giugno 2025</div>
+      <h1>Stima <em>VPS</em><br>per il full stack</h1>
+    </div>
+    <div class="verdict">
+      <div class="verdict-eyebrow">Verdetto rapido</div>
+      <div class="verdict-name">Hetzner CX32 + Volume</div>
+      <div class="verdict-spec">4 vCPU AMD · 8 GB RAM · +100 GB NVMe</div>
+      <span class="verdict-price">~€13 / mese</span>
+      <div class="verdict-price-sub">CX32 €8.15 + Volume 100 GB €4.80</div>
+    </div>
+  </header>
+
+  <!-- MEMORY FOOTPRINT -->
+  <section class="anim">
+    <div class="section-label">Footprint memoria · peak stimato per container · 1.5 GB = 100%</div>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-p">Pesante</span> Gotenberg</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:100%; --col:#B83030;"></div></div>
+        <span class="bar-meta">800 MB – 1.5 GB picco</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-m">Medio</span> matches-api</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:40%; --col:#C45A1A;"></div></div>
+        <span class="bar-meta">400 – 600 MB picco</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-m">Medio</span> MinIO</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:34%; --col:#C45A1A;"></div></div>
+        <span class="bar-meta">~512 MB picco</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-l">Leggero</span> PostgreSQL</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:20%; --col:#2C6E49;"></div></div>
+        <span class="bar-meta">~300 MB picco</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-d">Base</span> OS + sistema</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:14%; --col:#72727E;"></div></div>
+        <span class="bar-meta">~200 MB</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-l">Leggero</span> Caddy</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:5%; --col:#2C6E49;"></div></div>
+        <span class="bar-meta">~80 MB picco</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-l">Leggero</span> Redis</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:3%; --col:#2C6E49;"></div></div>
+        <span class="bar-meta">~50 MB picco</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name"><span class="wc wc-l">Leggero</span> Frontend nginx</span>
+        <div class="bar-track"><div class="bar-fill" style="--w:2%; --col:#2C6E49;"></div></div>
+        <span class="bar-meta">~30 MB picco</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES DETAIL -->
+  <section class="anim">
+    <div class="section-label">Dettaglio servizi</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Servizio</th>
+            <th>Immagine</th>
+            <th class="r">RAM idle</th>
+            <th class="r">RAM picco</th>
+            <th>CPU</th>
+            <th>Categoria</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="svc-name">Gotenberg</span>
+              <span class="svc-sub">headless Chromium · generazione PDF da HTML/URL</span>
+            </td>
+            <td class="mono">gotenberg/gotenberg:8</td>
+            <td class="mono r">256–400 MB</td>
+            <td class="mono r" style="color:var(--accent); font-weight:600;">800 MB – 1.5 GB</td>
+            <td class="mono">alto (burst)</td>
+            <td><span class="wc wc-p">Pesante</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="svc-name">matches-api-laravel</span>
+              <span class="svc-sub">php-fpm · nginx · horizon · reverb · scheduler</span>
+            </td>
+            <td class="mono">php:8.5-fpm-bookworm</td>
+            <td class="mono r">150–250 MB</td>
+            <td class="mono r">400–600 MB</td>
+            <td class="mono">basso</td>
+            <td><span class="wc wc-m">Medio</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="svc-name">MinIO</span>
+              <span class="svc-sub">object storage S3-compatible · gestione allegati · API compatibile AWS S3</span>
+            </td>
+            <td class="mono">minio/minio</td>
+            <td class="mono r">128–256 MB</td>
+            <td class="mono r">~512 MB</td>
+            <td class="mono">basso-medio</td>
+            <td><span class="wc wc-m">Medio</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="svc-name">PostgreSQL</span>
+              <span class="svc-sub">database principale</span>
+            </td>
+            <td class="mono">postgres:16-alpine</td>
+            <td class="mono r">50–100 MB</td>
+            <td class="mono r">~300 MB</td>
+            <td class="mono">basso</td>
+            <td><span class="wc wc-l">Leggero</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="svc-name">Caddy</span>
+              <span class="svc-sub">reverse proxy · HTTPS · SSL termination · routing</span>
+            </td>
+            <td class="mono">caddy:2-alpine</td>
+            <td class="mono r">20–40 MB</td>
+            <td class="mono r">~80 MB</td>
+            <td class="mono">minimo</td>
+            <td><span class="wc wc-l">Leggero</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="svc-name">Redis</span>
+              <span class="svc-sub">queue Horizon · cache · broadcasting Reverb</span>
+            </td>
+            <td class="mono">redis:7-alpine</td>
+            <td class="mono r">10–20 MB</td>
+            <td class="mono r">~50 MB</td>
+            <td class="mono">minimo</td>
+            <td><span class="wc wc-l">Leggero</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="svc-name">matches-dashboard</span>
+              <span class="svc-sub">Nuxt 4 · build statico servito da nginx</span>
+            </td>
+            <td class="mono">nginx:alpine</td>
+            <td class="mono r">5–15 MB</td>
+            <td class="mono r">~30 MB</td>
+            <td class="mono">minimo</td>
+            <td><span class="wc wc-l">Leggero</span></td>
+          </tr>
+          <tr class="tr-total">
+            <td colspan="2" style="text-transform:uppercase; letter-spacing:0.05em; font-size:0.72rem;">Totale stimato (OS incluso ~200 MB)</td>
+            <td class="r">~1.1 – 1.4 GB</td>
+            <td class="r total-num">~3 – 4 GB</td>
+            <td colspan="2" style="opacity:0.55; font-size:0.72rem;">→ minimo 4 GB · consigliato 8 GB</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warn-block">
+      <strong>⬥ Gotenberg · il servizio critico</strong>
+      Avvia istanze Chromium headless per ogni richiesta PDF. Un picco (anche singola richiesta complessa) può saturare 800 MB–1.5 GB. Su un VPS da 4 GB già occupato dagli altri servizi il rischio OOM-kill è concreto. Mitigazioni: limitare il parallelismo con <code>--chromium-max-queue-size 5</code>, impostare <code>mem_limit: 1g</code> nel compose, oppure scegliere direttamente il piano da 8 GB.
+    </div>
+  </section>
+
+  <!-- MINIO / STORAGE -->
+  <section class="anim">
+    <div class="section-label">Storage per MinIO · costo del disco aggiuntivo</div>
+
+    <div class="info-block">
+      <strong>⬥ MinIO e lo spazio su disco</strong>
+      MinIO occupa poca RAM ma ha bisogno di storage persistente proporzionale al volume degli allegati. Il disco SSD incluso nel VPS è condiviso con OS, PostgreSQL e log: non è consigliabile dedicargli lo spazio residuo. La soluzione standard è montare un volume block storage separato come data directory di MinIO (<code>MINIO_VOLUMES=/mnt/data</code>) — ridimensionabile online senza downtime.
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Tipo storage</th>
+            <th class="r">Capacità</th>
+            <th class="r">Costo / mese</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="prov-name">Hetzner</span><span class="prov-sub">Volume block storage</span></td>
+            <td class="mono">Volume NVMe</td>
+            <td class="mono r">100 GB</td>
+            <td class="price price-g r">€4.80</td>
+            <td style="font-size:0.80rem; color:var(--mid);">Ridimensionabile online · fattura oraria · €0.048/GB</td>
+          </tr>
+          <tr>
+            <td><span class="prov-name">Hetzner</span><span class="prov-sub">Volume block storage</span></td>
+            <td class="mono">Volume NVMe</td>
+            <td class="mono r">200 GB</td>
+            <td class="price r">€9.60</td>
+            <td style="font-size:0.80rem; color:var(--mid);">Se allegati abbondanti</td>
+          </tr>
+          <tr class="tr-sep">
+            <td><span class="prov-name">DigitalOcean</span><span class="prov-sub">Block Storage</span></td>
+            <td class="mono">Volume SSD</td>
+            <td class="mono r">100 GB</td>
+            <td class="price r">$10.00</td>
+            <td style="font-size:0.80rem; color:var(--mid);">$0.10/GB/mese · ridimensionabile</td>
+          </tr>
+          <tr class="tr-sep">
+            <td><span class="prov-name">Vultr</span><span class="prov-sub">Block Storage</span></td>
+            <td class="mono">Volume SSD</td>
+            <td class="mono r">100 GB</td>
+            <td class="price r">$10.00</td>
+            <td style="font-size:0.80rem; color:var(--mid);">$0.10/GB/mese</td>
+          </tr>
+          <tr class="tr-sep">
+            <td><span class="prov-name">Contabo</span><span class="prov-sub">VPS S · disco incluso</span></td>
+            <td class="mono">SSD locale incluso</td>
+            <td class="mono r">400 GB</td>
+            <td class="price price-g r">€0 extra</td>
+            <td style="font-size:0.80rem; color:var(--mid);">400 GB condivisi nel piano base — nessun costo aggiuntivo</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="storage-grid">
+      <div class="storage-card">
+        <div class="storage-card-title">Costo totale consigliato</div>
+        <span class="storage-card-price green">~€13 / mese</span>
+        <p class="storage-card-desc">Hetzner CX32 <strong>€8.15</strong> + Volume 100 GB <strong>€4.80</strong>. Compute e storage separati: puoi espandere il Volume senza cambiare piano VPS. Ideale se la crescita degli allegati è graduale.</p>
+      </div>
+      <div class="storage-card">
+        <div class="storage-card-title">Alternativa all-in-one</div>
+        <span class="storage-card-price green">€8.99 / mese</span>
+        <p class="storage-card-desc">Contabo VPS S: <strong>16 GB RAM</strong> + <strong>400 GB SSD</strong> incluso. MinIO punta direttamente all'SSD locale senza configurare volumi separati. Trade-off: espansione dello storage richiede upgrade di piano, non incrementale.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROVIDER COMPARISON -->
+  <section class="anim">
+    <div class="section-label">Confronto provider · compute + storage · prezzi indicativi giugno 2025</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Piano</th>
+            <th class="r">vCPU</th>
+            <th class="r">RAM</th>
+            <th class="r">SSD incluso</th>
+            <th class="r">Compute / mese</th>
+            <th class="r">+ Storage 100 GB</th>
+            <th class="r">Totale stimato</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="prov-name">Hetzner</span><span class="prov-sub">🇩🇪 EU · AMD EPYC · NVMe</span></td>
+            <td class="mono">CX22</td>
+            <td class="mono r">2</td>
+            <td class="mono r">4 GB</td>
+            <td class="mono r">40 GB</td>
+            <td class="price r">€4.35</td>
+            <td class="mono r" style="color:var(--mid);">+€4.80</td>
+            <td class="price r">~€9.15</td>
+            <td><span class="tag tag-min">Minimo</span></td>
+          </tr>
+          <tr class="tr-h">
+            <td><span class="prov-name">Hetzner</span><span class="prov-sub">🇩🇪 EU · AMD EPYC · NVMe</span></td>
+            <td class="mono bold">CX32</td>
+            <td class="mono r bold">4</td>
+            <td class="mono r bold">8 GB</td>
+            <td class="mono r">80 GB</td>
+            <td class="price r">€8.15</td>
+            <td class="mono r" style="color:var(--mid);">+€4.80</td>
+            <td class="price price-g r">~€13.00</td>
+            <td><span class="tag tag-rec">✓ Consigliato</span></td>
+          </tr>
+          <tr>
+            <td><span class="prov-name">Hetzner</span><span class="prov-sub">🇩🇪 EU · AMD EPYC</span></td>
+            <td class="mono">CX42</td>
+            <td class="mono r">8</td>
+            <td class="mono r">16 GB</td>
+            <td class="mono r">160 GB</td>
+            <td class="price r">€18.39</td>
+            <td class="mono r" style="color:var(--mid);">+€4.80</td>
+            <td class="price r">~€23.20</td>
+            <td><span class="tag tag-over">Overspec</span></td>
+          </tr>
+          <tr class="tr-sep">
+            <td><span class="prov-name">OVHcloud</span><span class="prov-sub">🇫🇷 EU</span></td>
+            <td class="mono">VPS Value</td>
+            <td class="mono r">2</td>
+            <td class="mono r">4 GB</td>
+            <td class="mono r">80 GB</td>
+            <td class="price r">€6.00</td>
+            <td class="mono r" style="color:var(--mid);">n.d.</td>
+            <td class="price r" style="opacity:0.45;">—</td>
+            <td><span class="tag tag-min">Minimo</span></td>
+          </tr>
+          <tr>
+            <td><span class="prov-name">OVHcloud</span><span class="prov-sub">🇫🇷 EU</span></td>
+            <td class="mono">VPS Essential</td>
+            <td class="mono r">4</td>
+            <td class="mono r">8 GB</td>
+            <td class="mono r">160 GB</td>
+            <td class="price r">€12.00</td>
+            <td class="mono r" style="color:var(--mid);">n.d.</td>
+            <td class="price r" style="opacity:0.45;">—</td>
+            <td><span class="tag tag-rec">Consigliato</span></td>
+          </tr>
+          <tr class="tr-sep tr-h">
+            <td><span class="prov-name">Contabo</span><span class="prov-sub">🇩🇪 all-in-one per MinIO</span></td>
+            <td class="mono bold">VPS S SSD</td>
+            <td class="mono r">6</td>
+            <td class="mono r bold">16 GB</td>
+            <td class="mono r bold">400 GB</td>
+            <td class="price r">€8.99</td>
+            <td class="mono r" style="color:var(--green);">incluso</td>
+            <td class="price price-g r">€8.99</td>
+            <td><span class="tag tag-rec">Ottimo valore</span></td>
+          </tr>
+          <tr>
+            <td><span class="prov-name">Contabo</span><span class="prov-sub">🇩🇪</span></td>
+            <td class="mono">VPS M SSD</td>
+            <td class="mono r">8</td>
+            <td class="mono r">24 GB</td>
+            <td class="mono r">600 GB</td>
+            <td class="price r">€14.99</td>
+            <td class="mono r" style="color:var(--green);">incluso</td>
+            <td class="price r">€14.99</td>
+            <td><span class="tag tag-over">Overspec</span></td>
+          </tr>
+          <tr class="tr-sep">
+            <td><span class="prov-name">DigitalOcean</span><span class="prov-sub">🇺🇸 USD · dashboard ottima</span></td>
+            <td class="mono">Basic 4 GB</td>
+            <td class="mono r">2</td>
+            <td class="mono r">4 GB</td>
+            <td class="mono r">80 GB</td>
+            <td class="price r">$24.00</td>
+            <td class="mono r" style="color:var(--mid);">+$10.00</td>
+            <td class="price r">~$34.00</td>
+            <td><span class="tag tag-min">Minimo</span></td>
+          </tr>
+          <tr>
+            <td><span class="prov-name">DigitalOcean</span><span class="prov-sub">🇺🇸 USD</span></td>
+            <td class="mono">Basic 8 GB</td>
+            <td class="mono r">4</td>
+            <td class="mono r">8 GB</td>
+            <td class="mono r">160 GB</td>
+            <td class="price r">$48.00</td>
+            <td class="mono r" style="color:var(--mid);">+$10.00</td>
+            <td class="price r">~$58.00</td>
+            <td><span class="tag tag-rec">Consigliato</span></td>
+          </tr>
+          <tr class="tr-sep">
+            <td><span class="prov-name">Vultr</span><span class="prov-sub">🇺🇸 USD · rete veloce</span></td>
+            <td class="mono">Cloud 8 GB</td>
+            <td class="mono r">4</td>
+            <td class="mono r">8 GB</td>
+            <td class="mono r">160 GB</td>
+            <td class="price r">$48.00</td>
+            <td class="mono r" style="color:var(--mid);">+$10.00</td>
+            <td class="price r">~$58.00</td>
+            <td><span class="tag tag-rec">Consigliato</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RECOMMENDATION -->
+  <section class="anim">
+    <div class="section-label">Raccomandazione</div>
+    <div class="rec">
+      <div class="rec-col">
+        <div class="rec-eyebrow">Prima scelta · storage flessibile</div>
+        <div class="rec-title">Hetzner CX32 + Volume</div>
+        <div class="rec-spec">4 vCPU AMD EPYC · 8 GB RAM · 80 GB SSD + Volume 100 GB NVMe</div>
+        <span class="rec-price">~€13 / mese</span>
+        <div class="rec-price-detail">CX32 €8.15 + Volume 100 GB €4.80 · ~€156 / anno</div>
+        <p class="rec-body">
+          Il Volume NVMe si monta come directory dati di MinIO (<code>MINIO_VOLUMES=/mnt/data</code>) e si espande online senza downtime — se gli allegati crescono, aggiungi GB senza toccare il piano VPS. 8 GB RAM coprono tutti i container incluso MinIO con margine per i picchi di Gotenberg. Datacenter EU, SLA eccellente, meno di €160/anno per un full stack con WebSocket, queue, PDF generation, object storage e frontend.
+        </p>
+      </div>
+      <div class="rec-col">
+        <div class="rec-alt-label">Se vuoi semplificare al massimo</div>
+        <span class="rec-alt-name">Contabo VPS S · €8.99/mese</span>
+        <p class="rec-alt-body">16 GB RAM, 6 vCPU e 400 GB SSD inclusi in un unico piano. MinIO punta direttamente all'SSD locale senza configurare volumi separati, e Gotenberg ha tutto il margine che vuole. Trade-off: espansione dello storage richiede upgrade di piano, non incrementale; supporto meno reattivo rispetto a Hetzner.</p>
+
+        <div class="rec-danger-label">⬥ Da evitare</div>
+        <p class="rec-danger-body">Piani da <span style="font-family:var(--mono);">4 GB RAM</span> senza swap configurato. Con Gotenberg + MinIO attivi, un picco simultaneo (generazione PDF + upload allegato) può saturare la memoria e causare OOM-kill a cascata.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="footer">Prezzi indicativi · verificare i listini ufficiali prima dell'acquisto · matches-api-laravel infra estimate · giugno 2025</p>
+
+</div>

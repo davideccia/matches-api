@@ -5,7 +5,8 @@
     "cloud": false,
     "packages": [
         "spatie/laravel-medialibrary",
-        "spatie/laravel-responsecache"
+        "spatie/laravel-responsecache",
+        "spatie/laravel-pdf"
     ],
     "skills": [
         "laravel-best-practices",
@@ -13,6 +14,7 @@
         "echo-development",
         "tailwindcss-development",
         "medialibrary-development",
+        "laravel-pdf",
         "responsecache-development"
     ]
 }

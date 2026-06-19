@@ -158,5 +158,22 @@
     "errors.registration_duplicate": "Cannot save: athlete is already registered for this tournament, discipline and weight category.",
     "enums.athlete_gender.male": "Male",
     "enums.athlete_gender.female": "Female",
-    "enums.athlete_gender.hybrid": "Hybrid"
+    "enums.athlete_gender.hybrid": "Hybrid",
+    "enums.match_record_status.scheduled": "Scheduled",
+    "enums.match_record_status.in_progress": "In Progress",
+    "enums.match_record_status.completed": "Completed",
+    "enums.match_record_status.cancelled": "Cancelled",
+    "enums.match_record_end_method.victory_unanimous_decision": "Unanimous Decision",
+    "enums.match_record_end_method.victory_split_decision": "Split Decision",
+    "enums.match_record_end_method.victory_ko": "KO",
+    "enums.match_record_end_method.victory_tko": "TKO",
+    "enums.match_record_end_method.victory_disqualification": "Disqualification",
+    "enums.match_record_end_method.draw": "Draw",
+    "enums.match_record_end_method.no_contest": "No Contest",
+    "enums.tournament_status.scheduled": "Scheduled",
+    "enums.tournament_status.registrations_opened": "Registrations Open",
+    "enums.tournament_status.registrations_closed": "Registrations Closed",
+    "enums.tournament_status.in_progress": "In Progress",
+    "enums.tournament_status.completed": "Completed",
+    "enums.tournament_status.cancelled": "Cancelled"
 }

@@ -158,5 +158,22 @@
     "errors.registration_duplicate": "Impossibile salvare: l'atleta è già iscritto a questo torneo, disciplina e categoria di peso.",
     "enums.athlete_gender.male": "Maschile",
     "enums.athlete_gender.female": "Femminile",
-    "enums.athlete_gender.hybrid": "Misto"
+    "enums.athlete_gender.hybrid": "Misto",
+    "enums.match_record_status.scheduled": "Programmato",
+    "enums.match_record_status.in_progress": "In corso",
+    "enums.match_record_status.completed": "Completato",
+    "enums.match_record_status.cancelled": "Annullato",
+    "enums.match_record_end_method.victory_unanimous_decision": "Decisione unanime",
+    "enums.match_record_end_method.victory_split_decision": "Decisione divisa",
+    "enums.match_record_end_method.victory_ko": "KO",
+    "enums.match_record_end_method.victory_tko": "TKO",
+    "enums.match_record_end_method.victory_disqualification": "Squalifica",
+    "enums.match_record_end_method.draw": "Pareggio",
+    "enums.match_record_end_method.no_contest": "No Contest",
+    "enums.tournament_status.scheduled": "Programmato",
+    "enums.tournament_status.registrations_opened": "Iscrizioni aperte",
+    "enums.tournament_status.registrations_closed": "Iscrizioni chiuse",
+    "enums.tournament_status.in_progress": "In corso",
+    "enums.tournament_status.completed": "Completato",
+    "enums.tournament_status.cancelled": "Annullato"
 }

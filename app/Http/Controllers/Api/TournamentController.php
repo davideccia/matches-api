@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\TournamentPdfTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tournament\TournamentDestroyRequest;
 use App\Http\Requests\Tournament\TournamentIndexRequest;
-use App\Http\Requests\Tournament\TournamentPdfRequest;
 use App\Http\Requests\Tournament\TournamentShowRequest;
 use App\Http\Requests\Tournament\TournamentStoreRequest;
 use App\Http\Requests\Tournament\TournamentUpdateRequest;
@@ -14,10 +12,6 @@ use App\Http\Resources\TournamentResource;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Spatie\LaravelPdf\Enums\Format;
-use Spatie\LaravelPdf\PdfBuilder;
-
-use function Spatie\LaravelPdf\Support\pdf;
 
 class TournamentController extends Controller
 {
@@ -88,25 +82,5 @@ class TournamentController extends Controller
         $tournament->delete();
 
         return response()->json([], 204);
-    }
-
-    public function pdf(TournamentPdfRequest $request, Tournament $tournament): PdfBuilder
-    {
-        $validated = $request->validated();
-
-        $tournament->loadMissing([
-            'matchRecords.redCorner',
-            'matchRecords.blueCorner',
-            'matchRecords.discipline',
-            'matchRecords.weightCategory',
-            'matchRecords.winner',
-        ]);
-
-        $type = TournamentPdfTypeEnum::from($validated['type']);
-
-        return pdf()
-            ->view($type->viewName(), ['tournament' => $tournament])
-            ->format(Format::A4)
-            ->name("tournament-{$tournament->id}-{$type->value}.pdf");
     }
 }

@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\MatchRecordController;
 use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\TemporaryUploadController;
 use App\Http\Controllers\Api\TournamentController;
-use App\Http\Controllers\Api\TournamentMatchController;
+use App\Http\Controllers\Api\TournamentMatchRecordController;
 use App\Http\Controllers\Api\TournamentRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeightCategoryController;
@@ -38,13 +38,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::apiResource('athletes', AthleteController::class);
 
+    Route::get('tournaments/{tournament}/match_records/pdf', [TournamentMatchRecordController::class, 'matchRecordsPdf']);
     Route::apiResource('tournaments', TournamentController::class);
     Route::apiResource('tournaments.registrations', TournamentRegistrationController::class)->only(['index', 'store']);
-    Route::apiResource('tournaments.match_records', TournamentMatchController::class)->only(['index', 'store']);
+    Route::apiResource('tournaments.match_records', TournamentMatchRecordController::class)->only(['index', 'store']);
 
     Route::apiResource('registrations', RegistrationController::class);
     Route::get('registrations/{registration}/pdf', [RegistrationController::class, 'pdf']);
-    Route::get('tournaments/{tournament}/pdf', [TournamentController::class, 'pdf']);
 
     Route::apiResource('match_records', MatchRecordController::class);
 

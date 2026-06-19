@@ -396,7 +396,7 @@
                                                         {{ $match->weightCategory?->label ?? '—' }}
                                                         @if($match->rounds && $match->minutes_per_round)
                                                             &nbsp;·&nbsp;{{ $match->rounds }}
-                                                            ×{{ $match->minutes_per_round }}'
+                                                            × {{ $match->minutes_per_round }}
                                                         @endif
                                                         @if($match->gender)
                                                             &nbsp;·&nbsp;{{ $match->gender->label() }}

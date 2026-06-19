@@ -167,24 +167,27 @@
     @endif
 
     <div class="matches-outer">
-        @foreach($chunk as $match)
+        @foreach($chunk as $matchRecord)
             <div class="match-block">
                 <table class="match-table">
                     <tr>
-                        <td class="col-left team-name">{{ $match->red_corner_team }}</td>
-                        <td class="col-center center-top">{{ $match->discipline->label }}</td>
-                        <td class="col-right team-name team-name-right">{{ $match->blue_corner_team }}</td>
+                        <td class="col-left team-name">{{ $matchRecord->red_corner_team }}</td>
+                        <td class="col-center center-top">{{ $matchRecord->scheduled_time }}</td>
+                        <td class="col-right team-name team-name-right">{{ $matchRecord->blue_corner_team }}</td>
                     </tr>
                     <tr>
                         <td class="col-left athlete-cell">
-                            <div class="athlete-red">{{ $match->redCorner->full_name }}</div>
+                            <div class="athlete-red">{{ $matchRecord->redCorner->full_name }}</div>
                         </td>
                         <td class="col-center">
-                            <div class="center-top">{{ $match->weightCategory->label }}</div>
-                            <div class="center-bottom">{{ $match->rounds }} x {{ $match->minutes_per_round }}</div>
+                            <div
+                                class="center-top">{{ $matchRecord->discipline->label }}
+                                - {{ $matchRecord->weightCategory->label }}</div>
+                            <div class="center-bottom">{{ $matchRecord->rounds }}
+                                x {{ $matchRecord->minutes_per_round }}</div>
                         </td>
                         <td class="col-right athlete-cell">
-                            <div class="athlete-blue">{{ $match->blueCorner->full_name }}</div>
+                            <div class="athlete-blue">{{ $matchRecord->blueCorner->full_name }}</div>
                         </td>
                     </tr>
                 </table>

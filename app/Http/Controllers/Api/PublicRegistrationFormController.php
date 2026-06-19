@@ -16,6 +16,7 @@ use App\Models\Athlete;
 use App\Models\Registration;
 use App\Models\Tournament;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\PdfBuilder;
 
 use function Spatie\LaravelPdf\Support\pdf;
@@ -65,6 +66,8 @@ class PublicRegistrationFormController extends Controller
 
         return pdf()
             ->view('pdf.registration', compact('registration'))
+
+            ->format(Format::A4)
             ->name("registration-{$registration->id}.pdf");
     }
 }

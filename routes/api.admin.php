@@ -44,6 +44,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::apiResource('registrations', RegistrationController::class);
     Route::get('registrations/{registration}/pdf', [RegistrationController::class, 'pdf']);
+    Route::get('tournaments/{tournament}/pdf', [TournamentController::class, 'pdf']);
 
     Route::apiResource('match_records', MatchRecordController::class);
 

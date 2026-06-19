@@ -6,13 +6,15 @@
     "packages": [
         "spatie/laravel-medialibrary",
         "spatie/laravel-responsecache",
-        "spatie/laravel-pdf"
+        "spatie/laravel-pdf",
+        "spatie/laravel-backup"
     ],
     "skills": [
         "laravel-best-practices",
         "configuring-horizon",
         "echo-development",
         "tailwindcss-development",
+        "laravel-backup",
         "medialibrary-development",
         "laravel-pdf",
         "responsecache-development"

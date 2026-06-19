@@ -4,7 +4,7 @@ namespace App\Http\Requests\PublicRegistrationForm;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class PublicRegistrationFormTournamentIndexRequest extends FormRequest
+class PublicRegistrationFormWeightCategoryIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {

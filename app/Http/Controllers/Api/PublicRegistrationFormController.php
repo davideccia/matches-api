@@ -4,17 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\TournamentStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormDisciplineIndexRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormRegistrationPdfRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormRegistrationStoreRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormShowRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormStoreRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormTournamentIndexRequest;
+use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormWeightCategoryIndexRequest;
 use App\Http\Resources\AthleteResource;
+use App\Http\Resources\DisciplineResource;
 use App\Http\Resources\RegistrationResource;
 use App\Http\Resources\TournamentResource;
+use App\Http\Resources\WeightCategoryResource;
 use App\Models\Athlete;
+use App\Models\Discipline;
 use App\Models\Registration;
 use App\Models\Tournament;
+use App\Models\WeightCategory;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -42,12 +48,43 @@ class PublicRegistrationFormController extends Controller
 
     public function tournamentsIndex(PublicRegistrationFormTournamentIndexRequest $request): ResourceCollection
     {
+        $validated = $request->validated();
+
         $tournaments = Tournament::where('status', TournamentStatusEnum::REGISTRATIONS_OPENED)
             ->orderBy('date')
-            ->orderBy('id')
-            ->get();
+            ->orderBy('id');
 
-        return TournamentResource::collection($tournaments);
+        if (isset($validated['search'])) {
+            $tournaments->search($validated['search']);
+        }
+
+        return TournamentResource::collection($tournaments->get());
+    }
+
+    public function disciplinesIndex(PublicRegistrationFormDisciplineIndexRequest $request): ResourceCollection
+    {
+        $validated = $request->validated();
+
+        $disciplines = Discipline::orderBy('label')->orderBy('id');
+
+        if (isset($validated['search'])) {
+            $disciplines->search($validated['search']);
+        }
+
+        return DisciplineResource::collection($disciplines->get());
+    }
+
+    public function weightCategoriesIndex(PublicRegistrationFormWeightCategoryIndexRequest $request): ResourceCollection
+    {
+        $validated = $request->validated();
+
+        $weightCategories = WeightCategory::orderBy('label')->orderBy('id');
+
+        if (isset($validated['search'])) {
+            $weightCategories->search($validated['search']);
+        }
+
+        return WeightCategoryResource::collection($weightCategories->get());
     }
 
     public function storeRegistration(PublicRegistrationFormRegistrationStoreRequest $request): RegistrationResource

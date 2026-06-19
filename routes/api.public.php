@@ -1,9 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\DisciplineController;
 use App\Http\Controllers\Api\PublicRegistrationFormController;
 use App\Http\Controllers\Api\PublicTournamentController;
-use App\Http\Controllers\Api\WeightCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('registration_form')->group(function () {
@@ -13,9 +11,9 @@ Route::prefix('registration_form')->group(function () {
 
     Route::get('tournaments', [PublicRegistrationFormController::class, 'tournamentsIndex']);
 
-    Route::get('disciplines', [DisciplineController::class, 'index']);
+    Route::get('disciplines', [PublicRegistrationFormController::class, 'disciplinesIndex']);
 
-    Route::get('weight_categories', [WeightCategoryController::class, 'index']);
+    Route::get('weight_categories', [PublicRegistrationFormController::class, 'weightCategoriesIndex']);
 
     Route::post('registrations', [PublicRegistrationFormController::class, 'storeRegistration']);
     Route::get('registrations/{registration}/pdf', [PublicRegistrationFormController::class, 'registrationPdf']);

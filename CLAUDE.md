@@ -8,33 +8,35 @@ You MUST invoke the `/laravel-best-practices` skill before analyzing or writing 
 
 ## Project Overview
 
-This is a **Laravel 13 REST API** backend for a matches/dating domain. It is a pure API — no Blade views, no frontend. Auth is handled via Laravel Sanctum.
+This is a **Laravel 13 REST API** backend for a combat-sports tournament domain. There is no SPA/frontend; the only Blade views are server-rendered PDF templates (`resources/views/pdf/`) and email templates (`resources/views/emails/`). Auth is handled via Laravel Sanctum.
 
-Local development uses SQLite; sessions, cache, and queues all use the database driver.
+Local development runs via Laravel Sail: **PostgreSQL** for the database, **Redis** for cache (and sessions/queues), and **Mailpit** for outgoing email. Queues run on Laravel Horizon; real-time broadcasting uses Laravel Reverb.
 
 ## Domain Model
 
 Combat sports tournament management. Core entities and their relationships:
 
-- **Tournament** → has many Registrations, MatchRecords; status flows through `TournamentStatus` enum
-- **Athlete** → has many Registrations, MatchRecords (as red/blue corner or winner); looked up publicly by `tax_number`
+- **Tournament** → has many Registrations, MatchRecords; status flows through `TournamentStatusEnum`
+- **Athlete** → has many Registrations, MatchRecords (as red/blue corner or winner); looked up publicly by `tax_number`; gender via `AthleteGenderEnum`
 - **Registration** — join of Athlete + Tournament + Discipline + WeightCategory; tracks `paid_at`, `arrived`, `weight_in`
-- **MatchRecord** — a bout between two athletes; has `sort` (ordered within tournament), `status` (`MatchStatus`), `end_method` (`EndMethod`), `judges_points` (JSON array)
+- **MatchRecord** — a bout between two athletes; has `sort` (ordered within tournament), `status` (`MatchRecordStatusEnum`), `end_method` (`MatchRecordEndMethodEnum`), `judges_points` (JSON array)
 - **Discipline** and **WeightCategory** are reference data shared across tournaments
+
+Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEnum`).
 
 ## Architecture Invariants
 
 - **All primary and foreign key IDs are UUIDs** — enforced by the `laravel-scaffold` skill and must be reflected in migrations and models.
 - **PHP Enum columns are stored as strings in the database** — cast to a PHP-backed Enum in the model. Never use a DB-level ENUM type.
-- **API versioning is standard** — all routes live under `/api/v1/`.
+- **Routes are split by audience, not version** — `bootstrap/app.php` mounts `routes/api.admin.php` under the `/api/admin/` prefix and `routes/api.public.php` under `/api/public/` (the latter with a global `throttle:10,1`). A `SetLocale` middleware is prepended to the `api` group. There is no `/api/v1/` prefix.
 - **Eloquent API Resources are mandatory** for all API responses.
 - Use `.claude/skills/laravel-scaffold/` to generate a full artifact set (migration, model, observer, scopes, resource, controller, form requests, seeder) from a DBML schema.
 
 ## Route Files
 
-`routes/api.php` is the bootstrap file (currently empty beyond the include mechanism). Routes live in:
-- `routes/api.admin.php` — all authenticated routes (Sanctum middleware); covers `auth/*`, and all apiResources
-- `routes/api.public.php` — unauthenticated routes; `registration_form/*` (public athlete lookup, registration PDF) and `tournaments/*` (public match records)
+`routes/api.php` is empty; the prefixes/groups are wired in `bootstrap/app.php` (see above). Routes live in:
+- `routes/api.admin.php` (`/api/admin/`) — `auth/*` (login/logout/forgot/reset/user), `dashboard`, all `apiResource`s (users, weight_categories, disciplines, athletes, tournaments, registrations, match_records), nested `tournaments.{registrations,match_records}` (index/store only), `temporary_uploads`, and PDF endpoints. Everything except the `auth/*` entry points is behind `auth:sanctum`.
+- `routes/api.public.php` (`/api/public/`) — unauthenticated. `registration_form/*` (public athlete lookup by tax_number, athlete/registration create, disciplines & weight_categories index, registration PDF) and `tournaments/*` (public tournament list + match records).
 
 ## Request / Controller Patterns
 
@@ -59,7 +61,29 @@ Each model has an observer (`app/Observers/`) wired via `#[ObservedBy]` attribut
 
 ## Actions
 
-`app/Actions/` holds stateless classes for complex business logic extracted from observers/controllers. Currently: `ReorderMatchRecordsAction` — handles insert/update/delete of the `sort` column across a tournament's match records within DB transactions.
+`app/Actions/` holds stateless classes for complex business logic extracted from observers/controllers:
+- `ReorderMatchRecordsAction` — handles insert/update/delete of the `sort` column across a tournament's match records within DB transactions.
+- `StoreTemporaryUploadAction` — backs `POST temporary_uploads` (chunked/temporary file uploads later attached to a model's media).
+
+## PDF Generation
+
+PDFs are rendered with `spatie/laravel-pdf` (DOMPDF driver) from Blade views in `resources/views/pdf/`:
+- `registration.blade.php` — single registration form (`RegistrationController::pdf`, also exposed publicly via `PublicRegistrationFormController::registrationPdf`).
+- `tournament-simple.blade.php` / `tournament-detailed.blade.php` — tournament match-record sheets. `TournamentMatchRecordController::matchRecordsPdf` picks the view via `TournamentPdfTypeEnum` (`simple`/`detailed`), whose `viewName()` maps the case to the Blade file.
+
+Use the `laravel-pdf` skill when touching this code.
+
+## Media & File Uploads
+
+Uses `spatie/laravel-medialibrary` (S3-compatible storage via `league/flysystem-aws-s3-v3`). The `Media` model overrides the package default; the `InteractsWithMedia` trait (`app/Traits/`) is applied to models that own files. Temporary uploads flow through `TemporaryUploadController` → `StoreTemporaryUploadAction`, validated by `app/Rules/TemporaryFileRule`. Use the `medialibrary-development` skill here.
+
+## Auth & Notifications
+
+Password reset is API-driven: `auth/forgot_password` + `auth/reset_password` send `ResetPasswordNotification` (`app/Notifications/`), rendered from `resources/views/emails/auth/reset-password.blade.php`.
+
+## Testing Status
+
+Test coverage is currently bootstrap-only (`tests/Feature/ExampleTest.php`, `tests/Unit/ExampleTest.php`). New domain logic should ship with feature tests using model factories — do not assume existing coverage protects a change.
 
 ## Key Commands
 

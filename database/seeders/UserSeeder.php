@@ -13,9 +13,10 @@ class UserSeeder extends Seeder
             return;
         }
 
-        User::create([
-            'username' => 'superadmin',
+        User::updateOrCreate([
             'email' => 'superadmin@matches.it',
+        ], [
+            'username' => 'superadmin',
             'password' => '12345678',
             'superadmin' => true,
         ]);

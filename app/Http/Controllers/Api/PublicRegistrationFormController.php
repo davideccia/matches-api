@@ -15,8 +15,10 @@ use App\Http\Resources\TournamentResource;
 use App\Models\Athlete;
 use App\Models\Registration;
 use App\Models\Tournament;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Spatie\LaravelPdf\PdfBuilder;
+
+use function Spatie\LaravelPdf\Support\pdf;
 
 class PublicRegistrationFormController extends Controller
 {
@@ -57,8 +59,12 @@ class PublicRegistrationFormController extends Controller
         return new RegistrationResource($registration);
     }
 
-    public function registrationPdf(PublicRegistrationFormRegistrationPdfRequest $request, Registration $registration): JsonResponse
+    public function registrationPdf(PublicRegistrationFormRegistrationPdfRequest $request, Registration $registration): PdfBuilder
     {
-        abort(404);
+        $registration->loadMissing(['athlete', 'tournament', 'discipline', 'weightCategory']);
+
+        return pdf()
+            ->view('pdf.registration', compact('registration'))
+            ->name("registration-{$registration->id}.pdf");
     }
 }

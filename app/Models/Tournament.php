@@ -84,8 +84,6 @@ class Tournament extends Model implements HasMedia
 
         DB::transaction(function () use ($service): void {
 
-            $this->matchRecords()->delete();
-
             foreach ($service->generateMatchRecords() as $attributes) {
                 MatchRecord::create($attributes);
             }

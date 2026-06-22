@@ -122,6 +122,12 @@ class MatchmakingService
                 'discipline',
                 'weightCategory',
             ])
+            ->whereNotIn('athlete_id', fn ($q) => $q->select('red_corner_id')
+                ->from('match_records')
+                ->where('tournament_id', $this->tournament->id))
+            ->whereNotIn('athlete_id', fn ($q) => $q->select('blue_corner_id')
+                ->from('match_records')
+                ->where('tournament_id', $this->tournament->id))
             ->get();
 
         $groups = [];

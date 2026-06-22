@@ -46,7 +46,7 @@
 
         .match-block {
             padding: 8px 10px;
-            border-bottom: 1px solid #CBD5E1;
+            border: 2px solid #CBD5E1;
         }
 
         .match-block:last-child {
@@ -171,24 +171,25 @@
             <div class="match-block">
                 <table class="match-table">
                     <tr>
-                        <td class="col-left team-name">{{ $matchRecord->red_corner_team }}</td>
-                        <td class="col-center center-top">{{ $matchRecord->scheduled_time }}</td>
-                        <td class="col-right team-name team-name-right">{{ $matchRecord->blue_corner_team }}</td>
-                    </tr>
-                    <tr>
                         <td class="col-left athlete-cell">
-                            <div class="athlete-red">{{ $matchRecord->redCorner->full_name }}</div>
+                            <div class="athlete-red">{{ $matchRecord->red_corner_team }}</div>
                         </td>
                         <td class="col-center">
-                            <div
-                                class="center-top">{{ $matchRecord->discipline->label }}
-                                - {{ $matchRecord->weightCategory->label }}</div>
-                            <div class="center-bottom">{{ $matchRecord->rounds }}
-                                x {{ $matchRecord->minutes_per_round }}</div>
+                            @if($matchRecord->scheduled_time !== null)
+                                <div class="center-bottom">13:30</div>
+                            @endif
+                            <div class="center-top">{{ $matchRecord->discipline->label }}
+                                – {{ $matchRecord->weightCategory->label }}</div>
                         </td>
                         <td class="col-right athlete-cell">
-                            <div class="athlete-blue">{{ $matchRecord->blueCorner->full_name }}</div>
+                            <div class="athlete-blue">{{ $matchRecord->blue_corner_team }}</div>
                         </td>
+                    </tr>
+                    <tr>
+                        <td class="col-left team-name">{{ $matchRecord->redCorner->full_name }}</td>
+                        <td class="col-center center-top">{{ $matchRecord->rounds }}
+                            x {{ $matchRecord->minutes_per_round }}</td>
+                        <td class="col-right team-name team-name-right">{{ $matchRecord->blueCorner->full_name }}</td>
                     </tr>
                 </table>
             </div>

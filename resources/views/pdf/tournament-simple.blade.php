@@ -58,57 +58,68 @@
             border-collapse: collapse;
         }
 
+        .col-sort {
+            width: 6%;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 11px;
+            font-weight: bold;
+            color: #64748B;
+            padding: 0 4px;
+        }
+
         .col-left {
-            width: 40%;
+            width: 37%;
         }
 
         .col-center {
             width: 20%;
+            padding: 0;
+            vertical-align: top;
         }
 
         .col-right {
-            width: 40%;
+            width: 37%;
         }
 
         .team-name {
-            font-size: 8.5px;
+            font-size: 9px;
             color: #334155;
             padding: 1px 4px 2px;
+            vertical-align: middle;
         }
 
         .team-name-right {
             text-align: right;
         }
 
-        .athlete-cell {
-            padding: 0;
-        }
-
         .athlete-red {
             background: #C94848;
             color: #fff;
             font-weight: bold;
-            font-size: 9.5px;
+            font-size: 10px;
             padding: 3px 6px;
+            vertical-align: middle;
         }
 
         .athlete-blue {
             background: #3272A8;
             color: #fff;
             font-weight: bold;
-            font-size: 9.5px;
+            font-size: 10px;
             padding: 3px 6px;
             text-align: right;
+            vertical-align: middle;
         }
 
         .center-top {
             background: #111827;
             color: #fff;
             text-align: center;
-            font-size: 8.5px;
+            font-size: 9px;
             font-weight: bold;
             padding: 2px 4px 1px;
-            letter-spacing: 0.3px;
+            letter-spacing: 0;
         }
 
         .center-bottom {
@@ -151,7 +162,7 @@
     </div>
 </div>
 
-@forelse($tournament->matchRecords->chunk(17) as $chunkIndex => $chunk)
+@forelse($tournament->matchRecords->chunk(15) as $chunkIndex => $chunk)
     @if($chunkIndex > 0)
         <div class="page-break"></div>
         <div class="header">
@@ -171,25 +182,21 @@
             <div class="match-block">
                 <table class="match-table">
                     <tr>
-                        <td class="col-left athlete-cell">
-                            <div class="athlete-red">{{ $matchRecord->red_corner_team }}</div>
-                        </td>
-                        <td class="col-center">
-                            @if($matchRecord->scheduled_time !== null)
-                                <div class="center-bottom">13:30</div>
-                            @endif
-                            <div class="center-top">{{ $matchRecord->discipline->label }}
-                                – {{ $matchRecord->weightCategory->label }}</div>
-                        </td>
-                        <td class="col-right athlete-cell">
-                            <div class="athlete-blue">{{ $matchRecord->blue_corner_team }}</div>
-                        </td>
+                        <td class="col-sort" rowspan="3">{{ $matchRecord->sort }}</td>
+                        <td class="col-left athlete-red">{{ $matchRecord->red_corner_team }}</td>
+                        <td class="col-center center-bottom">{{ $matchRecord->scheduled_time }}</td>
+                        <td class="col-right athlete-blue">{{ $matchRecord->blue_corner_team }}</td>
                     </tr>
                     <tr>
-                        <td class="col-left team-name">{{ $matchRecord->redCorner->full_name }}</td>
+                        <td class="col-left team-name" rowspan="2">{{ $matchRecord->redCorner->full_name }}</td>
+                        <td class="col-center center-top">{{ $matchRecord->discipline->label }}
+                            – {{ $matchRecord->weightCategory->label }}</td>
+                        <td class="col-right team-name team-name-right"
+                            rowspan="2">{{ $matchRecord->blueCorner->full_name }}</td>
+                    </tr>
+                    <tr>
                         <td class="col-center center-top">{{ $matchRecord->rounds }}
                             x {{ $matchRecord->minutes_per_round }}</td>
-                        <td class="col-right team-name team-name-right">{{ $matchRecord->blueCorner->full_name }}</td>
                     </tr>
                 </table>
             </div>

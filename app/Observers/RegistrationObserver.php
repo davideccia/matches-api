@@ -19,7 +19,15 @@ class RegistrationObserver
         abort_if($registration->isDuplicateRegistration(), 409, __('errors.registration_duplicate'));
     }
 
+    public function saved(Registration $registration): void
+    {
+        $registration->tournament->syncMatchmakingIssues();
+    }
+
     public function deleting(Registration $registration): void {}
 
-    public function deleted(Registration $registration): void {}
+    public function deleted(Registration $registration): void
+    {
+        $registration->tournament->syncMatchmakingIssues();
+    }
 }

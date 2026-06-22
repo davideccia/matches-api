@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TournamentStatusEnum;
 use App\Models\Scopes\TournamentScope;
 use App\Observers\TournamentObserver;
+use App\Services\MatchmakingService;
 use App\Traits\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 
 #[ObservedBy([TournamentObserver::class])]
@@ -38,6 +40,7 @@ class Tournament extends Model implements HasMedia
         return [
             'date' => 'date',
             'status' => TournamentStatusEnum::class,
+            'matchmaking_issues' => 'array',
         ];
     }
 
@@ -64,6 +67,31 @@ class Tournament extends Model implements HasMedia
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
-        return $builder;
+        return $builder->where(fn (Builder $q) => $q
+            ->whereLike('name', $search, true)
+        );
+    }
+
+    public function syncMatchmakingIssues(): void
+    {
+        $this->matchmaking_issues = (new MatchmakingService($this))->getMatchmakingIssues();
+        $this->saveQuietly();
+    }
+
+    public function runMatchmaking(): void
+    {
+        $service = new MatchmakingService($this);
+
+        DB::transaction(function () use ($service): void {
+
+            $this->matchRecords()->delete();
+
+            foreach ($service->generateMatchRecords() as $attributes) {
+                MatchRecord::create($attributes);
+            }
+
+            $this->matchmaking_issues = $service->getMatchmakingIssues();
+            $this->saveQuietly();
+        });
     }
 }

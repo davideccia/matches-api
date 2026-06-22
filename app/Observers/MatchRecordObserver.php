@@ -28,6 +28,11 @@ class MatchRecordObserver
         event(new MatchRecordChanged($matchRecord));
     }
 
+    public static function saved(MatchRecord $matchRecord): void
+    {
+        $matchRecord->tournament->syncMatchmakingIssues();
+    }
+
     public function deleting(MatchRecord $matchRecord): void
     {
         ReorderMatchRecordsAction::handleDeleting($matchRecord);
@@ -36,5 +41,7 @@ class MatchRecordObserver
     public function deleted(MatchRecord $matchRecord): void
     {
         event(new MatchRecordChanged($matchRecord));
+
+        $matchRecord->tournament->syncMatchmakingIssues();
     }
 }

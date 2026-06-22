@@ -6,6 +6,7 @@ use App\Enums\TournamentPdfTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MatchRecord\MatchRecordIndexRequest;
 use App\Http\Requests\MatchRecord\MatchRecordStoreRequest;
+use App\Http\Requests\Tournament\TournamentGenerateMatchRecordsRequest;
 use App\Http\Requests\Tournament\TournamentMatchRecordsPdfRequest;
 use App\Http\Resources\MatchRecordResource;
 use App\Models\MatchRecord;
@@ -13,6 +14,7 @@ use App\Models\Tournament;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\PdfBuilder;
+
 use function Spatie\LaravelPdf\Support\pdf;
 
 class TournamentMatchRecordController extends Controller
@@ -45,6 +47,13 @@ class TournamentMatchRecordController extends Controller
         $matchRecord->fill($validated)->saveOrFail();
 
         return new MatchRecordResource($matchRecord->loadMissing($validated['with'] ?? []));
+    }
+
+    public function generateMatchRecords(TournamentGenerateMatchRecordsRequest $request, Tournament $tournament): ResourceCollection
+    {
+        $tournament->runMatchmaking();
+
+        return MatchRecordResource::collection($tournament->matchRecords()->get());
     }
 
     public function matchRecordsPdf(TournamentMatchRecordsPdfRequest $request, Tournament $tournament): PdfBuilder

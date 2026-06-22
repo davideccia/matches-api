@@ -39,6 +39,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('athletes', AthleteController::class);
 
     Route::get('tournaments/{tournament}/match_records/pdf', [TournamentMatchRecordController::class, 'matchRecordsPdf']);
+    Route::post('tournaments/{tournament}/match_records/generate', [TournamentMatchRecordController::class, 'generateMatchRecords']);
     Route::apiResource('tournaments', TournamentController::class);
     Route::apiResource('tournaments.registrations', TournamentRegistrationController::class)->only(['index', 'store']);
     Route::apiResource('tournaments.match_records', TournamentMatchRecordController::class)->only(['index', 'store']);

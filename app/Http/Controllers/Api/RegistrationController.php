@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Registration\RegistrationBulkDestroyRequest;
 use App\Http\Requests\Registration\RegistrationDestroyRequest;
 use App\Http\Requests\Registration\RegistrationIndexRequest;
 use App\Http\Requests\Registration\RegistrationPdfRequest;
@@ -13,6 +14,7 @@ use App\Http\Resources\RegistrationResource;
 use App\Models\Registration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\PdfBuilder;
 
@@ -84,6 +86,16 @@ class RegistrationController extends Controller
     public function destroy(RegistrationDestroyRequest $request, Registration $registration): JsonResponse
     {
         $registration->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(RegistrationBulkDestroyRequest $request): JsonResponse
+    {
+        DB::transaction(function () use ($request): void {
+            Registration::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (Registration $registration) => $registration->delete());
+        });
 
         return response()->json([], 204);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\WeightCategory\WeightCategoryBulkDestroyRequest;
 use App\Http\Requests\WeightCategory\WeightCategoryDestroyRequest;
 use App\Http\Requests\WeightCategory\WeightCategoryIndexRequest;
 use App\Http\Requests\WeightCategory\WeightCategoryShowRequest;
@@ -12,6 +13,7 @@ use App\Http\Resources\WeightCategoryResource;
 use App\Models\WeightCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class WeightCategoryController extends Controller
 {
@@ -63,6 +65,16 @@ class WeightCategoryController extends Controller
     public function destroy(WeightCategoryDestroyRequest $request, WeightCategory $weightCategory): JsonResponse
     {
         $weightCategory->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(WeightCategoryBulkDestroyRequest $request): JsonResponse
+    {
+        DB::transaction(function () use ($request): void {
+            WeightCategory::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (WeightCategory $weightCategory) => $weightCategory->delete());
+        });
 
         return response()->json([], 204);
     }

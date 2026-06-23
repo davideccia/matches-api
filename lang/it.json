@@ -156,6 +156,7 @@
     "errors.weight_category_has_match_records": "Impossibile eliminare: la categoria di peso ha degli incontri associati.",
     "errors.weight_category_has_athletes": "Impossibile eliminare: la categoria di peso è assegnata ad alcuni atleti.",
     "errors.registration_duplicate": "Impossibile salvare: l'atleta è già iscritto a questo torneo, disciplina e categoria di peso.",
+    "errors.registration_has_match_records": "Impossibile eliminare: l'iscrizione ha degli incontri associati.",
     "enums.athlete_gender.male": "Maschile",
     "enums.athlete_gender.female": "Femminile",
     "enums.athlete_gender.hybrid": "Misto",

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\MatchRecord\MatchRecordBulkDestroyRequest;
 use App\Http\Requests\MatchRecord\MatchRecordDestroyRequest;
 use App\Http\Requests\MatchRecord\MatchRecordIndexRequest;
 use App\Http\Requests\MatchRecord\MatchRecordShowRequest;
@@ -12,6 +13,7 @@ use App\Http\Resources\MatchRecordResource;
 use App\Models\MatchRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class MatchRecordController extends Controller
 {
@@ -67,6 +69,16 @@ class MatchRecordController extends Controller
     public function destroy(MatchRecordDestroyRequest $request, MatchRecord $matchRecord): JsonResponse
     {
         $matchRecord->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(MatchRecordBulkDestroyRequest $request): JsonResponse
+    {
+        DB::transaction(function () use ($request): void {
+            MatchRecord::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (MatchRecord $matchRecord) => $matchRecord->delete());
+        });
 
         return response()->json([], 204);
     }

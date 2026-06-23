@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\AthleteGenderEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Athlete\AthleteBulkDestroyRequest;
 use App\Http\Requests\Athlete\AthleteDestroyRequest;
 use App\Http\Requests\Athlete\AthleteIndexRequest;
 use App\Http\Requests\Athlete\AthleteShowRequest;
@@ -13,6 +14,7 @@ use App\Http\Resources\AthleteResource;
 use App\Models\Athlete;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class AthleteController extends Controller
 {
@@ -77,6 +79,16 @@ class AthleteController extends Controller
     public function destroy(AthleteDestroyRequest $request, Athlete $athlete): JsonResponse
     {
         $athlete->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(AthleteBulkDestroyRequest $request): JsonResponse
+    {
+        DB::transaction(function () use ($request): void {
+            Athlete::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (Athlete $athlete) => $athlete->delete());
+        });
 
         return response()->json([], 204);
     }

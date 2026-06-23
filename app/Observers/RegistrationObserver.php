@@ -24,7 +24,10 @@ class RegistrationObserver
         $registration->tournament->syncMatchmakingIssues();
     }
 
-    public function deleting(Registration $registration): void {}
+    public function deleting(Registration $registration): void
+    {
+        abort_if($registration->hasMatchRecords(), 400, __('errors.registration_has_match_records'));
+    }
 
     public function deleted(Registration $registration): void
     {

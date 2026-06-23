@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\UserBulkDestroyRequest;
 use App\Http\Requests\User\UserDestroyRequest;
 use App\Http\Requests\User\UserIndexRequest;
 use App\Http\Requests\User\UserShowRequest;
@@ -12,6 +13,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -63,6 +65,16 @@ class UserController extends Controller
     public function destroy(UserDestroyRequest $request, User $user): JsonResponse
     {
         $user->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(UserBulkDestroyRequest $request): JsonResponse
+    {
+        DB::transaction(function () use ($request): void {
+            User::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (User $user) => $user->delete());
+        });
 
         return response()->json([], 204);
     }

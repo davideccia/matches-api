@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tournament\TournamentBulkDestroyRequest;
 use App\Http\Requests\Tournament\TournamentDestroyRequest;
 use App\Http\Requests\Tournament\TournamentIndexRequest;
 use App\Http\Requests\Tournament\TournamentShowRequest;
@@ -80,6 +81,16 @@ class TournamentController extends Controller
     public function destroy(TournamentDestroyRequest $request, Tournament $tournament): JsonResponse
     {
         $tournament->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(TournamentBulkDestroyRequest $request): JsonResponse
+    {
+        \DB::transaction(function () use ($request): void {
+            Tournament::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (Tournament $tournament) => $tournament->delete());
+        });
 
         return response()->json([], 204);
     }

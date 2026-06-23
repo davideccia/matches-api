@@ -105,4 +105,16 @@ class Registration extends Model
     {
         return $this->belongsTo(WeightCategory::class);
     }
+
+    public function hasMatchRecords(): bool
+    {
+        return MatchRecord::where(fn (Builder $builder) => $builder
+            ->where('red_corner_id', $this->athlete_id)
+            ->orWhere('blue_corner_id', $this->athlete_id)
+        )
+            ->where('tournament_id', $this->tournament_id)
+            ->where('discipline_id', $this->discipline_id)
+            ->where('weight_category_id', $this->weight_category_id)
+            ->exists();
+    }
 }

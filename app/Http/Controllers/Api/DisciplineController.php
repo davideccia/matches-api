@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Discipline\DisciplineBulkDestroyRequest;
 use App\Http\Requests\Discipline\DisciplineDestroyRequest;
 use App\Http\Requests\Discipline\DisciplineIndexRequest;
 use App\Http\Requests\Discipline\DisciplineShowRequest;
@@ -12,6 +13,7 @@ use App\Http\Resources\DisciplineResource;
 use App\Models\Discipline;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class DisciplineController extends Controller
 {
@@ -63,6 +65,16 @@ class DisciplineController extends Controller
     public function destroy(DisciplineDestroyRequest $request, Discipline $discipline): JsonResponse
     {
         $discipline->delete();
+
+        return response()->json([], 204);
+    }
+
+    public function bulkDestroy(DisciplineBulkDestroyRequest $request): JsonResponse
+    {
+        DB::transaction(function () use ($request): void {
+            Discipline::whereIn('id', $request->validated('ids'))->get()
+                ->each(fn (Discipline $discipline) => $discipline->delete());
+        });
 
         return response()->json([], 204);
     }

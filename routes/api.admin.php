@@ -30,23 +30,30 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     });
 
+    Route::delete('users/bulk', [UserController::class, 'bulkDestroy']);
     Route::apiResource('users', UserController::class);
 
+    Route::delete('weight_categories/bulk', [WeightCategoryController::class, 'bulkDestroy']);
     Route::apiResource('weight_categories', WeightCategoryController::class);
 
+    Route::delete('disciplines/bulk', [DisciplineController::class, 'bulkDestroy']);
     Route::apiResource('disciplines', DisciplineController::class);
 
+    Route::delete('athletes/bulk', [AthleteController::class, 'bulkDestroy']);
     Route::apiResource('athletes', AthleteController::class);
 
     Route::get('tournaments/{tournament}/match_records/pdf', [TournamentMatchRecordController::class, 'matchRecordsPdf']);
     Route::post('tournaments/{tournament}/match_records/generate', [TournamentMatchRecordController::class, 'generateMatchRecords']);
+    Route::delete('tournaments/bulk', [TournamentController::class, 'bulkDestroy']);
     Route::apiResource('tournaments', TournamentController::class);
     Route::apiResource('tournaments.registrations', TournamentRegistrationController::class)->only(['index', 'store']);
     Route::apiResource('tournaments.match_records', TournamentMatchRecordController::class)->only(['index', 'store']);
 
+    Route::delete('registrations/bulk', [RegistrationController::class, 'bulkDestroy']);
     Route::apiResource('registrations', RegistrationController::class);
     Route::get('registrations/{registration}/pdf', [RegistrationController::class, 'pdf']);
 
+    Route::delete('match_records/bulk', [MatchRecordController::class, 'bulkDestroy']);
     Route::apiResource('match_records', MatchRecordController::class);
 
     Route::post('temporary_uploads', [TemporaryUploadController::class, 'store']);

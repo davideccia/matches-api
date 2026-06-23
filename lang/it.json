@@ -175,5 +175,14 @@
     "enums.tournament_status.registrations_closed": "Iscrizioni chiuse",
     "enums.tournament_status.in_progress": "In corso",
     "enums.tournament_status.completed": "Completato",
-    "enums.tournament_status.cancelled": "Annullato"
+    "enums.tournament_status.cancelled": "Annullato",
+    "pdf.registration.title": "Conferma di Iscrizione",
+    "pdf.registration.subtitle": "Documento ufficiale di partecipazione",
+    "pdf.registration.label_athlete": "Atleta",
+    "pdf.registration.label_tournament": "Torneo",
+    "pdf.registration.label_discipline": "Disciplina",
+    "pdf.registration.label_category": "Categoria",
+    "pdf.registration.credential_label": "Codice Iscrizione",
+    "pdf.registration.credential_note": "Conserva questo documento per certificare la tua iscrizione",
+    "pdf.registration.exported_at": "Esportato il :date"
 }

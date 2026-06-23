@@ -2,8 +2,8 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Conferma di Iscrizione</title>
-    <style type="text/css">
+    <title>{{ __('pdf.registration.title') }}</title>
+    <style>
         @page {
             size: A4;
             margin: 20pt;
@@ -81,7 +81,7 @@
 
         /* ── BODY ── */
         .body-wrap {
-            padding: 28pt 0pt;
+            padding: 28pt 0;
         }
 
         /* ── DETAIL WRAP ── */
@@ -146,17 +146,6 @@
             height: 0;
             font-size: 0;
             line-height: 0;
-        }
-
-        .divider-center {
-            text-align: center;
-            padding-top: 0;
-        }
-
-        .divider-dot {
-            font-size: 6pt;
-            color: #d4a96a;
-            letter-spacing: 4pt;
         }
 
         /* ── CREDENTIAL BLOCK ── */
@@ -234,8 +223,8 @@
                 <td class="header-accent"></td>
                 <td class="header-content">
                     <div class="header-event">{{ $registration->tournament->name }}</div>
-                    <div class="header-title">Conferma di Iscrizione</div>
-                    <div class="header-subtitle">Documento ufficiale di partecipazione</div>
+                    <div class="header-title">{{ __('pdf.registration.title') }}</div>
+                    <div class="header-subtitle">{{ __('pdf.registration.subtitle') }}</div>
                 </td>
             </tr>
         </table>
@@ -247,19 +236,19 @@
         <div class="detail-wrap">
             <table class="detail-table">
                 <tr>
-                    <td class="detail-label">Atleta</td>
+                    <td class="detail-label">{{ __('pdf.registration.label_athlete') }}</td>
                     <td class="detail-value">{{ $registration->athlete->full_name }}</td>
                 </tr>
                 <tr>
-                    <td class="detail-label">Torneo</td>
+                    <td class="detail-label">{{ __('pdf.registration.label_tournament') }}</td>
                     <td class="detail-value">{{ $registration->tournament->name }}</td>
                 </tr>
                 <tr>
-                    <td class="detail-label">Disciplina</td>
+                    <td class="detail-label">{{ __('pdf.registration.label_discipline') }}</td>
                     <td class="detail-value">{{ $registration->discipline->label }}</td>
                 </tr>
                 <tr>
-                    <td class="detail-label-last">Categoria</td>
+                    <td class="detail-label-last">{{ __('pdf.registration.label_category') }}</td>
                     <td class="detail-value-last">{{ $registration->weightCategory->label }}</td>
                 </tr>
             </table>
@@ -277,10 +266,10 @@
             <tr>
                 <td class="credential-cell">
                     <div class="credential-box">
-                        <div class="credential-label">Codice Iscrizione</div>
+                        <div class="credential-label">{{ __('pdf.registration.credential_label') }}</div>
                         <div class="credential-rule"></div>
                         <div class="credential-code">{{ $registration->id }}</div>
-                        <div class="credential-note">Conserva questo documento per certificare la tua iscrizione</div>
+                        <div class="credential-note">{{ __('pdf.registration.credential_note') }}</div>
                     </div>
                 </td>
             </tr>
@@ -292,7 +281,7 @@
     <table class="footer-table">
         <tr>
             <td class="footer-right">
-                Esportato il {{ now()->format('d/m/Y H:i') }}
+                {{ __('pdf.registration.exported_at', ['date' => now()->format('d/m/Y H:i')]) }}
             </td>
         </tr>
     </table>

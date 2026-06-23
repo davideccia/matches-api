@@ -91,7 +91,7 @@ class MatchRecordSeeder extends Seeder
                 'blue_corner_team' => $blueAthlete->team_name,
                 'sort' => $i + 1,
                 'rounds' => 3,
-                'minutes_per_round' => 3.0,
+                'minutes_per_round' => '03:00',
             ];
 
             if ($i % 2 === 0) {

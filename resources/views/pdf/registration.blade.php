@@ -2,366 +2,301 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Scheda Iscrizione</title>
-    <style>
+    <title>Conferma di Iscrizione</title>
+    <style type="text/css">
         @page {
             size: A4;
-            margin: 0 0 15mm 0;
+            margin: 20pt;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        html {
+            -webkit-print-color-adjust: exact;
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px;
-            color: #1E293B;
-            line-height: 1.55;
-            background: #FFFFFF;
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            color: #2d3a4e;
+            margin: 0;
+            padding: 0;
         }
 
-        /* ── HEADER ─────────────────────────── */
-        .header {
-            background-color: #0F1F3D;
-            padding: 22px 28px 18px;
+        table {
+            border-collapse: collapse;
+            width: 100%;
         }
 
-        .header-eyebrow {
-            font-size: 8px;
-            letter-spacing: 3.5px;
+        td {
+            padding: 0;
+            vertical-align: top;
+        }
+
+        /* ── PAGE ── */
+        .page {
+            padding: 20pt;
+        }
+
+        /* ── HEADER WRAP ── */
+        .header-wrap {
+            border-radius: 10pt;
+            overflow: hidden;
+            border: 1pt solid #dce4ed;
+        }
+
+        /* ── HEADER ── */
+        .header-table {
+            width: 100%;
+        }
+
+        .header-accent {
+            width: 7pt;
+            background-color: #5b7fa8;
+        }
+
+        .header-content {
+            padding: 26pt 32pt 26pt 22pt;
+        }
+
+        .header-event {
+            font-size: 8pt;
+            color: #5b7fa8;
             text-transform: uppercase;
-            color: #C8A84B;
+            letter-spacing: 1.5pt;
             font-weight: bold;
-            margin-bottom: 6px;
         }
 
-        .header-tournament {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 22px;
-            color: #FFFFFF;
+        .header-title {
+            font-size: 20pt;
             font-weight: bold;
-            line-height: 1.2;
-            margin-bottom: 8px;
+            color: #2d3a4e;
+            margin-top: 5pt;
         }
 
-        .header-meta {
-            font-size: 10px;
-            color: #94A3B8;
+        .header-subtitle {
+            font-size: 8.5pt;
+            color: #8fa0b5;
+            margin-top: 4pt;
+            letter-spacing: 0.3pt;
         }
 
-        .header-sep {
-            color: #C8A84B;
-            padding: 0 7px;
+        /* ── BODY ── */
+        .body-wrap {
+            padding: 28pt 0pt;
         }
 
-        /* ── GOLD ACCENT BAR ─────────────────── */
-        .gold-bar {
-            height: 3px;
-            background-color: #C8A84B;
+        /* ── DETAIL WRAP ── */
+        .detail-wrap {
+            border-radius: 8pt;
+            overflow: hidden;
+            border: 1pt solid #dce4ed;
         }
 
-        /* ── PAGE BODY ───────────────────────── */
-        .body {
-            padding: 22px 28px;
-        }
-
-        /* ── ATHLETE HERO ────────────────────── */
-        .athlete-hero {
-            background-color: #F5F7FA;
-            border-left: 5px solid #C8A84B;
-            padding: 14px 18px;
-            margin-bottom: 22px;
-        }
-
-        .athlete-name {
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 24px;
-            font-weight: bold;
-            color: #0F1F3D;
-            line-height: 1.15;
-            margin-bottom: 3px;
-        }
-
-        .athlete-tax {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 10px;
-            color: #64748B;
-            letter-spacing: 0.8px;
-            margin-bottom: 10px;
-        }
-
-        .athlete-meta-row {
+        /* ── DETAIL TABLE ── */
+        .detail-table {
             width: 100%;
-            border-collapse: collapse;
         }
 
-        .athlete-meta-row td {
-            vertical-align: top;
-            padding-right: 20px;
-        }
-
-        .athlete-meta-row td:last-child {
-            padding-right: 0;
-        }
-
-        .meta-kicker {
-            font-size: 8px;
+        .detail-label {
+            width: 34%;
+            border-bottom: 1pt solid #dce4ed;
+            border-right: 1pt solid #dce4ed;
+            padding: 10pt 14pt;
+            font-size: 8pt;
+            font-weight: bold;
+            color: #8fa0b5;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #94A3B8;
-            display: block;
-            margin-bottom: 2px;
+            letter-spacing: 0.8pt;
         }
 
-        .meta-value {
-            font-size: 11px;
-            color: #1E293B;
+        .detail-value {
+            border-bottom: 1pt solid #dce4ed;
+            padding: 10pt 14pt;
+            font-size: 11pt;
+            color: #2d3a4e;
             font-weight: bold;
         }
 
-        /* ── SECTION ─────────────────────────── */
-        .section {
-            margin-bottom: 20px;
-        }
-
-        .section-heading {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-
-        .section-label {
-            font-size: 8px;
+        .detail-label-last {
+            width: 34%;
+            border-right: 1pt solid #dce4ed;
+            padding: 10pt 14pt;
+            font-size: 8pt;
             font-weight: bold;
-            letter-spacing: 2.5px;
+            color: #8fa0b5;
             text-transform: uppercase;
-            color: #C8A84B;
-            white-space: nowrap;
-            padding-right: 10px;
-            vertical-align: middle;
+            letter-spacing: 0.8pt;
         }
 
-        .section-rule-cell {
-            border-top: 1px solid #E2E8F0;
-            vertical-align: middle;
+        .detail-value-last {
+            padding: 10pt 14pt;
+            font-size: 11pt;
+            font-weight: bold;
+            color: #2d3a4e;
         }
 
-        /* ── DATA GRID ───────────────────────── */
-        .data-grid {
+        /* ── DIVIDER ── */
+        .divider-table {
             width: 100%;
-            border-collapse: collapse;
+            margin-top: 26pt;
+            margin-bottom: 26pt;
         }
 
-        .data-grid tr:nth-child(even) td {
-            background-color: #F8FAFC;
+        .divider-line {
+            border-top: 1pt solid #dce4ed;
+            height: 0;
+            font-size: 0;
+            line-height: 0;
         }
 
-        .dg-label {
-            width: 36%;
-            font-size: 9.5px;
-            color: #64748B;
-            padding: 5px 10px 5px 0;
-            vertical-align: top;
+        .divider-center {
+            text-align: center;
+            padding-top: 0;
         }
 
-        .dg-value {
-            font-size: 11px;
-            color: #1E293B;
-            padding: 5px 0;
-            vertical-align: top;
+        .divider-dot {
+            font-size: 6pt;
+            color: #d4a96a;
+            letter-spacing: 4pt;
         }
 
-        /* ── TWO-COLUMN ──────────────────────── */
-        .two-col {
+        /* ── CREDENTIAL BLOCK ── */
+        .credential-outer {
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
         }
 
-        .col-left {
-            width: 50%;
-            padding-right: 16px;
-            vertical-align: top;
+        .credential-cell {
+            padding: 0;
+            text-align: center;
         }
 
-        .col-right {
-            width: 50%;
-            padding-left: 16px;
-            border-left: 1px solid #E2E8F0;
-            vertical-align: top;
+        .credential-box {
+            border: 1.5pt solid #dce4ed;
+            border-left: 4pt solid #d4a96a;
+            border-radius: 8pt;
+            padding: 18pt 28pt;
+            text-align: center;
         }
 
-        /* ── FOOTER ──────────────────────────── */
-        .footer {
+        .credential-label {
+            font-size: 7pt;
+            font-weight: bold;
+            color: #d4a96a;
+            text-transform: uppercase;
+            letter-spacing: 2.5pt;
+        }
+
+        .credential-rule {
+            border-top: 1pt solid #dce4ed;
+            margin-top: 10pt;
+            margin-bottom: 10pt;
+            height: 0;
+            font-size: 0;
+            line-height: 0;
+        }
+
+        .credential-code {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #2d3a4e;
+            letter-spacing: 1pt;
+        }
+
+        .credential-note {
+            font-size: 7pt;
+            color: #8fa0b5;
+            margin-top: 10pt;
+            letter-spacing: 0.3pt;
+        }
+
+        /* ── FOOTER ── */
+        .footer-table {
             width: 100%;
-            border-collapse: collapse;
-            border-top: 1px solid #E2E8F0;
-            margin-top: 26px;
-            padding-top: 9px;
-        }
-
-        .footer td {
-            vertical-align: top;
-            font-size: 8px;
-            color: #94A3B8;
-            padding-top: 9px;
+            border-top: 1pt solid #dce4ed;
         }
 
         .footer-right {
+            padding: 9pt 0pt;
+            font-size: 7pt;
+            color: #8fa0b5;
             text-align: right;
-        }
-
-        .footer-id {
-            font-family: 'Courier New', Courier, monospace;
-            color: #CBD5E1;
+            letter-spacing: 0.3pt;
         }
     </style>
 </head>
 <body>
+<div class="page">
 
-{{-- HEADER --}}
-<div class="header">
-    <div class="header-eyebrow">Scheda Iscrizione</div>
-    <div class="header-tournament">{{ $registration->tournament->name }}</div>
-    <div class="header-meta">
-        {{ $registration->tournament->date?->format('d/m/Y') }}
-        <span class="header-sep">·</span>
-        {{ $registration->tournament->location_city }}
-    </div>
-</div>
-<div class="gold-bar"></div>
-
-<div class="body">
-
-    {{-- ATHLETE HERO --}}
-    <div class="athlete-hero">
-        <div class="athlete-name">{{ $registration->athlete->full_name }}</div>
-        <div class="athlete-tax">CF: {{ $registration->athlete->tax_number }}</div>
-        <table class="athlete-meta-row">
+    {{-- Header --}}
+    <div class="header-wrap">
+        <table class="header-table">
             <tr>
-                <td>
-                    <span class="meta-kicker">Data di nascita</span>
-                    <span class="meta-value">{{ $registration->athlete->birth_date?->format('d/m/Y') ?? '—' }}</span>
-                </td>
-                <td>
-                    <span class="meta-kicker">Genere</span>
-                    <span class="meta-value">{{ $registration->athlete->gender?->label() ?? '—' }}</span>
-                </td>
-                <td>
-                    <span class="meta-kicker">Team</span>
-                    <span class="meta-value">{{ $registration->athlete->team_name ?? '—' }}</span>
+                <td class="header-accent"></td>
+                <td class="header-content">
+                    <div class="header-event">{{ $registration->tournament->name }}</div>
+                    <div class="header-title">Conferma di Iscrizione</div>
+                    <div class="header-subtitle">Documento ufficiale di partecipazione</div>
                 </td>
             </tr>
         </table>
     </div>
 
-    {{-- TORNEO --}}
-    <div class="section">
-        <table class="section-heading">
-            <tr>
-                <td class="section-label">Torneo</td>
-                <td class="section-rule-cell"></td>
-            </tr>
-        </table>
-        <table class="data-grid">
-            <tr>
-                <td class="dg-label">Sede</td>
-                <td class="dg-value">{{ $registration->tournament->location_name }}</td>
-            </tr>
-            <tr>
-                <td class="dg-label">Indirizzo</td>
-                <td class="dg-value">{{ $registration->tournament->location_address }}</td>
-            </tr>
-            <tr>
-                <td class="dg-label">Città</td>
-                <td class="dg-value">{{ $registration->tournament->location_city }}</td>
-            </tr>
-        </table>
-    </div>
+    {{-- Body --}}
+    <div class="body-wrap">
 
-    {{-- DISCIPLINA + CATEGORIA (two-column) --}}
-    <table class="two-col">
-        <tr>
-            <td class="col-left">
-                <table class="section-heading">
-                    <tr>
-                        <td class="section-label">Disciplina</td>
-                        <td class="section-rule-cell"></td>
-                    </tr>
-                </table>
-                <table class="data-grid">
-                    <tr>
-                        <td class="dg-label">Nome</td>
-                        <td class="dg-value">{{ $registration->discipline->label }}</td>
-                    </tr>
-                    @if($registration->discipline->rounds !== null && $registration->discipline->minutes_per_round !== null)
-                        <tr>
-                            <td class="dg-label">Struttura</td>
-                            <td class="dg-value">{{ $registration->discipline->rounds }}
-                                × {{ $registration->discipline->minutes_per_round }} min
-                            </td>
-                        </tr>
-                    @endif
-                </table>
-            </td>
-            <td class="col-right">
-                <table class="section-heading">
-                    <tr>
-                        <td class="section-label">Categoria di peso</td>
-                        <td class="section-rule-cell"></td>
-                    </tr>
-                </table>
-                <table class="data-grid">
-                    <tr>
-                        <td class="dg-label">Categoria</td>
-                        <td class="dg-value">{{ $registration->weightCategory->label }}</td>
-                    </tr>
-                    <tr>
-                        <td class="dg-label">Limite</td>
-                        <td class="dg-value">{{ $registration->weightCategory->value }} kg</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-
-    {{-- ISCRIZIONE --}}
-    <div class="section">
-        <table class="section-heading">
-            <tr>
-                <td class="section-label">Iscrizione</td>
-                <td class="section-rule-cell"></td>
-            </tr>
-        </table>
-
-        <table class="data-grid">
-            @if($registration->notes)
+        <div class="detail-wrap">
+            <table class="detail-table">
                 <tr>
-                    <td class="dg-label">Note</td>
-                    <td class="dg-value">{{ $registration->notes }}</td>
+                    <td class="detail-label">Atleta</td>
+                    <td class="detail-value">{{ $registration->athlete->full_name }}</td>
                 </tr>
-            @endif
+                <tr>
+                    <td class="detail-label">Torneo</td>
+                    <td class="detail-value">{{ $registration->tournament->name }}</td>
+                </tr>
+                <tr>
+                    <td class="detail-label">Disciplina</td>
+                    <td class="detail-value">{{ $registration->discipline->label }}</td>
+                </tr>
+                <tr>
+                    <td class="detail-label-last">Categoria</td>
+                    <td class="detail-value-last">{{ $registration->weightCategory->label }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {{-- Divider --}}
+        <table class="divider-table">
             <tr>
-                <td class="dg-label">Iscritto il</td>
-                <td class="dg-value">{{ $registration->created_at->format('d/m/Y \a\l\l\e H:i') }}</td>
+                <td class="divider-line"></td>
             </tr>
         </table>
+
+        {{-- Credential block --}}
+        <table class="credential-outer">
+            <tr>
+                <td class="credential-cell">
+                    <div class="credential-box">
+                        <div class="credential-label">Codice Iscrizione</div>
+                        <div class="credential-rule"></div>
+                        <div class="credential-code">{{ $registration->id }}</div>
+                        <div class="credential-note">Conserva questo documento per certificare la tua iscrizione</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
     </div>
 
-    {{-- FOOTER --}}
-    <table class="footer">
+    {{-- Footer --}}
+    <table class="footer-table">
         <tr>
-            <td>Generata il {{ now()->format('d/m/Y \a\l\l\e H:i') }}</td>
             <td class="footer-right">
-                <span class="footer-id">{{ $registration->id }}</span>
+                Esportato il {{ now()->format('d/m/Y H:i') }}
             </td>
         </tr>
     </table>
 
 </div>
-
 </body>
 </html>

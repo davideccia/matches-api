@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +33,10 @@ class Athlete extends Model
         'default_discipline_id',
     ];
 
+    protected $appends = [
+        'is_adult',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -40,6 +45,13 @@ class Athlete extends Model
             'default_weight_category_id' => 'string',
             'default_discipline_id' => 'string',
         ];
+    }
+
+    protected function isAdult(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->birth_date?->age >= 18,
+        );
     }
 
     public function defaultWeightCategory(): BelongsTo

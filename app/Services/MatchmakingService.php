@@ -139,6 +139,7 @@ class MatchmakingService
                 $registration->discipline_id,
                 $registration->weight_category_id,
                 $registration->athlete->gender->value,
+                $registration->athlete->is_adult ? 'adult' : 'minor',
             ]);
 
             $matchCount = $registration->athlete->red_corner_matches_count + $registration->athlete->blue_corner_matches_count;

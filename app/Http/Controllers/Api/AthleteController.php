@@ -51,8 +51,18 @@ class AthleteController extends Controller
     {
         $validated = $request->validated();
 
+        DB::beginTransaction();
+
         $athlete = new Athlete;
-        $athlete->fill($validated)->saveOrFail();
+        $athlete->fill($validated);
+
+        $athlete->saveOrFail();
+
+        if (isset($validated['photo'])) {
+            $athlete->addMediaFromTemporaryFile($validated['photo'], Athlete::PHOTO_MEDIA_COLLECTION_NAME);
+        }
+
+        DB::commit();
 
         return new AthleteResource($athlete->loadMissing($validated['with'] ?? []));
     }
@@ -70,7 +80,17 @@ class AthleteController extends Controller
     {
         $validated = $request->validated();
 
-        $athlete->fill($validated)->saveOrFail();
+        DB::beginTransaction();
+
+        $athlete->fill($validated);
+
+        $athlete->saveOrFail();
+
+        if (isset($validated['photo'])) {
+            $athlete->addMediaFromTemporaryFile($validated['photo'], Athlete::PHOTO_MEDIA_COLLECTION_NAME);
+        }
+
+        DB::commit();
 
         return new AthleteResource($athlete->loadMissing($validated['with'] ?? []));
     }

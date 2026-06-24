@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Athlete;
 
 use App\Enums\AthleteGenderEnum;
+use App\Rules\TemporaryFileRule;
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,7 @@ class AthleteStoreRequest extends FormRequest
             'team_name' => ['nullable', 'string', 'max:255'],
             'default_weight_category_id' => ['nullable', 'string', 'uuid', 'exists:weight_categories,id'],
             'default_discipline_id' => ['nullable', 'string', 'uuid', 'exists:disciplines,id'],
+            'photo' => ['nullable', new TemporaryFileRule],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];

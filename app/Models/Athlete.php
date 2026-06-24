@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AthleteGenderEnum;
 use App\Models\Scopes\AthleteScope;
 use App\Observers\AthleteObserver;
+use App\Traits\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -15,12 +16,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 #[ObservedBy([AthleteObserver::class])]
 #[ScopedBy([AthleteScope::class])]
 class Athlete extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, InteractsWithMedia;
+
+    public const string PHOTO_MEDIA_COLLECTION_NAME = 'athletes:photo';
 
     protected $fillable = [
         'first_name',
@@ -83,6 +87,16 @@ class Athlete extends Model
     public function wonMatches(): HasMany
     {
         return $this->hasMany(MatchRecord::class, 'winner_id');
+    }
+
+    public function photoMedia(): MorphOne
+    {
+        return $this->media()->where('collection_name', self::PHOTO_MEDIA_COLLECTION_NAME)->one();
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::PHOTO_MEDIA_COLLECTION_NAME)->singleFile();
     }
 
     #[Scope]

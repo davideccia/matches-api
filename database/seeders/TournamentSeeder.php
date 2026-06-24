@@ -20,7 +20,7 @@ class TournamentSeeder extends Seeder
                 'location_name' => 'PalaMilano',
                 'location_address' => 'Via Lomazzo 10',
                 'location_city' => 'Milano',
-                'date' => now()->subMonths(),
+                'date' => now()->subMonths(2),
                 'status' => TournamentStatusEnum::COMPLETED,
             ],
             [
@@ -33,10 +33,18 @@ class TournamentSeeder extends Seeder
             ],
             [
                 'name' => 'Torneo 3',
-                'location_name' => 'Unipol Arena',
-                'location_address' => 'Via Gino Cervi 2',
-                'location_city' => 'Bologna',
+                'location_name' => 'Palamazzola',
+                'location_address' => 'Via Palamazzola',
+                'location_city' => 'Taranto',
                 'date' => now()->addMonths(),
+                'status' => TournamentStatusEnum::REGISTRATIONS_OPENED,
+            ],
+            [
+                'name' => 'Torneo 4',
+                'location_name' => 'Visarno Arena',
+                'location_address' => 'Via Visarno Arena',
+                'location_city' => 'Firenze',
+                'date' => now()->addMonths(2),
                 'status' => TournamentStatusEnum::SCHEDULED,
             ],
         ];

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ScopedBy([DisciplineScope::class])]
 class Discipline extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'label',
@@ -27,14 +28,6 @@ class Discipline extends Model
     protected function casts(): array
     {
         return [];
-    }
-
-    #[Scope]
-    public function search(Builder $builder, string $search): Builder
-    {
-        return $builder->where(fn (Builder $q) => $q
-            ->where('label', 'ilike', "%{$search}%")
-        );
     }
 
     public function registrations(): HasMany
@@ -50,5 +43,13 @@ class Discipline extends Model
     public function defaultAthletes(): HasMany
     {
         return $this->hasMany(Athlete::class, 'default_discipline_id');
+    }
+
+    #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder->where(fn (Builder $q) => $q
+            ->whereLike('label', "%{$search}%")
+        );
     }
 }

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
@@ -22,7 +23,7 @@ use Spatie\MediaLibrary\HasMedia;
 #[ScopedBy([TournamentScope::class])]
 class Tournament extends Model implements HasMedia
 {
-    use HasUuids, InteractsWithMedia;
+    use HasFactory, HasUuids, InteractsWithMedia;
 
     public const string COVER_MEDIA_COLLECTION_NAME = 'tournaments:cover';
 
@@ -44,11 +45,6 @@ class Tournament extends Model implements HasMedia
         ];
     }
 
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection(self::COVER_MEDIA_COLLECTION_NAME)->singleFile();
-    }
-
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
@@ -68,8 +64,13 @@ class Tournament extends Model implements HasMedia
     public function search(Builder $builder, string $search): Builder
     {
         return $builder->where(fn (Builder $q) => $q
-            ->whereLike('name', $search, true)
+            ->whereLike('name', "%{$search}%", caseSensitive: false)
         );
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::COVER_MEDIA_COLLECTION_NAME)->singleFile();
     }
 
     public function syncMatchmakingIssues(): void

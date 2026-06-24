@@ -1,0 +1,28 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "ordered_class_elements": {
+            "order": [
+                "use_trait",
+                "case",
+                "constant_private",
+                "constant_protected",
+                "constant_public",
+                "property_private_static",
+                "property_protected_static",
+                "property_public_static",
+                "property_private",
+                "property_protected",
+                "property_public",
+                "construct",
+                "destruct",
+                "method_private_static",
+                "method_protected_static",
+                "method_public_static",
+                "method_private",
+                "method_protected",
+                "method_public"
+            ]
+        }
+    }
+}

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ScopedBy([RegistrationScope::class])]
 class Registration extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'athlete_id',
@@ -42,14 +43,34 @@ class Registration extends Model
         ];
     }
 
+    public function athlete(): BelongsTo
+    {
+        return $this->belongsTo(Athlete::class);
+    }
+
+    public function tournament(): BelongsTo
+    {
+        return $this->belongsTo(Tournament::class);
+    }
+
+    public function discipline(): BelongsTo
+    {
+        return $this->belongsTo(Discipline::class);
+    }
+
+    public function weightCategory(): BelongsTo
+    {
+        return $this->belongsTo(WeightCategory::class);
+    }
+
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
         return $builder->where(function (Builder $query) use ($search): void {
-            $query->whereHas('athlete', fn (Builder $q) => $q->where('full_name', 'ilike', "%{$search}%"))
-                ->orWhereHas('tournament', fn (Builder $q) => $q->where('name', 'ilike', "%{$search}%"))
-                ->orWhereHas('discipline', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"))
-                ->orWhereHas('weightCategory', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"));
+            $query->whereHas('athlete', fn (Builder $q) => $q->whereLike('full_name', "%{$search}%"))
+                ->orWhereHas('tournament', fn (Builder $q) => $q->whereLike('name', "%{$search}%"))
+                ->orWhereHas('discipline', fn (Builder $q) => $q->whereLike('label', "%{$search}%"))
+                ->orWhereHas('weightCategory', fn (Builder $q) => $q->whereLike('label', "%{$search}%"));
         });
     }
 
@@ -62,7 +83,7 @@ class Registration extends Model
     #[Scope]
     public function unarrived(Builder $query, bool $value): Builder
     {
-        return $query->where('arrived', !$value);
+        return $query->where('arrived', ! $value);
     }
 
     #[Scope]
@@ -84,26 +105,6 @@ class Registration extends Model
             ->where('weight_category_id', $this->weight_category_id)
             ->when($this->exists, fn ($q) => $q->whereNot('id', $this->id))
             ->exists();
-    }
-
-    public function athlete(): BelongsTo
-    {
-        return $this->belongsTo(Athlete::class);
-    }
-
-    public function tournament(): BelongsTo
-    {
-        return $this->belongsTo(Tournament::class);
-    }
-
-    public function discipline(): BelongsTo
-    {
-        return $this->belongsTo(Discipline::class);
-    }
-
-    public function weightCategory(): BelongsTo
-    {
-        return $this->belongsTo(WeightCategory::class);
     }
 
     public function hasMatchRecords(): bool

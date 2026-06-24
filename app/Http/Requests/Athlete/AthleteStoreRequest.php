@@ -24,7 +24,7 @@ class AthleteStoreRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
             'gender' => ['required', new Enum(AthleteGenderEnum::class)],
-            'tax_number' => ['required', 'string', 'max:255'],
+            'tax_number' => ['required', 'string', 'max:255', Rule::unique('athletes', 'tax_number')],
             'team_name' => ['nullable', 'string', 'max:255'],
             'default_weight_category_id' => ['nullable', 'string', 'uuid', 'exists:weight_categories,id'],
             'default_discipline_id' => ['nullable', 'string', 'uuid', 'exists:disciplines,id'],

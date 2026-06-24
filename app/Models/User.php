@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -22,7 +23,7 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    use HasApiTokens, HasUuids, Notifiable;
+    use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
     protected function casts(): array
     {
@@ -33,15 +34,15 @@ class User extends Authenticatable
         ];
     }
 
-    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
-    {
-        $url = config('app.frontend_url').'/reset-password?token='.$token.'&email='.urlencode($this->email);
-        $this->notify(new ResetPasswordNotification($url));
-    }
-
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {
         return $builder;
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $url = config('app.frontend_url').'/reset-password?token='.$token.'&email='.urlencode($this->email);
+        $this->notify(new ResetPasswordNotification($url));
     }
 }

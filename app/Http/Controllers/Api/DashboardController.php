@@ -13,9 +13,10 @@ class DashboardController extends Controller
 {
     public function index(): ResourceCollection
     {
-        $tournaments = Tournament::whereNotIn('status', [
-            TournamentStatusEnum::COMPLETED,
-            TournamentStatusEnum::CANCELLED,
+        $tournaments = Tournament::whereIn('status', [
+            TournamentStatusEnum::REGISTRATIONS_OPENED,
+            TournamentStatusEnum::REGISTRATIONS_CLOSED,
+            TournamentStatusEnum::IN_PROGRESS,
         ])
             ->withCount([
                 'registrations as totalRegistrations',

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ScopedBy([MatchRecordScope::class])]
 class MatchRecord extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'tournament_id',
@@ -59,17 +60,6 @@ class MatchRecord extends Model
         ];
     }
 
-    #[Scope]
-    public function search(Builder $builder, string $search): Builder
-    {
-        return $builder->where(function (Builder $query) use ($search): void {
-            $query->whereHas('redCorner', fn (Builder $q) => $q->where('full_name', 'ilike', "%{$search}%"))
-                ->orWhereHas('blueCorner', fn (Builder $q) => $q->where('full_name', 'ilike', "%{$search}%"))
-                ->orWhereHas('weightCategory', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"))
-                ->orWhereHas('discipline', fn (Builder $q) => $q->where('label', 'ilike', "%{$search}%"));
-        });
-    }
-
     public function tournament(): BelongsTo
     {
         return $this->belongsTo(Tournament::class);
@@ -98,5 +88,16 @@ class MatchRecord extends Model
     public function discipline(): BelongsTo
     {
         return $this->belongsTo(Discipline::class);
+    }
+
+    #[Scope]
+    public function search(Builder $builder, string $search): Builder
+    {
+        return $builder->where(function (Builder $query) use ($search): void {
+            $query->whereHas('redCorner', fn (Builder $q) => $q->whereLike('full_name', "%{$search}%"))
+                ->orWhereHas('blueCorner', fn (Builder $q) => $q->whereLike('full_name', "%{$search}%"))
+                ->orWhereHas('weightCategory', fn (Builder $q) => $q->whereLike('label', "%{$search}%"))
+                ->orWhereHas('discipline', fn (Builder $q) => $q->whereLike('label', "%{$search}%"));
+        });
     }
 }

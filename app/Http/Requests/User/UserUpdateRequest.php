@@ -7,6 +7,11 @@ use Illuminate\Validation\Rules\Password;
 
 class UserUpdateRequest extends UserStoreRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user()->can('update', $this->route('user'));
+    }
+
     public function rules(): array
     {
         $user = $this->route('user');

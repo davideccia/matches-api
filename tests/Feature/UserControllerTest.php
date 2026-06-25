@@ -77,7 +77,7 @@ class UserControllerTest extends TestCase
 
     public function test_store_creates_user_and_hashes_password(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $response = $this->postJson('/api/admin/users', [
             'username' => 'johndoe',
@@ -105,7 +105,7 @@ class UserControllerTest extends TestCase
     public function test_store_allows_omitting_optional_superadmin(): void
     {
         // superadmin is optional and has no DB default, so it stays null when omitted.
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $this->postJson('/api/admin/users', [
             'username' => 'plainuser',
@@ -120,7 +120,7 @@ class UserControllerTest extends TestCase
 
     public function test_store_validates_required_fields(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $this->postJson('/api/admin/users', [])
             ->assertJsonValidationErrors(['username', 'email', 'password']);
@@ -128,7 +128,7 @@ class UserControllerTest extends TestCase
 
     public function test_store_rejects_short_password(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $this->postJson('/api/admin/users', [
             'username' => 'shortpw',
@@ -139,7 +139,7 @@ class UserControllerTest extends TestCase
 
     public function test_store_rejects_invalid_email_format(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $this->postJson('/api/admin/users', [
             'username' => 'bademail',
@@ -150,7 +150,7 @@ class UserControllerTest extends TestCase
 
     public function test_store_rejects_duplicate_username(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         $existing = User::factory()->create(['username' => 'taken']);
 
         $this->postJson('/api/admin/users', [
@@ -162,7 +162,7 @@ class UserControllerTest extends TestCase
 
     public function test_store_rejects_duplicate_email(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         User::factory()->create(['email' => 'taken@example.com']);
 
         $this->postJson('/api/admin/users', [
@@ -175,6 +175,17 @@ class UserControllerTest extends TestCase
     public function test_store_requires_authentication(): void
     {
         $this->postJson('/api/admin/users', [])->assertUnauthorized();
+    }
+
+    public function test_store_returns_forbidden_for_non_superadmin(): void
+    {
+        $this->authenticate();
+
+        $this->postJson('/api/admin/users', [
+            'username' => 'johndoe',
+            'email' => 'john@example.com',
+            'password' => 'secret-password',
+        ])->assertForbidden();
     }
 
     // ---------------------------------------------------------------------
@@ -210,7 +221,7 @@ class UserControllerTest extends TestCase
 
     public function test_update_modifies_user(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         $user = User::factory()->create(['superadmin' => false]);
 
         $this->putJson("/api/admin/users/{$user->id}", [
@@ -232,7 +243,7 @@ class UserControllerTest extends TestCase
 
     public function test_update_rehashes_password_when_provided(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         $user = User::factory()->create();
 
         $this->putJson("/api/admin/users/{$user->id}", [
@@ -246,7 +257,7 @@ class UserControllerTest extends TestCase
     public function test_update_allows_keeping_same_email(): void
     {
         // The unique rule ignores the current user, so re-sending its own email passes.
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         $user = User::factory()->create(['email' => 'self@example.com']);
 
         $this->putJson("/api/admin/users/{$user->id}", [
@@ -256,13 +267,32 @@ class UserControllerTest extends TestCase
 
     public function test_update_rejects_email_of_another_user(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         $other = User::factory()->create(['email' => 'other@example.com']);
         $user = User::factory()->create();
 
         $this->putJson("/api/admin/users/{$user->id}", [
             'email' => 'other@example.com',
         ])->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_update_allows_non_superadmin_to_update_themselves(): void
+    {
+        $user = $this->authenticate();
+
+        $this->putJson("/api/admin/users/{$user->id}", [
+            'username' => 'newname',
+        ])->assertOk();
+    }
+
+    public function test_update_returns_forbidden_for_non_superadmin_updating_another_user(): void
+    {
+        $this->authenticate();
+        $other = User::factory()->create();
+
+        $this->putJson("/api/admin/users/{$other->id}", [
+            'username' => 'hijacked',
+        ])->assertForbidden();
     }
 
     public function test_update_requires_authentication(): void
@@ -278,13 +308,27 @@ class UserControllerTest extends TestCase
 
     public function test_destroy_deletes_user(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
         $user = User::factory()->create();
 
         $this->deleteJson("/api/admin/users/{$user->id}")
             ->assertNoContent();
 
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    public function test_destroy_prevents_superadmin_from_deleting_themselves(): void
+    {
+        $superadmin = $this->authenticate(User::factory()->superadmin()->create());
+
+        $this->deleteJson("/api/admin/users/{$superadmin->id}")->assertForbidden();
+    }
+
+    public function test_destroy_returns_forbidden_for_non_superadmin(): void
+    {
+        $user = $this->authenticate();
+
+        $this->deleteJson("/api/admin/users/{$user->id}")->assertForbidden();
     }
 
     public function test_destroy_requires_authentication(): void
@@ -300,7 +344,7 @@ class UserControllerTest extends TestCase
 
     public function test_bulk_destroy_deletes_multiple_users(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $users = User::factory()->count(3)->create();
         $ids = $users->pluck('id')->all();
@@ -313,9 +357,19 @@ class UserControllerTest extends TestCase
         }
     }
 
+    public function test_bulk_destroy_prevents_superadmin_from_deleting_themselves(): void
+    {
+        $superadmin = $this->authenticate(User::factory()->superadmin()->create());
+        $other = User::factory()->create();
+
+        $this->deleteJson('/api/admin/users/bulk', [
+            'ids' => [$superadmin->id, $other->id],
+        ])->assertJsonValidationErrors(['ids.0']);
+    }
+
     public function test_bulk_destroy_validates_missing_ids(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $this->deleteJson('/api/admin/users/bulk', [])
             ->assertJsonValidationErrors(['ids']);
@@ -323,11 +377,18 @@ class UserControllerTest extends TestCase
 
     public function test_bulk_destroy_validates_nonexistent_ids(): void
     {
-        $this->authenticate();
+        $this->authenticate(User::factory()->superadmin()->create());
 
         $this->deleteJson('/api/admin/users/bulk', [
             'ids' => ['00000000-0000-0000-0000-000000000000'],
         ])->assertJsonValidationErrors(['ids.0']);
+    }
+
+    public function test_bulk_destroy_returns_forbidden_for_non_superadmin(): void
+    {
+        $this->authenticate();
+
+        $this->deleteJson('/api/admin/users/bulk', ['ids' => []])->assertForbidden();
     }
 
     public function test_bulk_destroy_requires_authentication(): void

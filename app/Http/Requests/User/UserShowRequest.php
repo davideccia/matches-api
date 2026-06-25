@@ -12,7 +12,7 @@ class UserShowRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return auth()->hasUser();
+        return $this->user()->can('view', $this->route('user'));
     }
 
     public function rules(): array

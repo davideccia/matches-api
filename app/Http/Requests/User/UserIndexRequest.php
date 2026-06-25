@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\User;
 
+use App\Models\User;
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,7 +13,7 @@ class UserIndexRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return auth()->hasUser();
+        return $this->user()->can('viewAny', User::class);
     }
 
     public function rules(): array

@@ -17,55 +17,6 @@ class MatchmakingService
 
     public function __construct(private readonly Tournament $tournament) {}
 
-    public function generateMatchRecords(): array
-    {
-        $this->resolveGroups();
-
-        $matchRecords = [];
-
-        foreach ($this->groups as $tiers) {
-
-            foreach ($tiers as $registrations) {
-
-                $chunks = array_chunk($registrations, 2);
-
-                foreach ($chunks as $pair) {
-                    if (count($pair) < 2) {
-                        continue;
-                    }
-
-                    [$red, $blue] = $pair;
-
-                    $matchRecords[] = [
-                        'tournament_id' => $this->tournament->id,
-                        'red_corner_id' => $red->athlete_id,
-                        'blue_corner_id' => $blue->athlete_id,
-                        'weight_category_id' => $red->weight_category_id,
-                        'discipline_id' => $red->discipline_id,
-                        'gender' => $red->athlete->gender,
-                        'forced' => false,
-                        'red_corner_team' => $red->athlete->team_name ?? '',
-                        'blue_corner_team' => $blue->athlete->team_name ?? '',
-                        'status' => MatchRecordStatusEnum::SCHEDULED,
-                        'rounds' => $red->discipline->rounds ?? 1,
-                        'minutes_per_round' => $red->discipline->minutes_per_round ?? '1:00',
-                    ];
-                }
-            }
-        }
-
-        return $matchRecords;
-    }
-
-    public function getMatchmakingIssues(): array
-    {
-        if ($this->orphans !== null) {
-            return $this->orphans;
-        }
-
-        return $this->resolveIssuesFromMatchRecords();
-    }
-
     private function resolveIssuesFromMatchRecords(): array
     {
         $existingMatchRecords = MatchRecord::withoutGlobalScopes()
@@ -97,6 +48,7 @@ class MatchmakingService
                 'registration_id' => $registration->id,
                 'athlete_id' => $registration->athlete_id,
                 'athlete_name' => $registration->athlete->full_name,
+                'is_adult' => $registration->athlete->is_adult,
                 'discipline_id' => $registration->discipline_id,
                 'discipline_label' => $registration->discipline->label,
                 'weight_category_id' => $registration->weight_category_id,
@@ -187,5 +139,54 @@ class MatchmakingService
             $matchCount <= 15 => 'intermediate',
             default => 'advanced',
         };
+    }
+
+    public function generateMatchRecords(): array
+    {
+        $this->resolveGroups();
+
+        $matchRecords = [];
+
+        foreach ($this->groups as $tiers) {
+
+            foreach ($tiers as $registrations) {
+
+                $chunks = array_chunk($registrations, 2);
+
+                foreach ($chunks as $pair) {
+                    if (count($pair) < 2) {
+                        continue;
+                    }
+
+                    [$red, $blue] = $pair;
+
+                    $matchRecords[] = [
+                        'tournament_id' => $this->tournament->id,
+                        'red_corner_id' => $red->athlete_id,
+                        'blue_corner_id' => $blue->athlete_id,
+                        'weight_category_id' => $red->weight_category_id,
+                        'discipline_id' => $red->discipline_id,
+                        'gender' => $red->athlete->gender,
+                        'forced' => false,
+                        'red_corner_team' => $red->athlete->team_name ?? '',
+                        'blue_corner_team' => $blue->athlete->team_name ?? '',
+                        'status' => MatchRecordStatusEnum::SCHEDULED,
+                        'rounds' => $red->discipline->rounds ?? 1,
+                        'minutes_per_round' => $red->discipline->minutes_per_round ?? '1:00',
+                    ];
+                }
+            }
+        }
+
+        return $matchRecords;
+    }
+
+    public function getMatchmakingIssues(): array
+    {
+        if ($this->orphans !== null) {
+            return $this->orphans;
+        }
+
+        return $this->resolveIssuesFromMatchRecords();
     }
 }

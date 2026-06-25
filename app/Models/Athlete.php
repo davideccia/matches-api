@@ -17,10 +17,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Spatie\MediaLibrary\HasMedia;
 
 #[ObservedBy([AthleteObserver::class])]
 #[ScopedBy([AthleteScope::class])]
-class Athlete extends Model
+class Athlete extends Model implements HasMedia
 {
     use HasFactory, HasUuids, InteractsWithMedia;
 

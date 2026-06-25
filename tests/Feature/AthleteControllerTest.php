@@ -45,8 +45,8 @@ class AthleteControllerTest extends TestCase
 
         $athlete = Athlete::factory()->create();
 
-        MatchRecord::factory()->create(['red_corner_id' => $athlete->id]);
-        MatchRecord::factory()->create(['blue_corner_id' => $athlete->id]);
+        MatchRecord::factory()->completed()->create(['red_corner_id' => $athlete->id]);
+        MatchRecord::factory()->completed()->create(['blue_corner_id' => $athlete->id]);
 
         $response = $this->getJson('/api/admin/athletes');
 

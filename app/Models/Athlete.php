@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AthleteGenderEnum;
+use App\Enums\MatchRecordStatusEnum;
 use App\Models\Scopes\AthleteScope;
 use App\Observers\AthleteObserver;
 use App\Traits\InteractsWithMedia;
@@ -37,10 +38,13 @@ class Athlete extends Model implements HasMedia
         'team_name',
         'default_weight_category_id',
         'default_discipline_id',
+        'generic_match_records_count',
+        'registered_match_records_count',
     ];
 
     protected $appends = [
         'is_adult',
+        'match_records_count',
     ];
 
     protected function casts(): array
@@ -50,6 +54,8 @@ class Athlete extends Model implements HasMedia
             'gender' => AthleteGenderEnum::class,
             'default_weight_category_id' => 'string',
             'default_discipline_id' => 'string',
+            'generic_match_records_count' => 'integer',
+            'registered_match_records_count' => 'integer',
         ];
     }
 
@@ -58,6 +64,23 @@ class Athlete extends Model implements HasMedia
         return Attribute::make(
             get: fn () => $this->birth_date?->age >= 18,
         );
+    }
+
+    protected function matchRecordsCount(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => (($this->generic_match_records_count ?? 0) + ($this->registered_match_records_count ?? 0)),
+        );
+    }
+
+    public function syncMatchRecordsCount(): void
+    {
+        $this->registered_match_records_count =
+            $this->redCornerMatches()->where('status', MatchRecordStatusEnum::COMPLETED)->count()
+            +
+            $this->blueCornerMatches()->where('status', MatchRecordStatusEnum::COMPLETED)->count();
+
+        $this->saveQuietly();
     }
 
     public function defaultWeightCategory(): BelongsTo

@@ -94,8 +94,7 @@ class MatchmakingService
                 $registration->athlete->is_adult ? 'adult' : 'minor',
             ]);
 
-            $matchCount = $registration->athlete->red_corner_matches_count + $registration->athlete->blue_corner_matches_count;
-            $tier = $this->resolveTier($matchCount);
+            $tier = $this->resolveTier($registration->athlete->match_records_count);
 
             $groups[$groupKey][$tier][] = $registration;
         }

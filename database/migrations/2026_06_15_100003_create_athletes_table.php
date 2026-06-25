@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('team_name')->nullable();
             $table->foreignUuid('default_weight_category_id')->nullable()->constrained('weight_categories')->nullOnDelete();
             $table->foreignUuid('default_discipline_id')->nullable()->constrained('disciplines')->nullOnDelete();
+            $table->unsignedInteger('generic_match_records_count')->nullable()->default(null);
+            $table->unsignedInteger('registered_match_records_count')->nullable()->default(null);
             $table->timestamps();
         });
     }

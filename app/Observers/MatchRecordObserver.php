@@ -8,6 +8,14 @@ use App\Models\MatchRecord;
 
 class MatchRecordObserver
 {
+    public static function saved(MatchRecord $matchRecord): void
+    {
+        $matchRecord->tournament->syncMatchmakingIssues();
+
+        $matchRecord->redCorner?->syncMatchRecordsCount();
+        $matchRecord->blueCorner?->syncMatchRecordsCount();
+    }
+
     public function creating(MatchRecord $matchRecord): void
     {
         ReorderMatchRecordsAction::handleCreating($matchRecord);
@@ -28,11 +36,6 @@ class MatchRecordObserver
         event(new MatchRecordChanged($matchRecord));
     }
 
-    public static function saved(MatchRecord $matchRecord): void
-    {
-        $matchRecord->tournament->syncMatchmakingIssues();
-    }
-
     public function deleting(MatchRecord $matchRecord): void
     {
         ReorderMatchRecordsAction::handleDeleting($matchRecord);
@@ -43,5 +46,8 @@ class MatchRecordObserver
         event(new MatchRecordChanged($matchRecord));
 
         $matchRecord->tournament->syncMatchmakingIssues();
+
+        $matchRecord->redCorner?->syncMatchRecordsCount();
+        $matchRecord->blueCorner?->syncMatchRecordsCount();
     }
 }

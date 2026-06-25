@@ -13,10 +13,6 @@ class AthleteResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $resourceArray = parent::toArray($request);
-
-        $resourceArray['match_records_count'] = $this->resource->red_corner_matches_count + $this->resource->blue_corner_matches_count;
-
-        return $resourceArray;
+        return parent::toArray($request);
     }
 }

@@ -58,6 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         nginx \
         supervisor \
         gosu \
+        curl \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
@@ -81,5 +82,9 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80 8080
 
+# Runtime secrets and config must be injected via environment variables at deploy time,
+# because .env.example is baked into the image as a default .env during the build stage.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost/up || exit 1
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["php-fpm"]

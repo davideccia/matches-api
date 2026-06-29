@@ -108,8 +108,6 @@ class MatchmakingService
                 foreach ($chunks as $pair) {
                     if (count($pair) < 2) {
                         $orphan = $pair[0];
-                        $orphanMatchCount = $orphan->athlete->red_corner_matches_count
-                            + $orphan->athlete->blue_corner_matches_count;
 
                         $orphans[] = [
                             'registration_id' => $orphan->id,
@@ -120,7 +118,7 @@ class MatchmakingService
                             'weight_category_id' => $orphan->weight_category_id,
                             'weight_category_label' => $orphan->weightCategory->label,
                             'experience_tier' => $tier,
-                            'match_count' => $orphanMatchCount,
+                            'match_count' => $orphan->athlete->match_records_count,
                         ];
                     }
                 }

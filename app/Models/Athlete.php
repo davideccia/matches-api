@@ -75,10 +75,13 @@ class Athlete extends Model implements HasMedia
 
     public function syncMatchRecordsCount(): void
     {
-        $this->registered_match_records_count =
-            $this->redCornerMatches()->where('status', MatchRecordStatusEnum::COMPLETED)->count()
-            +
-            $this->blueCornerMatches()->where('status', MatchRecordStatusEnum::COMPLETED)->count();
+        $this->registered_match_records_count = MatchRecord::query()
+            ->where(fn (Builder $builder) => $builder
+                ->where('red_corner_id', $this->id)
+                ->orWhere('blue_corner_id', $this->id)
+            )
+            ->where('status', MatchRecordStatusEnum::COMPLETED)
+            ->count();
 
         $this->saveQuietly();
     }

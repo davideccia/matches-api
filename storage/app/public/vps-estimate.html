@@ -1,4 +1,4 @@
-<title>Stima VPS — matches stack</title>
+<title>Stima VPS OVHcloud — matches stack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -509,15 +509,15 @@ tbody tr:last-child td { border-bottom: none; }
   <!-- HEADER -->
   <header class="header anim">
     <div>
-      <div class="eyebrow">matches-api-laravel + matches-dashboard · infrastruttura · giugno 2026</div>
-      <h1>Stima <em>VPS</em><br>per configurazione</h1>
+      <div class="eyebrow">matches-api-laravel + matches-dashboard · infrastruttura · OVHcloud · giugno 2026</div>
+      <h1>Stima <em>VPS OVHcloud</em><br>per configurazione</h1>
     </div>
     <div class="verdict">
       <div class="verdict-eyebrow">Verdetto · stack completo</div>
-      <div class="verdict-name">Hetzner CX32 + Volume 200 GB</div>
-      <div class="verdict-spec">4 vCPU · 8 GB RAM · 80 GB + 200 GB NVMe</div>
-      <span class="verdict-price">~€17 / mese</span>
-      <div class="verdict-price-sub">copre tutto: allegati, backup e PDF</div>
+      <div class="verdict-name">OVHcloud VPS-2</div>
+      <div class="verdict-spec">6 vCPU · 12 GB RAM · 100 GB NVMe</div>
+      <span class="verdict-price">~€8.49 / mese</span>
+      <div class="verdict-price-sub">copre tutto: allegati, backup e PDF · NVMe incluso</div>
     </div>
   </header>
 
@@ -573,8 +573,8 @@ tbody tr:last-child td { border-bottom: none; }
       <dt>Gotenberg</dt>
       <dd>Il servizio che trasforma pagine web complesse in <b>PDF stampabili</b>. Per farlo apre un browser invisibile, operazione "affamata" di memoria: è il componente più pesante e va dimensionato con cura.</dd>
 
-      <dt>Volume / block storage</dt>
-      <dd>Un <b>disco aggiuntivo</b> che si collega al server quando lo spazio incluso non basta. Su Hetzner si ingrandisce al volo pagando solo i GB che servono.</dd>
+      <dt>NVMe incluso</dt>
+      <dd>Il <b>disco veloce</b> già compreso nel canone del VPS OVH: non si paga a parte. Per avere più spazio si passa al piano superiore (che include più GB). Se invece serve far crescere lo spazio GB per GB, si usa la linea <b>OVH Public Cloud</b>, dove i dischi aggiuntivi (Block Storage) si pagano al consumo, ~€0.04/GB al mese.</dd>
     </dl>
 
     <div class="plain-h">Le quattro versioni, in pratica</div>
@@ -593,7 +593,7 @@ tbody tr:last-child td { border-bottom: none; }
     </dl>
 
     <div class="takeaway">
-      <b>In sintesi sui costi.</b> Si parla di cifre molto contenute, paragonabili a un piccolo abbonamento mensile: dai <b>~€4–5 al mese</b> per la versione essenziale fino a <b>~€17 al mese</b> per quella completa (circa €55–206 all'anno). I "tagli minimo" costano meno ma vanno tenuti d'occhio perché lasciano poco margine; i "tagli ottimale" costano un po' di più ma evitano rallentamenti e blocchi nei momenti di punta. Proponiamo solo <b>Hetzner</b> e <b>OVH</b>, entrambi con data center in Europa: i dati restano nell'UE, un punto a favore anche dal lato privacy. La raccomandazione per il pacchetto completo è <b>Hetzner CX32 + disco da 200 GB, circa €17/mese</b>.
+      <b>In sintesi sui costi.</b> Si parla di cifre molto contenute, paragonabili a un piccolo abbonamento mensile: dai <b>~€7.60 al mese</b> per la versione essenziale fino a <b>~€8.49 al mese</b> per quella completa (circa €91–102 all'anno). Il bello della linea <b>VPS OVHcloud 2026</b> è che anche il taglio d'ingresso include <b>8 GB di RAM e disco NVMe abbondante</b>: una sola macchina copre tutte e quattro le versioni senza dover comprare un disco a parte. Il disco è incluso nel canone — per avere più spazio si sale di piano, non si paga un volume separato. Datacenter in Europa, IPv4 incluso, protezione anti-DDoS inclusa: i dati restano nell'UE, un punto a favore anche dal lato privacy. La raccomandazione per il pacchetto completo è <b>OVHcloud VPS-2 (6 vCPU · 12 GB · 100 GB NVMe), circa €8.49/mese</b>; si sale a <b>VPS-3 (24 GB · 200 GB)</b> solo se allegati e backup occupano molto spazio.
     </div>
   </section>
 
@@ -601,7 +601,7 @@ tbody tr:last-child td { border-bottom: none; }
   <section class="anim">
     <div class="section-label">Le quattro configurazioni</div>
     <p class="section-intro">
-      Lo stack base (<b style="color:var(--text)">essenziale</b>) cresce per moduli opzionali: <b style="color:var(--text)">MinIO</b> aggiunge allegati e backup S3, <b style="color:var(--text)">Gotenberg</b> aggiunge l'export PDF di viste HTML complesse (Chromium headless). Ogni configurazione è dimensionata in due tagli: <b style="color:var(--mid)">minimo</b> (margine ridotto, va sorvegliato) e <b style="color:var(--green)">ottimale</b> (picchi assorbiti senza rischio OOM). Prezzi indicativi su Hetzner Cloud e OVHcloud, datacenter EU.
+      Lo stack base (<b style="color:var(--text)">essenziale</b>) cresce per moduli opzionali: <b style="color:var(--text)">MinIO</b> aggiunge allegati e backup S3, <b style="color:var(--text)">Gotenberg</b> aggiunge l'export PDF di viste HTML complesse (Chromium headless). Ogni configurazione è dimensionata in due tagli: <b style="color:var(--mid)">minimo</b> (il VPS più piccolo che basta) e <b style="color:var(--green)">ottimale</b> (un gradino in più, picchi assorbiti con margine). Prezzi indicativi sulla linea <b style="color:var(--text)">VPS OVHcloud 2026</b>, datacenter EU, NVMe e anti-DDoS inclusi.
     </p>
 
     <div class="sol-grid">
@@ -617,21 +617,21 @@ tbody tr:last-child td { border-bottom: none; }
           <span class="wc wc-l">postgres</span>
           <span class="wc wc-m">nginx-proxy-manager+</span>
         </div>
-        <div class="sol-peak">RAM picco stack <b>~1.4 GB</b> · solo SSD incluso, nessun volume</div>
+        <div class="sol-peak">RAM picco stack <b>~1.4 GB</b> · NVMe incluso, nessun volume</div>
         <div class="cfgs">
           <div class="cfg">
             <div class="cfg-label">Minimo</div>
-            <div class="cfg-plan">CPX11</div>
-            <div class="cfg-spec">2 vCPU · 2 GB · 40 GB</div>
-            <span class="cfg-price">€4.35</span>
-            <span class="cfg-year">/mese · ~€52/anno</span>
+            <div class="cfg-plan">VPS-1</div>
+            <div class="cfg-spec">4 vCPU · 8 GB · 75 GB</div>
+            <span class="cfg-price">€7.60</span>
+            <span class="cfg-year">/mese · ~€91/anno</span>
           </div>
           <div class="cfg opt">
             <div class="cfg-label">Ottimale</div>
-            <div class="cfg-plan">CX22</div>
-            <div class="cfg-spec">2 vCPU · 4 GB · 40 GB</div>
-            <span class="cfg-price">€4.59</span>
-            <span class="cfg-year">/mese · ~€55/anno</span>
+            <div class="cfg-plan">VPS-2</div>
+            <div class="cfg-spec">6 vCPU · 12 GB · 100 GB</div>
+            <span class="cfg-price">€8.49</span>
+            <span class="cfg-year">/mese · ~€102/anno</span>
           </div>
         </div>
       </div>
@@ -647,21 +647,21 @@ tbody tr:last-child td { border-bottom: none; }
           <span class="wc wc-l">postgres</span>
           <span class="wc wc-m">+ minio</span>
         </div>
-        <div class="sol-peak">RAM picco stack <b>~1.9 GB</b> · richiede volume per dati MinIO (allegati + backup)</div>
+        <div class="sol-peak">RAM picco stack <b>~1.9 GB</b> · lo spazio (allegati + backup) guida la scelta del piano</div>
         <div class="cfgs">
           <div class="cfg">
             <div class="cfg-label">Minimo</div>
-            <div class="cfg-plan">CX22 + 50 GB</div>
-            <div class="cfg-spec">2 vCPU · 4 GB · +50 GB vol</div>
-            <span class="cfg-price">€6.99</span>
-            <span class="cfg-year">€4.59 + €2.40 · ~€84/anno</span>
+            <div class="cfg-plan">VPS-2</div>
+            <div class="cfg-spec">6 vCPU · 12 GB · 100 GB</div>
+            <span class="cfg-price">€8.49</span>
+            <span class="cfg-year">/mese · ~€102/anno</span>
           </div>
           <div class="cfg opt">
             <div class="cfg-label">Ottimale</div>
-            <div class="cfg-plan">CX32 + 200 GB</div>
-            <div class="cfg-spec">4 vCPU · 8 GB · +200 GB vol</div>
-            <span class="cfg-price">€17.19</span>
-            <span class="cfg-year">€7.59 + €9.60 · ~€206/anno</span>
+            <div class="cfg-plan">VPS-3</div>
+            <div class="cfg-spec">8 vCPU · 24 GB · 200 GB</div>
+            <span class="cfg-price">€16.99</span>
+            <span class="cfg-year">/mese · ~€204/anno</span>
           </div>
         </div>
       </div>
@@ -677,21 +677,21 @@ tbody tr:last-child td { border-bottom: none; }
           <span class="wc wc-l">postgres</span>
           <span class="wc wc-p">+ gotenberg</span>
         </div>
-        <div class="sol-peak">RAM picco stack <b>~2.9 GB</b> · <span class="risk">burst Chromium fino a 1.5 GB</span> · nessun volume</div>
+        <div class="sol-peak">RAM picco stack <b>~2.9 GB</b> · <span class="risk">burst Chromium fino a 1.5 GB</span> · NVMe incluso</div>
         <div class="cfgs">
           <div class="cfg">
             <div class="cfg-label">Minimo</div>
-            <div class="cfg-plan">CX22</div>
-            <div class="cfg-spec">2 vCPU · 4 GB · 40 GB</div>
-            <span class="cfg-price">€4.59</span>
-            <span class="cfg-year">limita parallelismo + swap</span>
+            <div class="cfg-plan">VPS-1</div>
+            <div class="cfg-spec">4 vCPU · 8 GB · 75 GB</div>
+            <span class="cfg-price">€7.60</span>
+            <span class="cfg-year">8 GB assorbono il burst</span>
           </div>
           <div class="cfg opt">
             <div class="cfg-label">Ottimale</div>
-            <div class="cfg-plan">CX32</div>
-            <div class="cfg-spec">4 vCPU · 8 GB · 80 GB</div>
-            <span class="cfg-price">€7.59</span>
-            <span class="cfg-year">/mese · ~€91/anno</span>
+            <div class="cfg-plan">VPS-2</div>
+            <div class="cfg-spec">6 vCPU · 12 GB · 100 GB</div>
+            <span class="cfg-price">€8.49</span>
+            <span class="cfg-year">/mese · ~€102/anno</span>
           </div>
         </div>
       </div>
@@ -708,21 +708,21 @@ tbody tr:last-child td { border-bottom: none; }
           <span class="wc wc-m">+ minio</span>
           <span class="wc wc-p">+ gotenberg</span>
         </div>
-        <div class="sol-peak">RAM picco stack <b>~3.4 GB</b> · <span class="risk">fino a ~4 GB se PDF + upload coincidono</span> · volume MinIO</div>
+        <div class="sol-peak">RAM picco stack <b>~3.4 GB</b> · <span class="risk">fino a ~4 GB se PDF + upload coincidono</span> · NVMe incluso</div>
         <div class="cfgs">
-          <div class="cfg">
-            <div class="cfg-label">Minimo</div>
-            <div class="cfg-plan">CX22 + 50 GB</div>
-            <div class="cfg-spec">2 vCPU · 4 GB · +50 GB vol</div>
-            <span class="cfg-price">€6.99</span>
-            <span class="cfg-year" style="color:var(--accent)">swap obbligatorio · OOM a rischio</span>
+          <div class="cfg opt">
+            <div class="cfg-label">Minimo · consigliato</div>
+            <div class="cfg-plan">VPS-2</div>
+            <div class="cfg-spec">6 vCPU · 12 GB · 100 GB</div>
+            <span class="cfg-price">€8.49</span>
+            <span class="cfg-year">12 GB · ampio margine sui picchi</span>
           </div>
           <div class="cfg opt">
-            <div class="cfg-label">Ottimale · consigliato</div>
-            <div class="cfg-plan">CX32 + 200 GB</div>
-            <div class="cfg-spec">4 vCPU · 8 GB · +200 GB vol</div>
-            <span class="cfg-price">€17.19</span>
-            <span class="cfg-year">€7.59 + €9.60 · ~€206/anno</span>
+            <div class="cfg-label">Ottimale · storage pesante</div>
+            <div class="cfg-plan">VPS-3</div>
+            <div class="cfg-spec">8 vCPU · 24 GB · 200 GB</div>
+            <span class="cfg-price">€16.99</span>
+            <span class="cfg-year">/mese · ~€204/anno</span>
           </div>
         </div>
       </div>
@@ -732,7 +732,7 @@ tbody tr:last-child td { border-bottom: none; }
 
   <!-- SUMMARY TABLE -->
   <section class="anim">
-    <div class="section-label">Riepilogo costi · Hetzner Cloud EU · NVMe · IPv4 incluso</div>
+    <div class="section-label">Riepilogo costi · VPS OVHcloud EU · NVMe · IPv4 + anti-DDoS inclusi</div>
     <div class="tbl-wrap">
       <table>
         <thead>
@@ -742,7 +742,7 @@ tbody tr:last-child td { border-bottom: none; }
             <th class="r">RAM picco</th>
             <th>Piano</th>
             <th class="r">vCPU / RAM</th>
-            <th class="r">Storage extra</th>
+            <th class="r">NVMe incluso</th>
             <th class="r">€/mese</th>
             <th class="r">€/anno</th>
           </tr>
@@ -753,90 +753,86 @@ tbody tr:last-child td { border-bottom: none; }
             <td rowspan="2" class="grp-name">Essenziale</td>
             <td><span class="grp-tag cfg-min">minimo</span></td>
             <td class="mono r" rowspan="2">~1.4 GB</td>
-            <td class="mono">CPX11</td>
-            <td class="mono r">2 / 2 GB</td>
-            <td class="mono r" style="color:var(--mid)">—</td>
-            <td class="price r">€4.35</td>
-            <td class="mono r" style="color:var(--mid)">~€52</td>
+            <td class="mono">VPS-1</td>
+            <td class="mono r">4 / 8 GB</td>
+            <td class="mono r">75 GB</td>
+            <td class="price r">€7.60</td>
+            <td class="mono r" style="color:var(--mid)">~€91</td>
           </tr>
           <tr class="tr-h">
             <td><span class="grp-tag cfg-opt">ottimale</span></td>
-            <td class="mono">CX22</td>
-            <td class="mono r">2 / 4 GB</td>
-            <td class="mono r" style="color:var(--mid)">—</td>
-            <td class="price price-g r">€4.59</td>
-            <td class="mono r" style="color:var(--mid)">~€55</td>
+            <td class="mono">VPS-2</td>
+            <td class="mono r">6 / 12 GB</td>
+            <td class="mono r">100 GB</td>
+            <td class="price price-g r">€8.49</td>
+            <td class="mono r" style="color:var(--mid)">~€102</td>
           </tr>
           <!-- 02 -->
           <tr class="tr-grp">
             <td rowspan="2" class="grp-name">Con allegati e backup<br><span class="svc-sub">+ MinIO</span></td>
             <td><span class="grp-tag cfg-min">minimo</span></td>
             <td class="mono r" rowspan="2">~1.9 GB</td>
-            <td class="mono">CX22 + vol</td>
-            <td class="mono r">2 / 4 GB</td>
-            <td class="mono r">+50 GB</td>
-            <td class="price r">€6.99</td>
-            <td class="mono r" style="color:var(--mid)">~€84</td>
+            <td class="mono">VPS-2</td>
+            <td class="mono r">6 / 12 GB</td>
+            <td class="mono r">100 GB</td>
+            <td class="price r">€8.49</td>
+            <td class="mono r" style="color:var(--mid)">~€102</td>
           </tr>
           <tr class="tr-h">
             <td><span class="grp-tag cfg-opt">ottimale</span></td>
-            <td class="mono">CX32 + vol</td>
-            <td class="mono r">4 / 8 GB</td>
-            <td class="mono r">+200 GB</td>
-            <td class="price price-g r">€17.19</td>
-            <td class="mono r" style="color:var(--mid)">~€206</td>
+            <td class="mono">VPS-3</td>
+            <td class="mono r">8 / 24 GB</td>
+            <td class="mono r">200 GB</td>
+            <td class="price price-g r">€16.99</td>
+            <td class="mono r" style="color:var(--mid)">~€204</td>
           </tr>
           <!-- 03 -->
           <tr class="tr-grp">
             <td rowspan="2" class="grp-name">Con export PDF<br><span class="svc-sub">+ Gotenberg</span></td>
-            <td>
-              <span class="grp-tag cfg-min">minimo</span>
-              <span class="risk-note">limita parallelismo + swap</span>
-            </td>
+            <td><span class="grp-tag cfg-min">minimo</span></td>
             <td class="mono r" rowspan="2">~2.9 GB</td>
-            <td class="mono">CX22</td>
-            <td class="mono r">2 / 4 GB</td>
-            <td class="mono r" style="color:var(--mid)">—</td>
-            <td class="price r">€4.59</td>
-            <td class="mono r" style="color:var(--mid)">~€55</td>
+            <td class="mono">VPS-1</td>
+            <td class="mono r">4 / 8 GB</td>
+            <td class="mono r">75 GB</td>
+            <td class="price r">€7.60</td>
+            <td class="mono r" style="color:var(--mid)">~€91</td>
           </tr>
           <tr class="tr-h">
             <td><span class="grp-tag cfg-opt">ottimale</span></td>
-            <td class="mono">CX32</td>
-            <td class="mono r">4 / 8 GB</td>
-            <td class="mono r" style="color:var(--mid)">—</td>
-            <td class="price price-g r">€7.59</td>
-            <td class="mono r" style="color:var(--mid)">~€91</td>
+            <td class="mono">VPS-2</td>
+            <td class="mono r">6 / 12 GB</td>
+            <td class="mono r">100 GB</td>
+            <td class="price price-g r">€8.49</td>
+            <td class="mono r" style="color:var(--mid)">~€102</td>
           </tr>
           <!-- 04 -->
           <tr class="tr-grp">
             <td rowspan="2" class="grp-name">Tutto<br><span class="svc-sub">+ MinIO + Gotenberg</span></td>
-            <td>
-              <span class="grp-tag cfg-min">minimo</span>
-              <span class="risk-note">OOM a rischio · sconsigliato</span>
-            </td>
+            <td><span class="grp-tag cfg-opt">consigliato ✓</span></td>
             <td class="mono r" rowspan="2">~3.4 GB</td>
-            <td class="mono">CX22 + vol</td>
-            <td class="mono r">2 / 4 GB</td>
-            <td class="mono r">+50 GB</td>
-            <td class="price r">€6.99</td>
-            <td class="mono r" style="color:var(--mid)">~€84</td>
+            <td class="mono bold">VPS-2</td>
+            <td class="mono r bold">6 / 12 GB</td>
+            <td class="mono r">100 GB</td>
+            <td class="price price-g r">€8.49</td>
+            <td class="mono r" style="color:var(--mid)">~€102</td>
           </tr>
           <tr class="tr-h">
-            <td><span class="grp-tag cfg-opt">ottimale ✓</span></td>
-            <td class="mono bold">CX32 + vol</td>
-            <td class="mono r bold">4 / 8 GB</td>
-            <td class="mono r">+200 GB</td>
-            <td class="price price-g r">€17.19</td>
-            <td class="mono r" style="color:var(--mid)">~€206</td>
+            <td>
+              <span class="grp-tag cfg-opt">storage pesante</span>
+            </td>
+            <td class="mono">VPS-3</td>
+            <td class="mono r">8 / 24 GB</td>
+            <td class="mono r">200 GB</td>
+            <td class="price price-g r">€16.99</td>
+            <td class="mono r" style="color:var(--mid)">~€204</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="info-block" style="margin-top:1.5rem; margin-bottom:0;">
-      <strong>⬥ Equivalenti OVHcloud · disco incluso, senza volume</strong>
-      OVH (datacenter EU) non vende block storage separato per la gamma VPS: il disco NVMe è incluso e abbondante, quindi MinIO punta al disco locale e non c'è un volume da gestire. Mappatura indicativa: <code>Essenziale</code> → VPS 2 vCPU / 4 GB / 80 GB ~<b style="color:var(--text)">€6.99/mese</b> · <code>PDF ottimale</code> e <code>Tutto ottimale</code> → VPS 4 vCPU / 8 GB / 160 GB ~<b style="color:var(--text)">€12.99/mese</b> (MinIO + backup sui 160 GB inclusi). Trade-off rispetto a Hetzner: lo storage scala a step di piano, non in modo incrementale come il Volume.
+      <strong>⬥ Nota · storage incluso e come farlo crescere</strong>
+      Sulla gamma <b style="color:var(--text)">VPS OVHcloud</b> il disco NVMe è incluso nel canone: MinIO scrive sul disco locale e non c'è alcun volume separato da gestire o pagare. Per avere più spazio si passa al piano superiore (75 → 100 → 200 GB). Se invece serve far crescere lo spazio <em>in modo incrementale</em>, GB per GB, la linea <code>OVH Public Cloud</code> permette di collegare dischi <b style="color:var(--text)">Block Storage</b> a parte: ~<b style="color:var(--text)">€0.042/GB/mese</b> (Classic, 250 IOPS) o ~€0.086/GB/mese (High Speed, 3000 IOPS). Trade-off del VPS: lo storage sale a step di piano, non a singoli GB — ma per questo carico i tagli inclusi sono ampiamente sufficienti.
     </div>
   </section>
 
@@ -987,24 +983,24 @@ tbody tr:last-child td { border-bottom: none; }
 
     <div class="warn-block">
       <strong>⬥ Gotenberg · il servizio critico (config 03 e 04)</strong>
-      Avvia istanze Chromium headless per ogni richiesta PDF. Un singolo picco può saturare 800 MB–1.5 GB. Su un VPS da 4 GB già occupato dagli altri servizi il rischio OOM-kill è concreto — per questo le configurazioni 03 e 04 nel taglio minimo richiedono di limitare il parallelismo con <code>--chromium-max-queue-size 5</code>, imporre <code>mem_limit: 1g</code> nel compose e abilitare swap. Il taglio ottimale (8 GB) evita queste mitigazioni. Nota: l'app oggi usa il driver <code>dompdf</code>/<code>browsershot</code>; Gotenberg è la via per le viste HTML complesse.
+      Avvia istanze Chromium headless per ogni richiesta PDF. Un singolo picco può saturare 800 MB–1.5 GB. È il motivo per cui altrove serviva salire di taglio: su un VPS da 4 GB già occupato dagli altri servizi il rischio OOM-kill è concreto. Con la linea <b>VPS OVHcloud 2026</b> il problema si attenua da solo, perché anche il taglio d'ingresso (VPS-1) parte da <b>8 GB di RAM</b>: il burst di Chromium viene assorbito senza dover limitare il parallelismo né attivare swap. Per carichi PDF intensi e concorrenti resta comunque buona prassi imporre <code>mem_limit: 1g</code> nel compose. Nota: l'app oggi usa il driver <code>dompdf</code>/<code>browsershot</code>; Gotenberg è la via per le viste HTML complesse.
     </div>
   </section>
 
   <!-- STORAGE -->
   <section class="anim">
-    <div class="section-label">Storage MinIO · costo del volume (config 02 e 04)</div>
+    <div class="section-label">Storage MinIO · disco NVMe incluso (config 02 e 04)</div>
 
     <div class="info-block">
-      <strong>⬥ MinIO, allegati e backup sullo stesso volume</strong>
-      MinIO occupa poca RAM ma ha bisogno di storage persistente proporzionale al volume degli allegati <em>e</em> dei backup (<code>spatie/laravel-backup</code> scrive sul disco S3). L'SSD incluso nel VPS è condiviso con OS, PostgreSQL e log: non va dedicato al deposito file. La soluzione standard è montare un volume block storage separato come data directory di MinIO (<code>MINIO_VOLUMES=/mnt/data</code>) — ridimensionabile online senza downtime. Tenere allegati e backup nello stesso bucket raddoppia di fatto l'occupazione: dimensionare di conseguenza.
+      <strong>⬥ MinIO, allegati e backup sul disco NVMe del VPS</strong>
+      MinIO occupa poca RAM ma ha bisogno di storage persistente proporzionale al volume degli allegati <em>e</em> dei backup (<code>spatie/laravel-backup</code> scrive sul disco S3). Sulla gamma VPS OVHcloud il disco NVMe è incluso e generoso (75–200 GB secondo il piano), condiviso con OS, PostgreSQL e log: MinIO punta semplicemente al disco locale (<code>MINIO_VOLUMES=/data</code>), nessun volume da montare o pagare a parte. Tenere allegati e backup nello stesso bucket raddoppia di fatto l'occupazione: dimensionare il piano di conseguenza. Se in futuro lo spazio dovesse crescere oltre i tagli VPS, si migra su <code>OVH Public Cloud</code> e si aggiunge un Block Storage a ~€0.042/GB/mese, ridimensionabile online.
     </div>
 
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th>Provider</th>
+            <th>Linea</th>
             <th>Tipo storage</th>
             <th class="r">Capacità</th>
             <th class="r">Costo / mese</th>
@@ -1013,32 +1009,32 @@ tbody tr:last-child td { border-bottom: none; }
         </thead>
         <tbody>
           <tr>
-            <td><span class="svc-name">Hetzner</span><span class="svc-sub">Volume block storage</span></td>
-            <td class="mono">Volume NVMe</td>
-            <td class="mono r">50 GB</td>
-            <td class="price price-g r">€2.40</td>
-            <td style="font-size:0.80rem; color:var(--mid);">Taglio minimo · €0.048/GB · fattura oraria</td>
+            <td><span class="svc-name">VPS-1</span><span class="svc-sub">Disco incluso nel VPS</span></td>
+            <td class="mono">NVMe locale</td>
+            <td class="mono r">75 GB</td>
+            <td class="price price-g r">€0 extra</td>
+            <td style="font-size:0.80rem; color:var(--mid);">Incluso nel canone · MinIO sul disco locale</td>
           </tr>
           <tr>
-            <td><span class="svc-name">Hetzner</span><span class="svc-sub">Volume block storage</span></td>
-            <td class="mono">Volume NVMe</td>
+            <td><span class="svc-name">VPS-2</span><span class="svc-sub">Disco incluso nel VPS</span></td>
+            <td class="mono">NVMe locale</td>
+            <td class="mono r">100 GB</td>
+            <td class="price price-g r">€0 extra</td>
+            <td style="font-size:0.80rem; color:var(--mid);">Incluso · taglio consigliato per lo stack completo</td>
+          </tr>
+          <tr>
+            <td><span class="svc-name">VPS-3</span><span class="svc-sub">Disco incluso nel VPS</span></td>
+            <td class="mono">NVMe locale</td>
             <td class="mono r">200 GB</td>
-            <td class="price price-g r">€9.60</td>
-            <td style="font-size:0.80rem; color:var(--mid);">Taglio ottimale · ridimensionabile online</td>
+            <td class="price price-g r">€0 extra</td>
+            <td style="font-size:0.80rem; color:var(--mid);">Incluso · per allegati + backup voluminosi</td>
           </tr>
           <tr>
-            <td><span class="svc-name">OVHcloud</span><span class="svc-sub">Disco incluso nel VPS</span></td>
-            <td class="mono">NVMe locale</td>
-            <td class="mono r">80 GB</td>
-            <td class="price price-g r">€0 extra</td>
-            <td style="font-size:0.80rem; color:var(--mid);">Incluso nel piano · MinIO sul disco locale</td>
-          </tr>
-          <tr>
-            <td><span class="svc-name">OVHcloud</span><span class="svc-sub">Disco incluso nel VPS</span></td>
-            <td class="mono">NVMe locale</td>
-            <td class="mono r">160 GB</td>
-            <td class="price price-g r">€0 extra</td>
-            <td style="font-size:0.80rem; color:var(--mid);">Incluso · scala a step di piano, non incrementale</td>
+            <td><span class="svc-name">Public Cloud</span><span class="svc-sub">Block Storage Classic</span></td>
+            <td class="mono">Volume NVMe</td>
+            <td class="mono r">per GB</td>
+            <td class="price price-g r">€0.042/GB</td>
+            <td style="font-size:0.80rem; color:var(--mid);">Solo su Public Cloud · incrementale, ridimensionabile online</td>
           </tr>
         </tbody>
       </table>
@@ -1047,17 +1043,17 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="storage-grid">
       <div class="storage-card">
         <div class="storage-card-title">Stack completo · scelta consigliata</div>
-        <span class="storage-card-price green">~€17 / mese</span>
-        <p class="storage-card-desc">Hetzner CX32 <strong>€7.59</strong> + Volume 200 GB <strong>€9.60</strong>. Compute e storage separati: il Volume si espande online senza cambiare piano VPS, e 8 GB RAM coprono MinIO + i picchi di Gotenberg con margine. Datacenter EU, ~€206/anno.</p>
+        <span class="storage-card-price green">~€8.49 / mese</span>
+        <p class="storage-card-desc">OVHcloud VPS-2 <strong>6 vCPU / 12 GB / 100 GB NVMe</strong>: una sola macchina, disco incluso, nessun volume da gestire. I 12 GB di RAM coprono MinIO + i picchi di Gotenberg con ampio margine e i 100 GB bastano per allegati + backup. Datacenter EU, IPv4 + anti-DDoS inclusi, ~€102/anno.</p>
       </div>
       <div class="storage-card">
-        <div class="storage-card-title">Alternativa OVHcloud · disco incluso</div>
-        <span class="storage-card-price green">~€13 / mese</span>
-        <p class="storage-card-desc">OVH VPS <strong>4 vCPU / 8 GB / 160 GB NVMe</strong>: MinIO e backup vivono sul disco incluso, nessun volume da gestire. Datacenter EU. Trade-off: lo storage scala a step di piano (non incrementale come il Volume Hetzner).</p>
+        <div class="storage-card-title">Storage voluminoso · VPS-3</div>
+        <span class="storage-card-price green">~€16.99 / mese</span>
+        <p class="storage-card-desc">OVHcloud VPS-3 <strong>8 vCPU / 24 GB / 200 GB NVMe</strong>: scelta da preferire solo se allegati e backup occupano molto spazio. Se serve crescere GB per GB oltre i tagli VPS, si passa a <strong>OVH Public Cloud</strong> con Block Storage a ~€0.042/GB/mese.</p>
       </div>
     </div>
   </section>
 
-  <p class="footer">Prezzi indicativi Hetzner Cloud / OVHcloud · EU · verificare i listini ufficiali prima dell'acquisto · matches infra estimate · giugno 2026</p>
+  <p class="footer">Prezzi indicativi VPS OVHcloud (listino 2026, post-aggiornamento) · EU · IVA esclusa · verificare il configuratore ufficiale OVHcloud prima dell'acquisto · matches infra estimate · giugno 2026</p>
 
 </div>

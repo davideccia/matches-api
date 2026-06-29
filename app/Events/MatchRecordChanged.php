@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Models\MatchRecord;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -15,13 +14,13 @@ class MatchRecordChanged implements ShouldBroadcast, ShouldDispatchAfterCommit
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public readonly MatchRecord $matchRecord,
+        public readonly string $tournamentId,
     ) {}
 
     public function broadcastOn(): array
     {
         return [
-            new Channel("tournaments.{$this->matchRecord->tournament_id}.match_records"),
+            new Channel("tournaments.{$this->tournamentId}.match_records"),
         ];
     }
 

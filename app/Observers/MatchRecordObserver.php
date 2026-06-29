@@ -23,7 +23,7 @@ class MatchRecordObserver
 
     public function created(MatchRecord $matchRecord): void
     {
-        event(new MatchRecordChanged($matchRecord));
+        event(new MatchRecordChanged($matchRecord->tournament_id));
     }
 
     public function updating(MatchRecord $matchRecord): void
@@ -33,7 +33,7 @@ class MatchRecordObserver
 
     public function updated(MatchRecord $matchRecord): void
     {
-        event(new MatchRecordChanged($matchRecord));
+        event(new MatchRecordChanged($matchRecord->tournament_id));
     }
 
     public function deleting(MatchRecord $matchRecord): void
@@ -43,7 +43,7 @@ class MatchRecordObserver
 
     public function deleted(MatchRecord $matchRecord): void
     {
-        event(new MatchRecordChanged($matchRecord));
+        event(new MatchRecordChanged($matchRecord->tournament_id));
 
         $matchRecord->tournament->syncMatchmakingIssues();
 

@@ -11,10 +11,10 @@ use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormShowRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormStoreRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormTournamentIndexRequest;
 use App\Http\Requests\PublicRegistrationForm\PublicRegistrationFormWeightCategoryIndexRequest;
-use App\Http\Resources\AthleteResource;
 use App\Http\Resources\DisciplineResource;
+use App\Http\Resources\Public\PublicRegistrationAthleteResource;
+use App\Http\Resources\Public\PublicTournamentResource;
 use App\Http\Resources\RegistrationResource;
-use App\Http\Resources\TournamentResource;
 use App\Http\Resources\WeightCategoryResource;
 use App\Models\Athlete;
 use App\Models\Discipline;
@@ -29,21 +29,21 @@ use function Spatie\LaravelPdf\Support\pdf;
 
 class PublicRegistrationFormController extends Controller
 {
-    public function showAthlete(PublicRegistrationFormShowRequest $request, Athlete $athlete): AthleteResource
+    public function showAthlete(PublicRegistrationFormShowRequest $request, Athlete $athlete): PublicRegistrationAthleteResource
     {
-        return new AthleteResource($athlete);
+        return new PublicRegistrationAthleteResource($athlete);
     }
 
-    public function storeAthlete(PublicRegistrationFormStoreRequest $request): AthleteResource
+    public function storeAthlete(PublicRegistrationFormStoreRequest $request): PublicRegistrationAthleteResource
     {
         $validated = $request->validated();
 
-        $athlete = Athlete::updateOrCreate(
+        $athlete = Athlete::firstOrCreate(
             ['tax_number' => $validated['tax_number']],
             $validated,
         );
 
-        return new AthleteResource($athlete);
+        return new PublicRegistrationAthleteResource($athlete);
     }
 
     public function tournamentsIndex(PublicRegistrationFormTournamentIndexRequest $request): ResourceCollection
@@ -58,7 +58,7 @@ class PublicRegistrationFormController extends Controller
             $tournaments->search($validated['search']);
         }
 
-        return TournamentResource::collection($tournaments->get());
+        return PublicTournamentResource::collection($tournaments->get());
     }
 
     public function disciplinesIndex(PublicRegistrationFormDisciplineIndexRequest $request): ResourceCollection

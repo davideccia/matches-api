@@ -16,6 +16,15 @@ class MatchRecordStoreRequest extends FormRequest
         prepareForValidation as injectWithPrepare;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->injectWithPrepare();
+
+        $this->merge([
+            'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -42,17 +51,15 @@ class MatchRecordStoreRequest extends FormRequest
             'rounds' => ['required', 'integer'],
             'minutes_per_round' => ['required', 'date_format:H:i'],
             'judges_points' => ['nullable', 'array'],
+            'judges_points.*.round' => ['integer'],
+            'judges_points.*.judge1_red' => ['nullable', 'numeric'],
+            'judges_points.*.judge2_red' => ['nullable', 'numeric'],
+            'judges_points.*.judge3_red' => ['nullable', 'numeric'],
+            'judges_points.*.judge1_blue' => ['nullable', 'numeric'],
+            'judges_points.*.judge2_blue' => ['nullable', 'numeric'],
+            'judges_points.*.judge3_blue' => ['nullable', 'numeric'],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWithPrepare();
-
-        $this->merge([
-            'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
-        ]);
     }
 }

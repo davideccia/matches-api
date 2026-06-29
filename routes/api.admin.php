@@ -14,9 +14,11 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WeightCategoryController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('auth/login', [AuthController::class, 'login']);
-Route::post('auth/forgot_password', [AuthController::class, 'forgotPassword']);
-Route::post('auth/reset_password', [AuthController::class, 'resetPassword']);
+Route::middleware('throttle:5,1')->group(function () {
+    Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('auth/forgot_password', [AuthController::class, 'forgotPassword']);
+    Route::post('auth/reset_password', [AuthController::class, 'resetPassword']);
+});
 
 Route::middleware(['auth:sanctum'])->group(function () {
 

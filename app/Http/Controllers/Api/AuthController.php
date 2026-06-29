@@ -16,13 +16,13 @@ class AuthController extends Controller
 {
     public function login(LoginRequest $request): JsonResponse
     {
-        if (!auth()->attempt($request->only('email', 'password'))) {
+        if (! auth()->attempt($request->only('email', 'password'))) {
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
         /** @var User $user */
         $user = auth()->user();
-        $token = $user->createToken('api')->plainTextToken;
+        $token = $user->createToken('api', expiresAt: now()->addWeeks())->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -44,11 +44,9 @@ class AuthController extends Controller
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $status = Password::sendResetLink($request->only('email'));
+        Password::sendResetLink($request->only('email'));
 
-        return $status === Password::RESET_LINK_SENT
-            ? response()->json(['message' => __($status)])
-            : response()->json(['message' => __($status)], 422);
+        return response()->json(['message' => __('passwords.sent')]);
     }
 
     public function resetPassword(ResetPasswordRequest $request): JsonResponse

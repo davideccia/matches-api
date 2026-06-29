@@ -14,7 +14,7 @@ class StoreTemporaryUploadAction
     {
         $id = Str::orderedUuid()->toString();
         $disk = 'local';
-        $extension = $file->getClientOriginalExtension();
+        $extension = $file->guessExtension() ?? $file->getClientOriginalExtension();
         $path = 'temp/'.($extension ? "{$id}.{$extension}" : $id);
 
         Storage::disk($disk)->put($path, $file->getContent());

@@ -6,8 +6,8 @@ use App\Enums\TournamentStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicTournament\PublicTournamentIndexRequest;
 use App\Http\Requests\PublicTournament\PublicTournamentMatchRecordIndexRequest;
-use App\Http\Resources\MatchRecordResource;
-use App\Http\Resources\TournamentResource;
+use App\Http\Resources\Public\PublicMatchRecordResource;
+use App\Http\Resources\Public\PublicTournamentResource;
 use App\Models\Tournament;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Spatie\ResponseCache\Attributes\Cache;
@@ -34,7 +34,7 @@ class PublicTournamentController extends Controller
             $tournaments = $tournaments->get();
         }
 
-        return TournamentResource::collection($tournaments);
+        return PublicTournamentResource::collection($tournaments);
     }
 
     public function tournamentMatchRecords(PublicTournamentMatchRecordIndexRequest $request, Tournament $tournament): ResourceCollection
@@ -58,6 +58,6 @@ class PublicTournamentController extends Controller
             $matchRecords = $matchRecords->get();
         }
 
-        return MatchRecordResource::collection($matchRecords);
+        return PublicMatchRecordResource::collection($matchRecords);
     }
 }

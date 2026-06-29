@@ -16,13 +16,18 @@ class UserUpdateRequest extends UserStoreRequest
     {
         $user = $this->route('user');
 
-        return [
+        $rules = [
             'username' => ['sometimes', 'string', 'max:255', Rule::unique('users')->ignore($user)],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user)],
             'password' => ['sometimes', Password::min(8)],
-            'superadmin' => ['sometimes', 'boolean'],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];
+
+        if ($this->user()->superadmin) {
+            $rules['superadmin'] = ['sometimes', 'boolean'];
+        }
+
+        return $rules;
     }
 }

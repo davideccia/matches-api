@@ -22,7 +22,7 @@ class UserIndexRequest extends FormRequest
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
             'paginate' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'search' => ['nullable', 'string'],
         ];

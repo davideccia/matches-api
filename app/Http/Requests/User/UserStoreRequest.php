@@ -19,13 +19,18 @@ class UserStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'username' => ['required', 'string', 'max:255', Rule::unique('users')],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')],
             'password' => ['required', Password::min(8)],
-            'superadmin' => ['sometimes', 'boolean'],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];
+
+        if ($this->user()->superadmin) {
+            $rules['superadmin'] = ['sometimes', 'boolean'];
+        }
+
+        return $rules;
     }
 }

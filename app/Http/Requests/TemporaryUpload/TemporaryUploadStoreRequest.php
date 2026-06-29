@@ -14,7 +14,7 @@ class TemporaryUploadStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'max:10240'],
+            'file' => ['required', 'file', 'max:10240', 'mimes:jpeg,jpg,png,webp,pdf'],
         ];
     }
 }

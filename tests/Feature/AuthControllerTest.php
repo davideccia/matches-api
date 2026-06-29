@@ -118,14 +118,14 @@ class AuthControllerTest extends TestCase
         Notification::assertSentTo($user, ResetPasswordNotification::class);
     }
 
-    public function test_forgot_password_returns422_for_unknown_email(): void
+    public function test_forgot_password_returns200_for_unknown_email_without_leaking_existence(): void
     {
         Notification::fake();
 
         $this->postJson('/api/admin/auth/forgot_password', [
             'email' => 'nobody@example.com',
         ])
-            ->assertStatus(422)
+            ->assertOk()
             ->assertJsonStructure(['message']);
 
         Notification::assertNothingSent();

@@ -63,13 +63,14 @@ class PublicRegistrationFormControllerTest extends TestCase
         $response = $this->postJson('/api/public/registration_form/athletes', $payload);
 
         $response->assertCreated()
-            ->assertJsonPath('data.tax_number', 'RSSMRA90A01H501A');
+            ->assertJsonPath('data.full_name', 'Mario Rossi');
 
+        // Normalization verified via DB — tax_number is intentionally not exposed in the public resource.
         $this->assertDatabaseHas('athletes', ['tax_number' => 'RSSMRA90A01H501A']);
         $this->assertDatabaseMissing('athletes', ['tax_number' => '  rssmra90a01h501a  ']);
     }
 
-    public function test_store_athlete_updates_existing_athlete_with_same_tax_number(): void
+    public function test_store_athlete_returns_existing_athlete_without_overwriting(): void
     {
         $existing = Athlete::factory()->create([
             'first_name' => 'Old',
@@ -87,16 +88,15 @@ class PublicRegistrationFormControllerTest extends TestCase
 
         $response = $this->postJson('/api/public/registration_form/athletes', $payload);
 
+        // firstOrCreate semantics: existing record returned unchanged, no data overwritten.
         $response->assertOk()
             ->assertJsonPath('data.id', $existing->id)
-            ->assertJsonPath('data.first_name', 'New');
+            ->assertJsonPath('data.first_name', 'Old');
 
-        // updateOrCreate semantics: no duplicate row created.
         $this->assertSame(1, Athlete::count());
         $this->assertDatabaseHas('athletes', [
             'id' => $existing->id,
-            'first_name' => 'New',
-            'full_name' => 'New Name',
+            'first_name' => 'Old',
         ]);
     }
 
@@ -136,8 +136,11 @@ class PublicRegistrationFormControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.id', $athlete->id)
-            ->assertJsonPath('data.tax_number', 'RSSMRA90A01H501A')
-            ->assertJsonPath('data.is_adult', true);
+            ->assertJsonPath('data.full_name', $athlete->full_name);
+
+        // tax_number and is_adult are intentionally omitted from the public resource.
+        $response->assertJsonMissingPath('data.tax_number');
+        $response->assertJsonMissingPath('data.is_adult');
     }
 
     public function test_show_athlete_returns404_for_unknown_tax_number(): void

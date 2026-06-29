@@ -10,10 +10,6 @@ class HorizonBasicAuth
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (app()->isLocal()) {
-            return $next($request);
-        }
-
         $username = config('horizon.basic_auth_username');
         $password = config('horizon.basic_auth_password');
 

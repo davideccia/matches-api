@@ -1,16 +1,4 @@
-REGISTRY := 192.168.1.50:10140
-IMAGE := matches-api-laravel
-TAG := latest
-
-.PHONY: docker-builder docker-build release
-
-docker-builder:
-	docker buildx create --config ~/.docker/buildkitd.toml --name multiarch_builder --driver docker-container --bootstrap --use
-
-docker-build:
-	docker buildx build --platform linux/amd64,linux/arm64 \
-		--tag $(REGISTRY)/$(IMAGE):$(TAG) \
-		. --push
+.PHONY: release
 
 release: ## Bump versione, commit e tag git (uso: make release V=1.2.3 [PUSH=1])
 	@test -n "$(V)" || { echo "Specifica la versione: make release V=1.2.3 [PUSH=1]"; exit 1; }

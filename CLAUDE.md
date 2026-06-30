@@ -29,18 +29,23 @@ Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEn
 - **All primary and foreign key IDs are UUIDs** — enforced by the `laravel-scaffold` skill and must be reflected in migrations and models.
 - **PHP Enum columns are stored as strings in the database** — cast to a PHP-backed Enum in the model. Never use a DB-level ENUM type.
 - **Routes are split by audience, not version** — `bootstrap/app.php` mounts `routes/api.admin.php` under the `/api/admin/` prefix and `routes/api.public.php` under `/api/public/` (the latter with a global `throttle:10,1`). A `SetLocale` middleware is prepended to the `api` group. There is no `/api/v1/` prefix.
-- **Eloquent API Resources are mandatory** for all API responses.
+- **Eloquent API Resources are mandatory** for all API responses. Public (unauthenticated) endpoints use a separate namespace: `app/Http/Resources/Public/Public{Model}Resource.php`.
+- **Model Scopes** live in `app/Models/Scopes/` as dedicated scope classes (e.g., `AthleteScope`), applied to the model's `booted()` method — not inline query builder calls.
 - Use `.claude/skills/laravel-scaffold/` to generate a full artifact set (migration, model, observer, scopes, resource, controller, form requests, seeder) from a DBML schema.
 
 ## Route Files
 
 `routes/api.php` is empty; the prefixes/groups are wired in `bootstrap/app.php` (see above). Routes live in:
-- `routes/api.admin.php` (`/api/admin/`) — `auth/*` (login/logout/forgot/reset/user), `dashboard`, all `apiResource`s (users, weight_categories, disciplines, athletes, tournaments, registrations, match_records), nested `tournaments.{registrations,match_records}` (index/store only), `temporary_uploads`, and PDF endpoints. Everything except the `auth/*` entry points is behind `auth:sanctum`.
+- `routes/api.admin.php` (`/api/admin/`) — `auth/*` (login/logout/forgot/reset/user), `dashboard`, all `apiResource`s (users, weight_categories, disciplines, athletes, tournaments, registrations, match_records), nested `tournaments.{registrations,match_records}` (index/store only), `temporary_uploads`, PDF endpoints, and `DELETE {resource}/bulk` routes (preceding each `apiResource` so they aren't shadowed). Everything except the `auth/*` entry points is behind `auth:sanctum`. Auth endpoints are rate-limited at `throttle:5,1`.
 - `routes/api.public.php` (`/api/public/`) — unauthenticated. `registration_form/*` (public athlete lookup by tax_number, athlete/registration create, disciplines & weight_categories index, registration PDF) and `tournaments/*` (public tournament list + match records).
+
+**Custom tournament actions** (not part of the standard CRUD resource) live before the `apiResource` declaration:
+- `GET tournaments/{tournament}/match_records/pdf` — `TournamentMatchRecordController::matchRecordsPdf`
+- `POST tournaments/{tournament}/match_records/generate` — `TournamentMatchRecordController::generateMatchRecords` (triggers `Tournament::runMatchmaking()`)
 
 ## Request / Controller Patterns
 
-Every resource has five FormRequests named `{Model}{Action}Request` (e.g., `MatchRecordStoreRequest`), stored in `app/Http/Requests/{Model}/`.
+Every resource has five FormRequests named `{Model}{Action}Request` (e.g., `MatchRecordStoreRequest`), stored in `app/Http/Requests/{Model}/`. There is also a sixth `{Model}BulkDestroyRequest` pattern for bulk deletes (accepts `ids: uuid[]`).
 
 **`InjectWith` trait** (`app/Traits/InjectWith.php`): all index/show/store requests use this trait. Clients pass `?with=relation1,relation2` as a comma-separated string; the trait converts it to a camelCase array that is then validated against an allowlist in `with.*` rules. Controllers call `$model->loadMissing($validated['with'] ?? [])` to eager-load.
 

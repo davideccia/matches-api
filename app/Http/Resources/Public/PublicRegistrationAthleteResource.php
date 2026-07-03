@@ -21,8 +21,6 @@ class PublicRegistrationAthleteResource extends JsonResource
             'birth_date' => $this->resource->birth_date?->toDateString(),
             'gender' => $this->resource->gender?->value,
             'team_name' => $this->resource->team_name,
-            'default_weight_category_id' => $this->resource->default_weight_category_id,
-            'default_discipline_id' => $this->resource->default_discipline_id,
         ];
     }
 }

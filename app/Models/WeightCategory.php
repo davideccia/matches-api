@@ -41,11 +41,6 @@ class WeightCategory extends Model
         return $this->hasMany(MatchRecord::class);
     }
 
-    public function defaultAthletes(): HasMany
-    {
-        return $this->hasMany(Athlete::class, 'default_weight_category_id');
-    }
-
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {

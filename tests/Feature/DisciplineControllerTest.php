@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Athlete;
 use App\Models\Discipline;
 use App\Models\MatchRecord;
 use App\Models\Registration;
@@ -261,19 +260,6 @@ class DisciplineControllerTest extends TestCase
 
         $discipline = Discipline::factory()->create();
         MatchRecord::factory()->create(['discipline_id' => $discipline->id]);
-
-        $this->deleteJson("/api/admin/disciplines/{$discipline->id}")
-            ->assertStatus(409);
-
-        $this->assertDatabaseHas('disciplines', ['id' => $discipline->id]);
-    }
-
-    public function test_destroy_is_blocked_when_discipline_is_default_for_an_athlete(): void
-    {
-        $this->authenticate();
-
-        $discipline = Discipline::factory()->create();
-        Athlete::factory()->create(['default_discipline_id' => $discipline->id]);
 
         $this->deleteJson("/api/admin/disciplines/{$discipline->id}")
             ->assertStatus(409);

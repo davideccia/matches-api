@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Athlete;
 use App\Models\MatchRecord;
 use App\Models\Registration;
 use App\Models\WeightCategory;
@@ -256,19 +255,6 @@ class WeightCategoryControllerTest extends TestCase
 
         $weightCategory = WeightCategory::factory()->create();
         MatchRecord::factory()->create(['weight_category_id' => $weightCategory->id]);
-
-        $this->deleteJson("/api/admin/weight_categories/{$weightCategory->id}")
-            ->assertStatus(409);
-
-        $this->assertDatabaseHas('weight_categories', ['id' => $weightCategory->id]);
-    }
-
-    public function test_destroy_is_blocked_when_weight_category_is_default_for_an_athlete(): void
-    {
-        $this->authenticate();
-
-        $weightCategory = WeightCategory::factory()->create();
-        Athlete::factory()->create(['default_weight_category_id' => $weightCategory->id]);
 
         $this->deleteJson("/api/admin/weight_categories/{$weightCategory->id}")
             ->assertStatus(409);

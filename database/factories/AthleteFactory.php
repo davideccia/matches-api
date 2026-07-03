@@ -30,8 +30,6 @@ class AthleteFactory extends Factory
             'gender' => fake()->randomElement([AthleteGenderEnum::MALE, AthleteGenderEnum::FEMALE]),
             'tax_number' => Str::upper(Str::random(16)),
             'team_name' => fake()->company(),
-            'default_weight_category_id' => null,
-            'default_discipline_id' => null,
         ];
     }
 

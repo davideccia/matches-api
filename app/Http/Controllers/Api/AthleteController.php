@@ -29,12 +29,24 @@ class AthleteController extends Controller
             $athletes->search($validated['search']);
         }
 
-        if (isset($validated['tournament_id'])) {
-            $athletes->inTournament($validated['tournament_id'], ($validated['discipline_id'] ?? null), ($validated['weight_category_id'] ?? null));
+        if (isset($validated['is_adult'])) {
+            $athletes->adult($validated['is_adult']);
+        }
+
+        if (isset($validated['min_match_records_count'])) {
+            $athletes->minMatchRecordsCount($validated['min_match_records_count']);
+        }
+
+        if (isset($validated['max_match_records_count'])) {
+            $athletes->maxMatchRecordsCount($validated['max_match_records_count']);
         }
 
         if (isset($validated['gender'])) {
             $athletes->where('gender', $validated['gender']);
+        }
+
+        if (isset($validated['tournament_id'])) {
+            $athletes->inTournament($validated['tournament_id'], ($validated['discipline_id'] ?? null), ($validated['weight_category_id'] ?? null));
         }
 
         if ($validated['paginate'] ?? false) {

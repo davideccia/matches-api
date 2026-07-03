@@ -18,7 +18,6 @@ class WeightCategoryObserver
     {
         abort_if($weightCategory->registrations()->exists(), 409, __('errors.weight_category_has_registrations'));
         abort_if($weightCategory->matchRecords()->exists(), 409, __('errors.weight_category_has_match_records'));
-        abort_if($weightCategory->defaultAthletes()->exists(), 409, __('errors.weight_category_has_athletes'));
     }
 
     public function deleted(WeightCategory $weightCategory): void {}

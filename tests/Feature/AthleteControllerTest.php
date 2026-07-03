@@ -257,24 +257,6 @@ class AthleteControllerTest extends TestCase
             ->assertJsonValidationErrors(['gender']);
     }
 
-    public function test_store_validates_nonexistent_default_relations(): void
-    {
-        $this->authenticate();
-
-        $payload = [
-            'first_name' => 'Mario',
-            'last_name' => 'Verdi',
-            'birth_date' => '1990-01-01',
-            'gender' => AthleteGenderEnum::MALE->value,
-            'tax_number' => 'ABCDEF12G34H567I',
-            'default_weight_category_id' => '00000000-0000-0000-0000-000000000000',
-            'default_discipline_id' => '00000000-0000-0000-0000-000000000000',
-        ];
-
-        $this->postJson('/api/admin/athletes', $payload)
-            ->assertJsonValidationErrors(['default_weight_category_id', 'default_discipline_id']);
-    }
-
     public function test_store_duplicate_tax_number_throws_db_unique_violation(): void
     {
         $this->authenticate();

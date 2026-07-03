@@ -40,11 +40,6 @@ class Discipline extends Model
         return $this->hasMany(MatchRecord::class);
     }
 
-    public function defaultAthletes(): HasMany
-    {
-        return $this->hasMany(Athlete::class, 'default_discipline_id');
-    }
-
     #[Scope]
     public function search(Builder $builder, string $search): Builder
     {

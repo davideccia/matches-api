@@ -29,6 +29,9 @@ class AthleteIndexRequest extends FormRequest
             'discipline_id' => ['nullable', Rule::exists('disciplines', 'id')],
             'weight_category_id' => ['nullable', Rule::exists('weight_categories', 'id')],
             'gender' => ['nullable', Rule::enum(AthleteGenderEnum::class)],
+            'is_adult' => ['nullable', 'boolean'],
+            'min_match_records_count' => ['nullable', 'integer', 'min:0'],
+            'max_match_records_count' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

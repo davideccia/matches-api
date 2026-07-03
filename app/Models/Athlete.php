@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Spatie\MediaLibrary\HasMedia;
@@ -36,13 +35,12 @@ class Athlete extends Model implements HasMedia
         'gender',
         'tax_number',
         'team_name',
-        'default_weight_category_id',
-        'default_discipline_id',
         'generic_match_records_count',
         'registered_match_records_count',
     ];
 
     protected $appends = [
+        'age',
         'is_adult',
         'match_records_count',
     ];
@@ -52,8 +50,6 @@ class Athlete extends Model implements HasMedia
         return [
             'birth_date' => 'date',
             'gender' => AthleteGenderEnum::class,
-            'default_weight_category_id' => 'string',
-            'default_discipline_id' => 'string',
             'generic_match_records_count' => 'integer',
             'registered_match_records_count' => 'integer',
         ];
@@ -62,7 +58,14 @@ class Athlete extends Model implements HasMedia
     protected function isAdult(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->birth_date?->age >= 18,
+            get: fn () => $this->birth_date?->copy()->age >= 18,
+        );
+    }
+
+    protected function age(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->birth_date?->copy()->age,
         );
     }
 
@@ -84,16 +87,6 @@ class Athlete extends Model implements HasMedia
             ->count();
 
         $this->saveQuietly();
-    }
-
-    public function defaultWeightCategory(): BelongsTo
-    {
-        return $this->belongsTo(WeightCategory::class, 'default_weight_category_id');
-    }
-
-    public function defaultDiscipline(): BelongsTo
-    {
-        return $this->belongsTo(Discipline::class, 'default_discipline_id');
     }
 
     public function registrations(): HasMany
@@ -132,6 +125,28 @@ class Athlete extends Model implements HasMedia
         return $builder->where(fn (Builder $q) => $q
             ->whereLike('full_name', "%{$search}%")
         );
+    }
+
+    #[Scope]
+    public function adult(Builder $builder, bool $isAdult): Builder
+    {
+        $cutoffDate = now()->subYears(18)->toDateString();
+
+        return $isAdult
+            ? $builder->whereDate('birth_date', '<=', $cutoffDate)
+            : $builder->whereDate('birth_date', '>', $cutoffDate);
+    }
+
+    #[Scope]
+    public function minMatchRecordsCount(Builder $builder, int $minMatchRecordsCount): Builder
+    {
+        return $builder->whereRaw('(COALESCE(generic_match_records_count, 0) + COALESCE(registered_match_records_count, 0)) >= ?', [$minMatchRecordsCount]);
+    }
+
+    #[Scope]
+    public function maxMatchRecordsCount(Builder $builder, int $maxMatchRecordsCount): Builder
+    {
+        return $builder->whereRaw('(COALESCE(generic_match_records_count, 0) + COALESCE(registered_match_records_count, 0)) <= ?', [$maxMatchRecordsCount]);
     }
 
     #[Scope]

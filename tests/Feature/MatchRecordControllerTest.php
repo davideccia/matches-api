@@ -470,13 +470,13 @@ class MatchRecordControllerTest extends TestCase
             'status' => MatchRecordStatusEnum::COMPLETED->value,
             'end_method' => MatchRecordEndMethodEnum::VICTORY_TKO->value,
             'end_round' => '2',
-            'judges_points' => [[10, 9]],
+            'judges_points' => [['round' => 1, 'judge1_red' => 10, 'judge1_blue' => 9]],
         ]))->assertOk()
             ->assertJsonPath('data.winner_id', $winner->id)
             ->assertJsonPath('data.status', MatchRecordStatusEnum::COMPLETED->value)
             ->assertJsonPath('data.end_method', MatchRecordEndMethodEnum::VICTORY_TKO->value)
             ->assertJsonPath('data.end_round', '2')
-            ->assertJsonPath('data.judges_points', [[10, 9]]);
+            ->assertJsonPath('data.judges_points', [['round' => 1, 'judge1_red' => 10, 'judge1_blue' => 9]]);
 
         $this->assertDatabaseHas('match_records', [
             'id' => $record->id,

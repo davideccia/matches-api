@@ -314,7 +314,8 @@ class PublicRegistrationFormControllerTest extends TestCase
 
     public function test_store_registration_rejects_duplicate_registration(): void
     {
-        $existing = Registration::factory()->create();
+        $tournament = Tournament::factory()->create(['status' => TournamentStatusEnum::REGISTRATIONS_OPENED]);
+        $existing = Registration::factory()->create(['tournament_id' => $tournament->id]);
 
         $payload = [
             'athlete_id' => $existing->athlete_id,

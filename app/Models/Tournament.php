@@ -47,7 +47,7 @@ class Tournament extends Model implements HasMedia
 
     public function registrations(): HasMany
     {
-        return $this->hasMany(Registration::class);
+        return $this->hasMany(Registration::class)->orderByDesc('created_at')->orderBy('id');
     }
 
     public function matchRecords(): HasMany

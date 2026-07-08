@@ -16,8 +16,7 @@ class TournamentRegistrationController extends Controller
     {
         $validated = $request->validated();
 
-        $registrations = Registration::with($validated['with'] ?? [])
-            ->where('tournament_id', $tournament->id);
+        $registrations = $tournament->registrations()->with($validated['with'] ?? []);
 
         if (isset($validated['search'])) {
             $registrations->search($validated['search']);

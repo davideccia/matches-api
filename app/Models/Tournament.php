@@ -52,7 +52,7 @@ class Tournament extends Model implements HasMedia
 
     public function matchRecords(): HasMany
     {
-        return $this->hasMany(MatchRecord::class)->orderBy('sort');
+        return $this->hasMany(MatchRecord::class)->orderBy('sort')->orderBy('id');
     }
 
     public function coverMedia(): MorphOne

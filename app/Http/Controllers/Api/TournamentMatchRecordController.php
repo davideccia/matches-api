@@ -23,7 +23,7 @@ class TournamentMatchRecordController extends Controller
     {
         $validated = $request->validated();
 
-        $matchRecords = $tournament->matchRecords();
+        $matchRecords = $tournament->matchRecords()->with($validated['with'] ?? []);
 
         if (isset($validated['search'])) {
             $matchRecords->search($validated['search']);

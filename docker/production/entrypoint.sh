@@ -3,6 +3,11 @@ set -e
 
 cd /var/www
 
+# Bind-mounted storage starts empty and root-owned, unlike a named volume which
+# inherits the image content. Recreate the tree and fix ownership on every boot.
+mkdir -p storage/app/public storage/framework/{cache/data,sessions,views} storage/logs
+chown -R www-data:www-data storage bootstrap/cache
+
 gosu www-data php artisan optimize
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then

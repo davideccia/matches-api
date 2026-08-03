@@ -21,6 +21,8 @@ docker/mariadb
 docker/mysql
 docker/pgsql
 compose.yaml
+compose.production.yml
+data
 .env
 .env.*
 !.env.example

@@ -56,7 +56,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libmagickwand-6.q16-6 \
         libgd3 \
         libexif12 \
-        nginx \
         supervisor \
         gosu \
         curl \
@@ -68,7 +67,14 @@ COPY --from=builder /usr/local/bin/docker-php-ext-* /usr/local/bin/
 
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-COPY docker/production/nginx.conf /etc/nginx/sites-available/default
+COPY --from=caddy:2-alpine /usr/bin/caddy /usr/bin/caddy
+
+# Caddy stores ACME certificates and keys under $XDG_DATA_HOME — mount /data as a
+# volume, otherwise every container restart requests a fresh certificate.
+ENV XDG_DATA_HOME=/data \
+    XDG_CONFIG_HOME=/config
+
+COPY docker/production/Caddyfile /etc/caddy/Caddyfile
 COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
 COPY docker/production/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -81,7 +87,9 @@ WORKDIR /var/www
 
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-EXPOSE 80 8080
+VOLUME ["/data"]
+
+EXPOSE 80 443 443/udp
 
 # Runtime secrets and config must be injected via environment variables at deploy time,
 # because .env.example is baked into the image as a default .env during the build stage.

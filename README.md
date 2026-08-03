@@ -39,6 +39,8 @@ as bouts change.
   winner.
 - **Automatic card ordering** — match records keep a contiguous `sort` index per tournament; insert/move/delete reorders
   the card transactionally.
+- **Matchmaking** — generate a whole fight card from a tournament's registrations, pairing by discipline, weight
+  category, and gender, and surfacing unpairable registrations as `matchmaking_issues`.
 - **Real-time broadcasting** — every match-record change broadcasts over a public WebSocket channel, ready for live
   scoreboards.
 - **Public registration form API** — unauthenticated endpoints for athlete self-lookup, self-registration, and PDF
@@ -54,10 +56,12 @@ as bouts change.
 | Framework       | Laravel 13 (PHP 8.3+)                         |
 | Auth            | Laravel Sanctum 4 (API tokens)                |
 | WebSockets      | Laravel Reverb                                |
-| Queues / jobs   | Laravel Horizon (Redis in production)         |
-| Database        | SQLite (local), PostgreSQL-compatible queries |
+| Queues / jobs   | Laravel Horizon on Redis                      |
+| Database        | PostgreSQL 17                                 |
+| Cache           | Redis                                         |
 | Files           | spatie/laravel-medialibrary (+ S3)            |
 | PDF             | spatie/laravel-pdf (+ dompdf)                 |
+| Mail            | Mailpit (local), SMTP (production)            |
 | Dev environment | Laravel Sail (Docker)                         |
 | Testing         | PHPUnit 12                                    |
 
@@ -78,7 +82,7 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# Start the Sail dev stack (PHP, database, Redis, Reverb)
+# Start the Sail dev stack (PHP, PostgreSQL, Redis, Reverb, Mailpit)
 vendor/bin/sail up -d
 
 # Build the schema and load development data
@@ -147,8 +151,17 @@ Standard CRUD unless noted.
 | Match records              | `/api/admin/match_records`                      |                                                            |
 | Tournament → registrations | `/api/admin/tournaments/{id}/registrations`     | `index`, `store`                                           |
 | Tournament → match records | `/api/admin/tournaments/{id}/match_records`     | `index`, `store`                                           |
+| Generate fight card        | `/api/admin/tournaments/{id}/match_records/generate` | `POST` — run matchmaking over the registrations        |
 | Registration PDF           | `/api/admin/registrations/{id}/pdf`             | Download                                                   |
 | Fight card PDF             | `/api/admin/tournaments/{id}/match_records/pdf` | `?type=simple\|detailed`                                   |
+| Temporary uploads          | `/api/admin/temporary_uploads`                  | `POST` — stage a file for later attachment                 |
+
+Each CRUD resource (users, athletes, disciplines, weight categories, tournaments, registrations, match records) also
+exposes a bulk delete:
+
+```
+DELETE /api/admin/{resource}/bulk    {"ids": ["<uuid>", "<uuid>"]}
+```
 
 ### Public endpoints
 
@@ -236,8 +249,8 @@ Echo.channel(`tournaments.${tournamentId}.match_records`)
 ```
 
 > [!NOTE]
-> Broadcasting is queued — to see live events locally, run a queue worker and the Reverb server (see below), and set
-`BROADCAST_CONNECTION=reverb`.
+> Broadcasting is queued. `BROADCAST_CONNECTION=reverb` is already the default — to see live events locally you just
+> need a queue worker and the Reverb server running (`composer run queue-ws`, see below).
 
 ## Development
 
@@ -265,10 +278,22 @@ vendor/bin/sail composer run queue-ws
 > Use `vendor/bin/sail artisan tinker --execute '...'` (single quotes) for quick in-context PHP. Double-quote PHP
 > strings inside: `'User::where("superadmin", true)->count();'`
 
+## Deployment
+
+Production runs from `compose.production.yml`: one application image built from `docker/production/Dockerfile`, plus
+PostgreSQL 17 and Redis 7. Inside the app container, supervisord keeps Caddy, php-fpm, Horizon, Reverb, and the
+scheduler alive; the entrypoint fixes storage permissions, runs `artisan optimize`, and applies migrations on boot.
+
+```bash
+cp .env.production.example .env.production   # then fill in the secrets
+docker compose -f compose.production.yml up -d --build
+```
+
+> [!TIP]
+> Set `RUN_MIGRATIONS=false` to skip automatic migrations when you'd rather run them as a separate deploy step.
+
 ## Documentation
 
-- [`docs/en/`](docs/en/00-index.md) — full technical documentation (English)
-- [`docs/it/`](docs/it/00-index.md) — documentazione tecnica completa (Italiano)
 - [`DB.md`](DB.md) — DBML schema
 - [`DB_SEED.md`](DB_SEED.md) — development seed reference
 - [`CLAUDE.md`](CLAUDE.md) — architecture invariants and conventions

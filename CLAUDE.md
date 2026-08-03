@@ -70,6 +70,20 @@ Each model has an observer (`app/Observers/`) wired via `#[ObservedBy]` attribut
 - `ReorderMatchRecordsAction` — handles insert/update/delete of the `sort` column across a tournament's match records within DB transactions.
 - `StoreTemporaryUploadAction` — backs `POST temporary_uploads` (chunked/temporary file uploads later attached to a model's media).
 
+## Matchmaking
+
+`app/Services/MatchmakingService.php` is the only service class; it is constructed with a `Tournament` and drives two `Tournament` methods:
+- `runMatchmaking()` — builds the fight card from the tournament's registrations (pairing by discipline/weight category/gender).
+- `matchmaking_issues` — populated from `getMatchmakingIssues()` as a computed attribute, surfacing unpairable registrations.
+
+Exposed over HTTP by `POST tournaments/{tournament}/match_records/generate`.
+
+## Authorization
+
+Only the `users` resource is policy-guarded: each `UserRequest::authorize()` calls the corresponding `UserPolicy` ability (`create`/`update`/`delete`/`bulkDestroy` gate on `$user->superadmin`). All other resources return `true` from `authorize()` and rely on `auth:sanctum` alone. An `ability` middleware alias (Sanctum's `CheckForAnyAbility`) is registered in `bootstrap/app.php` but not yet used by any route.
+
+Horizon's dashboard is behind `App\Http\Middleware\HorizonBasicAuth` (see `config/horizon.php`); the `viewHorizon` gate itself is open.
+
 ## PDF Generation
 
 PDFs are rendered with `spatie/laravel-pdf` (DOMPDF driver) from Blade views in `resources/views/pdf/`:
@@ -86,9 +100,23 @@ Uses `spatie/laravel-medialibrary` (S3-compatible storage via `league/flysystem-
 
 Password reset is API-driven: `auth/forgot_password` + `auth/reset_password` send `ResetPasswordNotification` (`app/Notifications/`), rendered from `resources/views/emails/auth/reset-password.blade.php`.
 
-## Testing Status
+API exceptions are always rendered as JSON for `api/*` (`withExceptions` in `bootstrap/app.php`), and `trustProxies(at: '*')` is set.
 
-Test coverage is currently bootstrap-only (`tests/Feature/ExampleTest.php`, `tests/Unit/ExampleTest.php`). New domain logic should ship with feature tests using model factories — do not assume existing coverage protects a change.
+## Scheduled Work
+
+All scheduling lives in `routes/console.php`: `CleanupTemporaryUploadsCommand` (`app/Console/Commands/`, prunes orphaned temporary uploads) every six hours, `horizon:snapshot` every five minutes, and `spatie/laravel-backup` (`backup:clean`/`run`/`monitor`) nightly — the backup entries are registered only when the destination disk is actually configured, so environments without S3 credentials skip them instead of failing.
+
+## Production Deploy
+
+`compose.production.yml` runs a single `matches-api` image (`docker/production/Dockerfile`) alongside `postgres:17-alpine` and `redis:7-alpine`. Inside the app container, supervisord (`docker/production/supervisord.conf`) drives php-fpm, Caddy (`Caddyfile`), Horizon, Reverb and the scheduler; `entrypoint.sh` runs migrations/caching on boot. Env keys are documented in `.env.production.example`. Local dev is Sail and unaffected by these files.
+
+## Testing
+
+There is one feature test per controller in `tests/Feature/` (`{Controller}Test.php`), covering every resource plus auth, dashboard, nested tournament routes, and both public controllers. Unit tests are bootstrap-only.
+
+`Tests\TestCase` (`tests/TestCase.php`) provides the shared setup: `LazilyRefreshDatabase`, response cache forced off (so public-endpoint assertions are deterministic), and `$this->authenticate(?User $user)` which `Sanctum::actingAs()` a factory user. Admin tests call `authenticate()` first; public tests don't.
+
+Tests build state from factories (`database/factories/`), assert via `getJson`/`postJson` against the full `/api/admin/...` or `/api/public/...` path, and group cases with `// ---- index ----` style comment banners per controller action.
 
 ## Key Commands
 

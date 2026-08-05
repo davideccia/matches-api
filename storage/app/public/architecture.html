@@ -1,2163 +1,545 @@
 <!doctype html>
-<title>Architettura · matches-api</title>
-
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>matches-api — Architecture Map</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --bg:#0c1016; --bg-2:#11161f; --panel:#121822; --line:#243043;
+    --fg:#e6edf7; --fg-dim:#8fa0b8; --fg-faint:#63748d;
+    --accent:#5ec8ff; --accent-2:#ffb454;
+    --entry:#3d7dd8; --domain:#7a5cd6; --data:#2f9e6e; --async:#c9803a; --integration:#c2557d; --infra:#4b5a71;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+  #app{display:flex; height:100vh; width:100%}
 
-:root {
-  --ground:   #111118;
-  --ground-2: #1A1A24;
-  --ground-3: #23232F;
-  --text:     #EAE6DE;
-  --mid:      #8A8A9E;
-  --border:   #2A2A3A;
-  --accent:   #D44444;
-  --mono:     'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, 'Courier New', monospace;
-  --serif:    Georgia, 'Times New Roman', serif;
-  --sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+  /* ---------- diagram ---------- */
+  #stage{position:relative; flex:1 1 auto; min-width:0; overflow:hidden; background:
+      radial-gradient(1200px 700px at 30% -10%, #131b27 0%, var(--bg) 60%)}
+  svg#graph{width:100%; height:100%; display:block; touch-action:none; cursor:grab}
+  svg#graph.grabbing{cursor:grabbing}
 
-  --l-entry:       #D44444;
-  --l-domain:      #E07838;
-  --l-data:        #4AAD78;
-  --l-async:       #4A8CC4;
-  --l-integration: #9B7BD4;
-  --l-infra:       #72727E;
-}
+  .band-label{fill:var(--fg-faint); font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase}
+  .band-rule{stroke:var(--line); stroke-width:1; stroke-dasharray:2 6}
 
-html, body { height: 100%; background: var(--ground); }
-body {
-  font-family: var(--sans);
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+  .edge{fill:none; stroke:#33445e; stroke-width:1.1; opacity:.55}
+  .edge.hot{stroke:var(--accent); stroke-width:2; opacity:1}
+  .edge.on{stroke:var(--accent-2); stroke-width:2.2; opacity:1}
+  .edge.dim{opacity:.07}
+  .edge-hit{fill:none; stroke:transparent; stroke-width:12; cursor:pointer}
+  .edge-label{fill:var(--accent); font-size:11px; paint-order:stroke; stroke:#0c1016; stroke-width:4px; stroke-linejoin:round}
 
-/* ── Header ─────────────────────────────────────────── */
-.top {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  padding: 1.1rem 1.4rem 0.9rem;
-  border-bottom: 1px solid var(--border);
-  flex: none;
-}
-.eyebrow {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--mid);
-  margin-bottom: 0.3rem;
-}
-h1 { font-family: var(--serif); font-size: 1.55rem; font-weight: normal; line-height: 1.1; }
-h1 em { font-style: normal; color: var(--accent); }
+  .node rect{stroke-width:1.2; rx:8; ry:8}
+  .node text{font-size:12.5px; font-weight:500; dominant-baseline:middle; pointer-events:none}
+  .node{cursor:pointer}
+  .node.dim{opacity:.13}
+  .node.on rect{stroke:var(--accent-2); stroke-width:2.4}
+  .node.hot rect{stroke:var(--accent); stroke-width:2.2}
 
-.legend { display: flex; flex-wrap: wrap; gap: 0.55rem 1rem; }
-.legend span {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--mid);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.legend i { width: 9px; height: 9px; border-radius: 2px; display: block; }
+  .flowline{fill:none; stroke:var(--accent-2); stroke-width:2.4; stroke-dasharray:7 6; opacity:.9}
+  .badge circle{fill:var(--accent-2); stroke:#0c1016; stroke-width:1.5}
+  .badge text{fill:#20140a; font-size:11px; font-weight:700; text-anchor:middle; dominant-baseline:central}
 
-/* ── Shell ──────────────────────────────────────────── */
-.shell { flex: 1; display: flex; min-height: 0; }
+  #tooltip{
+    position:absolute; z-index:20; max-width:330px; pointer-events:none; opacity:0;
+    transition:opacity .12s ease; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px; box-shadow:0 12px 34px rgba(0,0,0,.55);
+    overflow-wrap:anywhere;
+  }
+  #tooltip.show{opacity:1}
+  #tooltip .tt-title{font-weight:650; margin-bottom:3px}
+  #tooltip .tt-meta{font-size:11.5px; color:var(--fg-dim); margin-bottom:6px}
+  #tooltip .tt-path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; color:var(--accent); margin-bottom:6px}
+  #tooltip .tt-desc{font-size:12.5px; color:var(--fg-dim)}
 
-/* ── Diagram ────────────────────────────────────────── */
-.stage { position: relative; flex: 1; min-width: 0; overflow: hidden; }
-#svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
-#svg.dragging { cursor: grabbing; }
+  #controls{position:absolute; left:14px; top:14px; display:flex; gap:8px; flex-wrap:wrap; z-index:10}
+  #controls button{
+    background:var(--panel); color:var(--fg-dim); border:1px solid var(--line); border-radius:8px;
+    padding:6px 11px; font-size:12px; cursor:pointer;
+  }
+  #controls button:hover{color:var(--fg); border-color:#3b4d69}
+  #hint{position:absolute; right:14px; bottom:12px; font-size:11.5px; color:var(--fg-faint); z-index:10}
 
-.edge { fill: none; stroke: #33334A; stroke-width: 1.1; }
-.edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
-.edge.incident { stroke: #6E6E90; stroke-width: 1.7; }
-.edge.flow { stroke: #EAE6DE; stroke-width: 2; }
-.dim { opacity: 0.09; }
+  /* ---------- panel ---------- */
+  #panel{
+    flex:0 0 340px; background:var(--bg-2); border-left:1px solid var(--line);
+    display:flex; flex-direction:column; min-height:0; overflow-wrap:anywhere;
+  }
+  #panel header{padding:18px 18px 12px; border-bottom:1px solid var(--line)}
+  #panel h1{margin:0; font-size:16px; letter-spacing:.01em}
+  #panel .sub{margin-top:4px; font-size:12px; color:var(--fg-dim)}
+  #panel .scroll{overflow-y:auto; padding:14px 18px 28px; min-height:0}
+  .sect{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--fg-faint); margin:6px 0 10px}
 
-.node rect {
-  fill: var(--ground-2);
-  stroke: var(--border);
-  stroke-width: 1;
-  rx: 3;
-}
-.node.hot rect { fill: var(--ground-3); }
-.node .accentbar { stroke: none; rx: 0; }
-.node text {
-  font-family: var(--mono);
-  font-size: 11px;
-  fill: var(--text);
-  dominant-baseline: middle;
-  pointer-events: none;
-}
-.node .sub {
-  font-size: 8.5px;
-  fill: var(--mid);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.node { cursor: pointer; }
-.node.flowlit rect { stroke: var(--text); stroke-width: 1.6; }
+  .legend{display:flex; flex-wrap:wrap; gap:6px 12px; margin-bottom:18px}
+  .legend span{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--fg-dim)}
+  .legend i{width:10px; height:10px; border-radius:3px; display:inline-block}
 
-.flowseq { fill: none; stroke: #EAE6DE; stroke-width: 2.2; stroke-dasharray: 7 5; }
-.stepbadge circle { fill: #EAE6DE; stroke: var(--ground); stroke-width: 1.5; }
-.stepbadge text { font-family: var(--mono); font-size: 9.5px; fill: #111118; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+  .flow{
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:9px;
+    cursor:pointer; background:#0f141d;
+  }
+  .flow:hover{border-color:#3b4d69}
+  .flow.active{border-color:var(--accent-2); background:#191408}
+  .flow .fname{font-size:13.5px; font-weight:600}
+  .flow .fdesc{font-size:12px; color:var(--fg-dim); margin-top:4px}
 
-.edgelabel {
-  font-family: var(--mono);
-  font-size: 10px;
-  fill: var(--text);
-  text-anchor: middle;
-  pointer-events: none;
-}
-.edgelabel-bg { fill: var(--ground); stroke: var(--border); rx: 2; }
+  ol.steps{list-style:none; margin:10px 0 4px; padding:0; counter-reset:s}
+  ol.steps li{
+    counter-increment:s; display:flex; gap:9px; align-items:flex-start;
+    padding:5px 6px; border-radius:7px; cursor:pointer; font-size:12.5px;
+  }
+  ol.steps li:hover{background:#1a2130}
+  ol.steps li::before{
+    content:counter(s); flex:0 0 18px; height:18px; margin-top:1px; border-radius:50%;
+    background:var(--accent-2); color:#20140a; font-size:10.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  ol.steps .sp{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10.5px; color:var(--fg-faint); display:block}
 
-/* ── Controls ───────────────────────────────────────── */
-.controls {
-  position: absolute;
-  left: 0.9rem;
-  bottom: 0.9rem;
-  display: flex;
-  gap: 0.4rem;
-}
-.controls button {
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--mid);
-  background: var(--ground-2);
-  border: 1px solid var(--border);
-  padding: 0.35rem 0.6rem;
-  cursor: pointer;
-}
-.controls button:hover { color: var(--text); border-color: var(--mid); }
-
-.hint {
-  position: absolute;
-  right: 0.9rem;
-  bottom: 0.9rem;
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.06em;
-  color: var(--mid);
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-/* ── Tooltip ────────────────────────────────────────── */
-#tip {
-  position: fixed;
-  z-index: 20;
-  max-width: 330px;
-  background: var(--ground-3);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--mid);
-  padding: 0.65rem 0.8rem;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.1s;
-  box-shadow: 0 8px 26px rgba(0,0,0,0.55);
-}
-#tip.on { opacity: 1; }
-#tip .t-name { font-family: var(--serif); font-size: 0.98rem; line-height: 1.2; }
-#tip .t-meta {
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--mid);
-  margin: 0.2rem 0 0.45rem;
-}
-#tip .t-path {
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  color: var(--mid);
-  word-break: break-all;
-  margin-bottom: 0.4rem;
-}
-#tip .t-desc { font-size: 0.8rem; line-height: 1.55; }
-
-/* ── Panel ──────────────────────────────────────────── */
-.panel {
-  flex: none;
-  width: 330px;
-  border-left: 1px solid var(--border);
-  background: var(--ground-2);
-  overflow-y: auto;
-  padding: 1rem 1.1rem 2.5rem;
-}
-.panel-label {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--mid);
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0.9rem;
-}
-.flow {
-  border: 1px solid var(--border);
-  background: var(--ground);
-  padding: 0.7rem 0.8rem;
-  margin-bottom: 0.55rem;
-  cursor: pointer;
-}
-.flow:hover { border-color: var(--mid); }
-.flow.active { border-color: var(--accent); border-left-width: 3px; }
-.flow-name { font-family: var(--serif); font-size: 1rem; line-height: 1.2; }
-.flow-desc { font-size: 0.78rem; color: var(--mid); line-height: 1.5; margin-top: 0.3rem; overflow-wrap: anywhere; }
-
-.steps { list-style: none; margin: 0.7rem 0 0.2rem; }
-.steps li {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 0.55rem;
-  align-items: baseline;
-  padding: 0.3rem 0;
-  border-top: 1px solid var(--border);
-  cursor: pointer;
-}
-.steps li:hover .s-name { color: #fff; text-decoration: underline; }
-.s-num { font-family: var(--mono); font-size: 0.62rem; color: var(--mid); }
-.s-name { font-family: var(--mono); font-size: 0.73rem; line-height: 1.4; }
-.s-layer {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  display: block;
-  color: var(--mid);
-}
-.clearflow {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--mid);
-  background: none;
-  border: 1px solid var(--border);
-  padding: 0.3rem 0.55rem;
-  cursor: pointer;
-  margin-bottom: 0.9rem;
-}
-.clearflow:hover { color: var(--text); border-color: var(--mid); }
-
-.panel-foot {
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  color: var(--mid);
-  line-height: 1.7;
-  margin-top: 1.4rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--border);
-}
-
-/* ── Responsive ─────────────────────────────────────── */
-@media (max-width: 900px) {
-  body { overflow: auto; }
-  .shell { flex-direction: column; }
-  .stage { height: 62vh; flex: none; }
-  .panel { width: auto; border-left: none; border-top: 1px solid var(--border); overflow: visible; }
-  .legend { display: none; }
-}
+  @media (max-width:900px){
+    body{overflow:auto}
+    #app{flex-direction:column; height:auto; min-height:100vh}
+    #stage{height:62vh; flex:none}
+    #panel{flex:none; width:100%; border-left:0; border-top:1px solid var(--line)}
+    #panel .scroll{overflow:visible}
+  }
 </style>
-
-<div class="top">
-  <div>
-    <div class="eyebrow">matches-api · laravel 13 rest api · mappa architetturale</div>
-    <h1>Architettura <em>matches-api</em></h1>
-  </div>
-  <div class="legend" id="legend"></div>
-</div>
-
-<div class="shell">
-  <div class="stage">
-    <svg id="svg">
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#4A4A64"></path>
-        </marker>
-        <marker id="arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#EAE6DE"></path>
-        </marker>
-      </defs>
-      <g id="viewport">
-        <g id="edges"></g>
-        <g id="flowlayer"></g>
-        <g id="nodes"></g>
-        <g id="labels"></g>
-      </g>
-    </svg>
-    <div class="controls">
-      <button id="zin">+</button>
-      <button id="zout">−</button>
-      <button id="fit">fit</button>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <svg id="graph"><g id="root">
+      <g id="bands"></g><g id="edges"></g><g id="overlay"></g><g id="nodes"></g><g id="edgelabels"></g>
+    </g></svg>
+    <div id="controls">
+      <button id="btn-fit">Fit graph</button>
+      <button id="btn-clear">Clear flow</button>
     </div>
-    <div class="hint">scroll = zoom · drag = pan · hover = dettaglio</div>
+    <div id="hint">Scroll to zoom · drag to pan · hover a node for details</div>
+    <div id="tooltip"></div>
   </div>
 
-  <aside class="panel">
-    <div class="panel-label">Flussi end-to-end</div>
-    <button class="clearflow" id="clear">azzera selezione</button>
-    <div id="flows"></div>
-    <div class="panel-foot" id="foot"></div>
+  <aside id="panel">
+    <header>
+      <h1>matches-api — Architecture Map</h1>
+      <div class="sub" id="counts"></div>
+    </header>
+    <div class="scroll">
+      <div class="sect">Layers</div>
+      <div class="legend" id="legend"></div>
+      <div class="sect">Flows</div>
+      <div id="flows"></div>
+    </div>
   </aside>
 </div>
 
-<div id="tip"></div>
-
 <script>
-const GRAPH = {
- "generated_from": "matches-api (Laravel 13 REST API)",
- "nodes": [
-  {
-   "id": "bootstrap-app",
-   "label": "bootstrap/app.php",
-   "type": "infra",
-   "layer": "infra",
-   "path": "bootstrap/app.php",
-   "description": "Application bootstrap: mounts the admin/public route files under their prefixes, registers middleware, aliases and the JSON exception renderer."
-  },
-  {
-   "id": "routes-admin",
-   "label": "routes/api.admin.php",
-   "type": "other",
-   "layer": "entry",
-   "path": "routes/api.admin.php",
-   "description": "Authenticated admin surface mounted at /api/admin: auth endpoints, dashboard, every apiResource, nested tournament routes and bulk deletes."
-  },
-  {
-   "id": "routes-public",
-   "label": "routes/api.public.php",
-   "type": "other",
-   "layer": "entry",
-   "path": "routes/api.public.php",
-   "description": "Unauthenticated surface mounted at /api/public with a global throttle:10,1: registration form endpoints and public tournament reads."
-  },
-  {
-   "id": "routes-web",
-   "label": "routes/web.php",
-   "type": "other",
-   "layer": "entry",
-   "path": "routes/web.php",
-   "description": "Minimal web surface: the welcome view and static redirects to documents published under storage/app/public."
-  },
-  {
-   "id": "middleware-set-locale",
-   "label": "SetLocale",
-   "type": "middleware",
-   "layer": "entry",
-   "path": "app/Http/Middleware/SetLocale.php",
-   "description": "Prepended to the api group; resolves the request locale from Accept-Language against the supported en/it list."
-  },
-  {
-   "id": "middleware-horizon-auth",
-   "label": "HorizonBasicAuth",
-   "type": "middleware",
-   "layer": "entry",
-   "path": "app/Http/Middleware/HorizonBasicAuth.php",
-   "description": "HTTP basic auth gate protecting the Horizon dashboard in non-local environments."
-  },
-  {
-   "id": "sanctum-guard",
-   "label": "auth:sanctum",
-   "type": "external",
-   "layer": "entry",
-   "path": "config/sanctum.php",
-   "description": "Laravel Sanctum personal access token guard protecting every admin route except the auth entry points."
-  },
-  {
-   "id": "controller-auth",
-   "label": "AuthController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/AuthController.php",
-   "description": "Login (issues a Sanctum token), current user, logout, and the forgot/reset password pair driven by the Password broker."
-  },
-  {
-   "id": "controller-dashboard",
-   "label": "DashboardController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/DashboardController.php",
-   "description": "Aggregates active tournaments with registration and match-record counts per status for the admin dashboard."
-  },
-  {
-   "id": "controller-user",
-   "label": "UserController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/UserController.php",
-   "description": "CRUD plus bulk delete for users, the only resource whose requests are policy-guarded."
-  },
-  {
-   "id": "controller-athlete",
-   "label": "AthleteController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/AthleteController.php",
-   "description": "CRUD, filtering and bulk delete for athletes, including photo media attachment from temporary uploads."
-  },
-  {
-   "id": "controller-tournament",
-   "label": "TournamentController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/TournamentController.php",
-   "description": "CRUD and bulk delete for tournaments, including cover media attachment from temporary uploads."
-  },
-  {
-   "id": "controller-registration",
-   "label": "RegistrationController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/RegistrationController.php",
-   "description": "CRUD, paid/arrived/weight filters, bulk delete and the single-registration PDF export."
-  },
-  {
-   "id": "controller-match-record",
-   "label": "MatchRecordController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/MatchRecordController.php",
-   "description": "CRUD and bulk delete for bouts; writes flow through the observer that keeps sort contiguous and broadcasts."
-  },
-  {
-   "id": "controller-discipline",
-   "label": "DisciplineController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/DisciplineController.php",
-   "description": "CRUD and bulk delete for the discipline reference data shared across tournaments."
-  },
-  {
-   "id": "controller-weight-category",
-   "label": "WeightCategoryController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/WeightCategoryController.php",
-   "description": "CRUD and bulk delete for the weight category reference data shared across tournaments."
-  },
-  {
-   "id": "controller-experience-tier",
-   "label": "ExperienceTierController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/ExperienceTierController.php",
-   "description": "CRUD and bulk delete for experience tiers, the match-count bands matchmaking pairs athletes within."
-  },
-  {
-   "id": "controller-tournament-registration",
-   "label": "TournamentRegistrationController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/TournamentRegistrationController.php",
-   "description": "Nested index/store for a tournament's registrations; the store request injects tournament_id from the bound model."
-  },
-  {
-   "id": "controller-tournament-match-record",
-   "label": "TournamentMatchRecordController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/TournamentMatchRecordController.php",
-   "description": "Nested index/store for a tournament's bouts plus the two custom actions: matchmaking generation and the fight-card PDF."
-  },
-  {
-   "id": "controller-tournament-experience-tier",
-   "label": "TournamentExperienceTierController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/TournamentExperienceTierController.php",
-   "description": "Nested index/store for tournament-scoped experience tiers, which override the global tiers when present."
-  },
-  {
-   "id": "controller-temporary-upload",
-   "label": "TemporaryUploadController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/TemporaryUploadController.php",
-   "description": "Accepts a file upload and returns a temporary-file handle later attached to a model's media collection."
-  },
-  {
-   "id": "controller-public-registration-form",
-   "label": "PublicRegistrationFormController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/PublicRegistrationFormController.php",
-   "description": "Unauthenticated registration flow: athlete lookup by tax_number, athlete/registration creation, reference lists and the registration PDF."
-  },
-  {
-   "id": "controller-public-tournament",
-   "label": "PublicTournamentController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/Api/PublicTournamentController.php",
-   "description": "Unauthenticated, response-cached reads of in-progress and completed tournaments and their match records."
-  },
-  {
-   "id": "controller-media",
-   "label": "MediaController",
-   "type": "controller",
-   "layer": "entry",
-   "path": "app/Http/Controllers/MediaController.php",
-   "description": "Download and delete endpoints for media models; currently not bound to any route file."
-  },
-  {
-   "id": "form-requests",
-   "label": "FormRequests",
-   "type": "other",
-   "layer": "entry",
-   "path": "app/Http/Requests/",
-   "description": "Five-to-six requests per resource (Index/Show/Store/Update/Destroy/BulkDestroy) carrying validation, the with allowlist and authorization."
-  },
-  {
-   "id": "trait-inject-with",
-   "label": "InjectWith trait",
-   "type": "other",
-   "layer": "entry",
-   "path": "app/Traits/InjectWith.php",
-   "description": "Turns the comma-separated ?with= query string into a camelCase array validated against each request's with.* allowlist."
-  },
-  {
-   "id": "api-resources",
-   "label": "API Resources",
-   "type": "other",
-   "layer": "entry",
-   "path": "app/Http/Resources/",
-   "description": "Eloquent API Resources shaping every admin JSON response, one per model plus the dashboard and temporary-file shapes."
-  },
-  {
-   "id": "public-api-resources",
-   "label": "Public API Resources",
-   "type": "other",
-   "layer": "entry",
-   "path": "app/Http/Resources/Public/",
-   "description": "Reduced-field resources used by the unauthenticated endpoints so public payloads never leak admin-only attributes."
-  },
-  {
-   "id": "service-matchmaking",
-   "label": "MatchmakingService",
-   "type": "service",
-   "layer": "domain",
-   "path": "app/Services/MatchmakingService.php",
-   "description": "Groups unpaired registrations by discipline, weight category, gender, age band and experience tier, then emits bout attributes and unpairable issues."
-  },
-  {
-   "id": "action-reorder-match-records",
-   "label": "ReorderMatchRecordsAction",
-   "type": "other",
-   "layer": "domain",
-   "path": "app/Actions/ReorderMatchRecordsAction.php",
-   "description": "Keeps the sort column contiguous per tournament across insert, move and delete, each inside a DB transaction."
-  },
-  {
-   "id": "action-store-temporary-upload",
-   "label": "StoreTemporaryUploadAction",
-   "type": "other",
-   "layer": "domain",
-   "path": "app/Actions/StoreTemporaryUploadAction.php",
-   "description": "Writes the uploaded file to the local temp disk and caches a TemporaryFile handle under a UUID for one hour."
-  },
-  {
-   "id": "support-temporary-file",
-   "label": "TemporaryFile",
-   "type": "other",
-   "layer": "domain",
-   "path": "app/Support/TemporaryFile.php",
-   "description": "Readonly value object describing a cached temporary upload and able to rehydrate it as an UploadedFile."
-  },
-  {
-   "id": "rule-temporary-file",
-   "label": "TemporaryFileRule",
-   "type": "other",
-   "layer": "domain",
-   "path": "app/Rules/TemporaryFileRule.php",
-   "description": "Validation rule asserting that a submitted temporary-file id still resolves to a live TemporaryFile in the cache."
-  },
-  {
-   "id": "policy-user",
-   "label": "UserPolicy",
-   "type": "other",
-   "layer": "domain",
-   "path": "app/Policies/UserPolicy.php",
-   "description": "Gates user create/update/delete/bulkDestroy on the acting user's superadmin flag."
-  },
-  {
-   "id": "enums",
-   "label": "Enums",
-   "type": "other",
-   "layer": "domain",
-   "path": "app/Enums/",
-   "description": "Backed string enums for tournament status, athlete gender, match status and end method, and PDF type (which maps to its Blade view)."
-  },
-  {
-   "id": "observer-match-record",
-   "label": "MatchRecordObserver",
-   "type": "observer",
-   "layer": "domain",
-   "path": "app/Observers/MatchRecordObserver.php",
-   "description": "Delegates sort maintenance to the reorder action, resyncs tournament issues and athlete counts, and broadcasts on every write."
-  },
-  {
-   "id": "observer-tournament",
-   "label": "TournamentObserver",
-   "type": "observer",
-   "layer": "domain",
-   "path": "app/Observers/TournamentObserver.php",
-   "description": "Delete guard aborting with 409 when the tournament still has registrations or match records."
-  },
-  {
-   "id": "observer-registration",
-   "label": "RegistrationObserver",
-   "type": "observer",
-   "layer": "domain",
-   "path": "app/Observers/RegistrationObserver.php",
-   "description": "Rejects duplicate registrations, blocks deletion once bouts exist, and resyncs the tournament's matchmaking issues on every write."
-  },
-  {
-   "id": "observer-athlete",
-   "label": "AthleteObserver",
-   "type": "observer",
-   "layer": "domain",
-   "path": "app/Observers/AthleteObserver.php",
-   "description": "Derives full_name, normalises tax_number, and blocks deletion while registrations or bouts reference the athlete."
-  },
-  {
-   "id": "observer-experience-tier",
-   "label": "ExperienceTierObserver",
-   "type": "observer",
-   "layer": "domain",
-   "path": "app/Observers/ExperienceTierObserver.php",
-   "description": "Prevents enabling a tier whose match-count band overlaps another enabled tier in the same scope."
-  },
-  {
-   "id": "observers-reference",
-   "label": "Reference observers",
-   "type": "observer",
-   "layer": "domain",
-   "path": "app/Observers/DisciplineObserver.php, app/Observers/WeightCategoryObserver.php, app/Observers/UserObserver.php",
-   "description": "Observers for the reference and user models, mainly delete guards and attribute normalisation."
-  },
-  {
-   "id": "model-tournament",
-   "label": "Tournament",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/Tournament.php",
-   "description": "Aggregate root owning registrations, match records and experience tiers; exposes runMatchmaking, syncMatchmakingIssues and a cover media collection."
-  },
-  {
-   "id": "model-athlete",
-   "label": "Athlete",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/Athlete.php",
-   "description": "Competitor looked up publicly by tax_number; computes age, is_adult and match_records_count and owns a photo media collection."
-  },
-  {
-   "id": "model-registration",
-   "label": "Registration",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/Registration.php",
-   "description": "Join of athlete, tournament, discipline and weight category tracking paid_at, arrived and weight_in, with duplicate and bout-existence checks."
-  },
-  {
-   "id": "model-match-record",
-   "label": "MatchRecord",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/MatchRecord.php",
-   "description": "A bout between red and blue corner with sort ordering, status, end method and a JSON judges_points array."
-  },
-  {
-   "id": "model-experience-tier",
-   "label": "ExperienceTier",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/ExperienceTier.php",
-   "description": "Named match-count band, global or tournament-scoped, used by matchmaking to keep pairings within comparable experience."
-  },
-  {
-   "id": "model-discipline",
-   "label": "Discipline",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/Discipline.php",
-   "description": "Reference data for a combat discipline including default round count and minutes per round."
-  },
-  {
-   "id": "model-weight-category",
-   "label": "WeightCategory",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/WeightCategory.php",
-   "description": "Reference data for a weight class, whose value backs the weight-in exceeded filter on registrations."
-  },
-  {
-   "id": "model-user",
-   "label": "User",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/User.php",
-   "description": "Admin account holding Sanctum tokens and the superadmin flag the user policy gates on."
-  },
-  {
-   "id": "model-media",
-   "label": "Media",
-   "type": "model",
-   "layer": "data",
-   "path": "app/Models/Media.php",
-   "description": "Overrides the medialibrary media model to append a short-lived temporary_url when the disk supports signed URLs."
-  },
-  {
-   "id": "model-scopes",
-   "label": "Model Scopes",
-   "type": "other",
-   "layer": "data",
-   "path": "app/Models/Scopes/",
-   "description": "Dedicated global scope classes applied per model via the ScopedBy attribute rather than inline query builder calls."
-  },
-  {
-   "id": "migrations",
-   "label": "Migrations",
-   "type": "other",
-   "layer": "data",
-   "path": "database/migrations/",
-   "description": "Schema definition with UUID primary and foreign keys throughout and enum columns stored as plain strings."
-  },
-  {
-   "id": "seeders-factories",
-   "label": "Seeders & Factories",
-   "type": "other",
-   "layer": "data",
-   "path": "database/seeders/, database/factories/",
-   "description": "Factories used by the feature tests and seeders that build a demo tournament dataset."
-  },
-  {
-   "id": "postgres",
-   "label": "PostgreSQL",
-   "type": "external",
-   "layer": "data",
-   "path": "config/database.php, compose.yaml",
-   "description": "Primary datastore for all domain tables, run as postgres:18-alpine locally and postgres:17-alpine in production."
-  },
-  {
-   "id": "event-match-record-changed",
-   "label": "MatchRecordChanged",
-   "type": "event",
-   "layer": "async",
-   "path": "app/Events/MatchRecordChanged.php",
-   "description": "ShouldBroadcast + ShouldDispatchAfterCommit event carrying only a refresh flag for a given tournament."
-  },
-  {
-   "id": "broadcast-channel",
-   "label": "tournaments.{id}.match_records",
-   "type": "event",
-   "layer": "async",
-   "path": "routes/channels.php",
-   "description": "Public broadcast channel per tournament that clients subscribe to for live fight-card refreshes."
-  },
-  {
-   "id": "notification-reset-password",
-   "label": "ResetPasswordNotification",
-   "type": "job",
-   "layer": "async",
-   "path": "app/Notifications/ResetPasswordNotification.php, resources/views/emails/auth/reset-password.blade.php",
-   "description": "Queued mail notification carrying the API-driven password reset link rendered from its Blade template."
-  },
-  {
-   "id": "schedule",
-   "label": "Scheduler",
-   "type": "job",
-   "layer": "async",
-   "path": "routes/console.php",
-   "description": "Schedules temporary-upload cleanup every six hours, horizon:snapshot every five minutes and the nightly backup trio when a destination disk is configured."
-  },
-  {
-   "id": "command-cleanup-temporary-uploads",
-   "label": "CleanupTemporaryUploadsCommand",
-   "type": "job",
-   "layer": "async",
-   "path": "app/Console/Commands/CleanupTemporaryUploadsCommand.php",
-   "description": "Prunes temp/ files on the local disk older than the given age so orphaned uploads do not accumulate."
-  },
-  {
-   "id": "horizon",
-   "label": "Laravel Horizon",
-   "type": "infra",
-   "layer": "async",
-   "path": "config/horizon.php",
-   "description": "Supervises the Redis queue workers that drain broadcasts, notifications and any queued work."
-  },
-  {
-   "id": "redis",
-   "label": "Redis",
-   "type": "external",
-   "layer": "async",
-   "path": "config/cache.php, config/queue.php, compose.yaml",
-   "description": "Backs cache (including temporary-upload handles), sessions and the Horizon queue connection."
-  },
-  {
-   "id": "reverb",
-   "label": "Laravel Reverb",
-   "type": "external",
-   "layer": "integration",
-   "path": "config/reverb.php, docker/production/supervisord.conf",
-   "description": "WebSocket server that delivers broadcast payloads to subscribed dashboard clients."
-  },
-  {
-   "id": "spatie-pdf",
-   "label": "spatie/laravel-pdf",
-   "type": "external",
-   "layer": "integration",
-   "path": "config/pdf.php",
-   "description": "PDF rendering pipeline (DOMPDF driver) invoked by the controllers that stream A4 documents."
-  },
-  {
-   "id": "pdf-views",
-   "label": "PDF Blade views",
-   "type": "other",
-   "layer": "integration",
-   "path": "resources/views/pdf/",
-   "description": "Server-rendered templates for the registration form and the simple/detailed tournament fight-card sheets."
-  },
-  {
-   "id": "medialibrary",
-   "label": "spatie/laravel-medialibrary",
-   "type": "external",
-   "layer": "integration",
-   "path": "app/Traits/InteractsWithMedia.php, config/media-library.php",
-   "description": "Attaches files to models; the local trait adds attachment straight from a cached temporary upload."
-  },
-  {
-   "id": "s3-storage",
-   "label": "S3 object storage",
-   "type": "external",
-   "layer": "integration",
-   "path": "config/filesystems.php",
-   "description": "S3-compatible disk holding media conversions and, when configured, the nightly backup archives."
-  },
-  {
-   "id": "responsecache",
-   "label": "spatie/laravel-responsecache",
-   "type": "external",
-   "layer": "integration",
-   "path": "config/responsecache.php",
-   "description": "Caches whole HTTP responses for the public tournament endpoints, which declare a 60 second lifetime."
-  },
-  {
-   "id": "laravel-backup",
-   "label": "spatie/laravel-backup",
-   "type": "external",
-   "layer": "integration",
-   "path": "config/backup.php",
-   "description": "Nightly database and file backup, cleanup and monitoring, registered only when the destination disk is configured."
-  },
-  {
-   "id": "mail-transport",
-   "label": "Mail transport",
-   "type": "external",
-   "layer": "integration",
-   "path": "config/mail.php",
-   "description": "Outgoing mail: Mailpit locally, real SMTP in production, used by the password reset notification."
-  },
-  {
-   "id": "lang",
-   "label": "Translations",
-   "type": "other",
-   "layer": "infra",
-   "path": "lang/",
-   "description": "en/it message catalogues backing the locale middleware and the abort messages raised by observers."
-  },
-  {
-   "id": "docker-sail",
-   "label": "Laravel Sail stack",
-   "type": "infra",
-   "layer": "infra",
-   "path": "compose.yaml, docker/8.5/",
-   "description": "Local development stack: PHP 8.5 app container plus PostgreSQL, Redis and Mailpit."
-  },
-  {
-   "id": "docker-production",
-   "label": "Production image",
-   "type": "infra",
-   "layer": "infra",
-   "path": "compose.production.yml, docker/production/",
-   "description": "Single app image where supervisord drives php-fpm, Caddy, Horizon, Reverb and the scheduler alongside Postgres and Redis containers."
-  },
-  {
-   "id": "tests",
-   "label": "Feature test suite",
-   "type": "other",
-   "layer": "infra",
-   "path": "tests/Feature/",
-   "description": "One PHPUnit feature test per controller hitting the real /api/admin and /api/public paths from factory-built state."
-  }
- ],
- "edges": [
-  {
-   "from": "bootstrap-app",
-   "to": "routes-admin",
-   "type": "depends_on",
-   "label": "mounts /api/admin"
-  },
-  {
-   "from": "bootstrap-app",
-   "to": "routes-public",
-   "type": "depends_on",
-   "label": "mounts /api/public"
-  },
-  {
-   "from": "bootstrap-app",
-   "to": "routes-web",
-   "type": "depends_on",
-   "label": "mounts web"
-  },
-  {
-   "from": "bootstrap-app",
-   "to": "middleware-set-locale",
-   "type": "depends_on",
-   "label": "prepends to api group"
-  },
-  {
-   "from": "middleware-set-locale",
-   "to": "lang",
-   "type": "reads",
-   "label": "selects catalogue"
-  },
-  {
-   "from": "routes-admin",
-   "to": "sanctum-guard",
-   "type": "depends_on",
-   "label": "auth:sanctum"
-  },
-  {
-   "from": "sanctum-guard",
-   "to": "model-user",
-   "type": "reads",
-   "label": "resolves token owner"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-auth",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-dashboard",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-user",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-athlete",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-tournament",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-registration",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-match-record",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-discipline",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-weight-category",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-experience-tier",
-   "type": "calls"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-tournament-registration",
-   "type": "calls",
-   "label": "nested"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-tournament-match-record",
-   "type": "calls",
-   "label": "nested + custom actions"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-tournament-experience-tier",
-   "type": "calls",
-   "label": "nested"
-  },
-  {
-   "from": "routes-admin",
-   "to": "controller-temporary-upload",
-   "type": "calls"
-  },
-  {
-   "from": "routes-public",
-   "to": "controller-public-registration-form",
-   "type": "calls"
-  },
-  {
-   "from": "routes-public",
-   "to": "controller-public-tournament",
-   "type": "calls"
-  },
-  {
-   "from": "controller-public-tournament",
-   "to": "responsecache",
-   "type": "depends_on",
-   "label": "Cache attribute"
-  },
-  {
-   "from": "form-requests",
-   "to": "trait-inject-with",
-   "type": "depends_on",
-   "label": "?with= parsing"
-  },
-  {
-   "from": "form-requests",
-   "to": "rule-temporary-file",
-   "type": "depends_on",
-   "label": "validates upload id"
-  },
-  {
-   "from": "form-requests",
-   "to": "policy-user",
-   "type": "calls",
-   "label": "authorize()"
-  },
-  {
-   "from": "policy-user",
-   "to": "model-user",
-   "type": "reads",
-   "label": "superadmin flag"
-  },
-  {
-   "from": "controller-auth",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-user",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-athlete",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-tournament",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-registration",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-match-record",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-discipline",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-weight-category",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-experience-tier",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-tournament-registration",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-tournament-match-record",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-tournament-experience-tier",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-temporary-upload",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-public-registration-form",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-public-tournament",
-   "to": "form-requests",
-   "type": "depends_on"
-  },
-  {
-   "from": "controller-media",
-   "to": "model-media",
-   "type": "calls",
-   "label": "download / delete"
-  },
-  {
-   "from": "controller-auth",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-dashboard",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-registration",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-match-record",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-tournament",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-athlete",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-tournament-match-record",
-   "to": "api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-public-registration-form",
-   "to": "public-api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-public-tournament",
-   "to": "public-api-resources",
-   "type": "calls"
-  },
-  {
-   "from": "controller-dashboard",
-   "to": "model-tournament",
-   "type": "reads",
-   "label": "withCount aggregates"
-  },
-  {
-   "from": "controller-auth",
-   "to": "model-user",
-   "type": "writes",
-   "label": "issues / revokes tokens"
-  },
-  {
-   "from": "controller-auth",
-   "to": "notification-reset-password",
-   "type": "publishes",
-   "label": "password broker"
-  },
-  {
-   "from": "controller-user",
-   "to": "model-user",
-   "type": "writes"
-  },
-  {
-   "from": "controller-athlete",
-   "to": "model-athlete",
-   "type": "writes"
-  },
-  {
-   "from": "controller-tournament",
-   "to": "model-tournament",
-   "type": "writes"
-  },
-  {
-   "from": "controller-registration",
-   "to": "model-registration",
-   "type": "writes"
-  },
-  {
-   "from": "controller-match-record",
-   "to": "model-match-record",
-   "type": "writes"
-  },
-  {
-   "from": "controller-discipline",
-   "to": "model-discipline",
-   "type": "writes"
-  },
-  {
-   "from": "controller-weight-category",
-   "to": "model-weight-category",
-   "type": "writes"
-  },
-  {
-   "from": "controller-experience-tier",
-   "to": "model-experience-tier",
-   "type": "writes"
-  },
-  {
-   "from": "controller-tournament-registration",
-   "to": "model-registration",
-   "type": "writes"
-  },
-  {
-   "from": "controller-tournament-match-record",
-   "to": "model-match-record",
-   "type": "writes"
-  },
-  {
-   "from": "controller-tournament-experience-tier",
-   "to": "model-experience-tier",
-   "type": "writes"
-  },
-  {
-   "from": "controller-public-registration-form",
-   "to": "model-athlete",
-   "type": "writes",
-   "label": "firstOrCreate by tax_number"
-  },
-  {
-   "from": "controller-public-registration-form",
-   "to": "model-registration",
-   "type": "writes"
-  },
-  {
-   "from": "controller-public-tournament",
-   "to": "model-tournament",
-   "type": "reads",
-   "label": "in progress / completed only"
-  },
-  {
-   "from": "controller-tournament-match-record",
-   "to": "model-tournament",
-   "type": "calls",
-   "label": "runMatchmaking()"
-  },
-  {
-   "from": "model-tournament",
-   "to": "service-matchmaking",
-   "type": "calls",
-   "label": "generate + issues"
-  },
-  {
-   "from": "service-matchmaking",
-   "to": "model-registration",
-   "type": "reads",
-   "label": "unpaired registrations"
-  },
-  {
-   "from": "service-matchmaking",
-   "to": "model-experience-tier",
-   "type": "reads",
-   "label": "tournament tiers override global"
-  },
-  {
-   "from": "service-matchmaking",
-   "to": "model-match-record",
-   "type": "reads",
-   "label": "already paired athletes"
-  },
-  {
-   "from": "controller-temporary-upload",
-   "to": "action-store-temporary-upload",
-   "type": "calls"
-  },
-  {
-   "from": "action-store-temporary-upload",
-   "to": "support-temporary-file",
-   "type": "writes",
-   "label": "caches handle"
-  },
-  {
-   "from": "action-store-temporary-upload",
-   "to": "redis",
-   "type": "writes",
-   "label": "cache put, 60 min TTL"
-  },
-  {
-   "from": "rule-temporary-file",
-   "to": "support-temporary-file",
-   "type": "reads"
-  },
-  {
-   "from": "medialibrary",
-   "to": "support-temporary-file",
-   "type": "reads",
-   "label": "addMediaFromTemporaryFile"
-  },
-  {
-   "from": "controller-athlete",
-   "to": "medialibrary",
-   "type": "calls",
-   "label": "photo collection"
-  },
-  {
-   "from": "controller-tournament",
-   "to": "medialibrary",
-   "type": "calls",
-   "label": "cover collection"
-  },
-  {
-   "from": "medialibrary",
-   "to": "model-media",
-   "type": "writes"
-  },
-  {
-   "from": "medialibrary",
-   "to": "s3-storage",
-   "type": "writes",
-   "label": "stores originals + conversions"
-  },
-  {
-   "from": "model-match-record",
-   "to": "observer-match-record",
-   "type": "observes"
-  },
-  {
-   "from": "model-tournament",
-   "to": "observer-tournament",
-   "type": "observes"
-  },
-  {
-   "from": "model-registration",
-   "to": "observer-registration",
-   "type": "observes"
-  },
-  {
-   "from": "model-athlete",
-   "to": "observer-athlete",
-   "type": "observes"
-  },
-  {
-   "from": "model-experience-tier",
-   "to": "observer-experience-tier",
-   "type": "observes"
-  },
-  {
-   "from": "model-discipline",
-   "to": "observers-reference",
-   "type": "observes"
-  },
-  {
-   "from": "model-weight-category",
-   "to": "observers-reference",
-   "type": "observes"
-  },
-  {
-   "from": "model-user",
-   "to": "observers-reference",
-   "type": "observes"
-  },
-  {
-   "from": "observer-match-record",
-   "to": "action-reorder-match-records",
-   "type": "calls",
-   "label": "keeps sort contiguous"
-  },
-  {
-   "from": "observer-match-record",
-   "to": "event-match-record-changed",
-   "type": "publishes",
-   "label": "on create/update/delete"
-  },
-  {
-   "from": "observer-match-record",
-   "to": "model-athlete",
-   "type": "writes",
-   "label": "syncMatchRecordsCount"
-  },
-  {
-   "from": "observer-match-record",
-   "to": "model-tournament",
-   "type": "writes",
-   "label": "syncMatchmakingIssues"
-  },
-  {
-   "from": "observer-registration",
-   "to": "model-tournament",
-   "type": "writes",
-   "label": "syncMatchmakingIssues"
-  },
-  {
-   "from": "observer-registration",
-   "to": "model-match-record",
-   "type": "reads",
-   "label": "delete guard"
-  },
-  {
-   "from": "observer-tournament",
-   "to": "model-registration",
-   "type": "reads",
-   "label": "409 delete guard"
-  },
-  {
-   "from": "observer-tournament",
-   "to": "model-match-record",
-   "type": "reads",
-   "label": "409 delete guard"
-  },
-  {
-   "from": "observer-athlete",
-   "to": "model-registration",
-   "type": "reads",
-   "label": "409 delete guard"
-  },
-  {
-   "from": "observer-experience-tier",
-   "to": "model-experience-tier",
-   "type": "reads",
-   "label": "overlap check"
-  },
-  {
-   "from": "action-reorder-match-records",
-   "to": "model-match-record",
-   "type": "writes",
-   "label": "increment / decrement sort"
-  },
-  {
-   "from": "model-tournament",
-   "to": "enums",
-   "type": "depends_on",
-   "label": "status cast"
-  },
-  {
-   "from": "model-match-record",
-   "to": "enums",
-   "type": "depends_on",
-   "label": "status / end method casts"
-  },
-  {
-   "from": "model-athlete",
-   "to": "enums",
-   "type": "depends_on",
-   "label": "gender cast"
-  },
-  {
-   "from": "model-tournament",
-   "to": "model-scopes",
-   "type": "depends_on"
-  },
-  {
-   "from": "model-athlete",
-   "to": "model-scopes",
-   "type": "depends_on"
-  },
-  {
-   "from": "model-registration",
-   "to": "model-scopes",
-   "type": "depends_on"
-  },
-  {
-   "from": "model-match-record",
-   "to": "model-scopes",
-   "type": "depends_on"
-  },
-  {
-   "from": "model-tournament",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-athlete",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-registration",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-match-record",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-experience-tier",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-discipline",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-weight-category",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-user",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "model-media",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "migrations",
-   "to": "postgres",
-   "type": "writes",
-   "label": "UUID schema"
-  },
-  {
-   "from": "seeders-factories",
-   "to": "postgres",
-   "type": "writes"
-  },
-  {
-   "from": "event-match-record-changed",
-   "to": "redis",
-   "type": "publishes",
-   "label": "queued after commit"
-  },
-  {
-   "from": "redis",
-   "to": "horizon",
-   "type": "depends_on",
-   "label": "queue connection"
-  },
-  {
-   "from": "horizon",
-   "to": "event-match-record-changed",
-   "type": "subscribes",
-   "label": "drains broadcast job"
-  },
-  {
-   "from": "event-match-record-changed",
-   "to": "broadcast-channel",
-   "type": "publishes",
-   "label": "{refresh:true}"
-  },
-  {
-   "from": "broadcast-channel",
-   "to": "reverb",
-   "type": "depends_on",
-   "label": "WebSocket delivery"
-  },
-  {
-   "from": "horizon",
-   "to": "notification-reset-password",
-   "type": "subscribes",
-   "label": "drains mail job"
-  },
-  {
-   "from": "notification-reset-password",
-   "to": "mail-transport",
-   "type": "calls"
-  },
-  {
-   "from": "middleware-horizon-auth",
-   "to": "horizon",
-   "type": "depends_on",
-   "label": "protects dashboard"
-  },
-  {
-   "from": "schedule",
-   "to": "command-cleanup-temporary-uploads",
-   "type": "calls",
-   "label": "every six hours"
-  },
-  {
-   "from": "schedule",
-   "to": "horizon",
-   "type": "calls",
-   "label": "horizon:snapshot"
-  },
-  {
-   "from": "schedule",
-   "to": "laravel-backup",
-   "type": "calls",
-   "label": "nightly, when disk configured"
-  },
-  {
-   "from": "command-cleanup-temporary-uploads",
-   "to": "support-temporary-file",
-   "type": "writes",
-   "label": "prunes temp/ files"
-  },
-  {
-   "from": "laravel-backup",
-   "to": "postgres",
-   "type": "reads",
-   "label": "dumps database"
-  },
-  {
-   "from": "laravel-backup",
-   "to": "s3-storage",
-   "type": "writes",
-   "label": "stores archives"
-  },
-  {
-   "from": "controller-registration",
-   "to": "spatie-pdf",
-   "type": "calls",
-   "label": "registration PDF"
-  },
-  {
-   "from": "controller-tournament-match-record",
-   "to": "spatie-pdf",
-   "type": "calls",
-   "label": "fight-card PDF"
-  },
-  {
-   "from": "controller-public-registration-form",
-   "to": "spatie-pdf",
-   "type": "calls",
-   "label": "public registration PDF"
-  },
-  {
-   "from": "spatie-pdf",
-   "to": "pdf-views",
-   "type": "reads",
-   "label": "renders Blade"
-  },
-  {
-   "from": "enums",
-   "to": "pdf-views",
-   "type": "depends_on",
-   "label": "TournamentPdfTypeEnum::viewName()"
-  },
-  {
-   "from": "responsecache",
-   "to": "redis",
-   "type": "writes",
-   "label": "cached responses"
-  },
-  {
-   "from": "docker-sail",
-   "to": "postgres",
-   "type": "depends_on"
-  },
-  {
-   "from": "docker-sail",
-   "to": "redis",
-   "type": "depends_on"
-  },
-  {
-   "from": "docker-sail",
-   "to": "mail-transport",
-   "type": "depends_on",
-   "label": "Mailpit"
-  },
-  {
-   "from": "docker-production",
-   "to": "horizon",
-   "type": "depends_on",
-   "label": "supervisord program"
-  },
-  {
-   "from": "docker-production",
-   "to": "reverb",
-   "type": "depends_on",
-   "label": "supervisord program"
-  },
-  {
-   "from": "docker-production",
-   "to": "schedule",
-   "type": "depends_on",
-   "label": "supervisord program"
-  },
-  {
-   "from": "docker-production",
-   "to": "bootstrap-app",
-   "type": "depends_on",
-   "label": "php-fpm + Caddy"
-  },
-  {
-   "from": "tests",
-   "to": "routes-admin",
-   "type": "calls",
-   "label": "getJson / postJson"
-  },
-  {
-   "from": "tests",
-   "to": "routes-public",
-   "type": "calls",
-   "label": "unauthenticated paths"
-  },
-  {
-   "from": "tests",
-   "to": "seeders-factories",
-   "type": "depends_on",
-   "label": "builds state"
-  }
- ],
- "flows": [
-  {
-   "id": "match-record-write",
-   "name": "Admin edits a bout (live refresh)",
-   "description": "An admin creates or updates a match record; the observer keeps the tournament's sort ordering contiguous, resyncs derived counts, and pushes a refresh over WebSocket to every dashboard watching that tournament.",
-   "steps": [
-    "routes-admin",
-    "sanctum-guard",
-    "controller-match-record",
-    "form-requests",
-    "model-match-record",
-    "observer-match-record",
-    "action-reorder-match-records",
-    "postgres",
-    "event-match-record-changed",
-    "redis",
-    "horizon",
-    "broadcast-channel",
-    "reverb"
-   ]
-  },
-  {
-   "id": "matchmaking",
-   "name": "Generate the fight card",
-   "description": "POST tournaments/{tournament}/match_records/generate runs matchmaking: unpaired registrations are grouped by discipline, weight, gender, age band and experience tier, paired into bouts inside a transaction, and whatever cannot be paired is stored as matchmaking issues.",
-   "steps": [
-    "routes-admin",
-    "controller-tournament-match-record",
-    "model-tournament",
-    "service-matchmaking",
-    "model-experience-tier",
-    "model-registration",
-    "model-match-record",
-    "observer-match-record",
-    "postgres",
-    "api-resources"
-   ]
-  },
-  {
-   "id": "public-registration",
-   "name": "Public registration form submit",
-   "description": "An athlete registers themselves from the unauthenticated form: they are looked up or created by tax_number, the registration is validated against duplicates, and the tournament's matchmaking issues are resynced immediately.",
-   "steps": [
-    "routes-public",
-    "controller-public-registration-form",
-    "form-requests",
-    "model-athlete",
-    "model-registration",
-    "observer-registration",
-    "model-tournament",
-    "postgres",
-    "public-api-resources"
-   ]
-  },
-  {
-   "id": "pdf-export",
-   "name": "PDF export",
-   "description": "A registration form or a tournament fight-card sheet is streamed as A4 PDF; the enum maps the requested type to its Blade view and spatie/laravel-pdf renders it with the DOMPDF driver.",
-   "steps": [
-    "routes-admin",
-    "controller-tournament-match-record",
-    "model-tournament",
-    "enums",
-    "spatie-pdf",
-    "pdf-views"
-   ]
-  },
-  {
-   "id": "upload-to-media",
-   "name": "Temporary upload becomes model media",
-   "description": "A file is uploaded to the temporary endpoint and cached as a handle; a later resource write validates that handle and promotes the file into the model's media collection on S3. Handles never claimed are pruned by the scheduled cleanup command.",
-   "steps": [
-    "routes-admin",
-    "controller-temporary-upload",
-    "action-store-temporary-upload",
-    "support-temporary-file",
-    "redis",
-    "rule-temporary-file",
-    "controller-athlete",
-    "medialibrary",
-    "model-media",
-    "s3-storage"
-   ]
-  },
-  {
-   "id": "password-reset",
-   "name": "API-driven password reset",
-   "description": "auth/forgot_password queues the reset notification through Horizon and mails the link; auth/reset_password then rewrites the password and revokes every existing Sanctum token.",
-   "steps": [
-    "routes-admin",
-    "controller-auth",
-    "notification-reset-password",
-    "redis",
-    "horizon",
-    "mail-transport",
-    "model-user",
-    "postgres"
-   ]
-  },
-  {
-   "id": "scheduled-maintenance",
-   "name": "Scheduled maintenance",
-   "description": "The scheduler prunes expired temporary uploads every six hours, snapshots Horizon metrics every five minutes, and runs the backup trio nightly whenever a destination disk is actually configured.",
-   "steps": [
-    "docker-production",
-    "schedule",
-    "command-cleanup-temporary-uploads",
-    "support-temporary-file",
-    "laravel-backup",
-    "postgres",
-    "s3-storage"
-   ]
-  }
- ]
-};
+const GRAPH = {"generated_from":"matches-api (Laravel 13 REST API for combat-sports tournaments)","nodes":[{"id":"public-index","label":"HTTP front controller","type":"infra","layer":"entry","path":"public/index.php","description":"Single PHP entry point that boots the framework for every HTTP request."},{"id":"bootstrap-app","label":"Application bootstrap","type":"infra","layer":"entry","path":"bootstrap/app.php","description":"Mounts the audience-split route groups, prepends middleware, aliases 'ability', trusts all proxies and forces JSON exceptions for api/*."},{"id":"routes-api-admin","label":"Admin API routes","type":"other","layer":"entry","path":"routes/api.admin.php","description":"Declares every /api/admin/ endpoint, with bulk-delete routes registered before each apiResource so they are not shadowed."},{"id":"routes-api-public","label":"Public API routes","type":"other","layer":"entry","path":"routes/api.public.php","description":"Declares the unauthenticated /api/public/ registration-form and tournament endpoints."},{"id":"routes-web","label":"Web routes","type":"other","layer":"entry","path":"routes/web.php","description":"Serves the welcome page and redirects /architecture and /vps to static files published under /storage."},{"id":"routes-channels","label":"Broadcast channel routes","type":"other","layer":"entry","path":"routes/channels.php","description":"Empty by design: the only broadcast channel in use is public, so no channel authorization callback is registered."},{"id":"middleware-set-locale","label":"SetLocale middleware","type":"middleware","layer":"entry","path":"app/Http/Middleware/SetLocale.php","description":"Prepended to the api group; resolves the request locale from Accept-Language against the supported en/it set."},{"id":"auth-sanctum","label":"Sanctum token guard","type":"middleware","layer":"entry","path":"config/sanctum.php","description":"Authenticates admin API requests with personal access tokens issued at login and expiring after one week."},{"id":"rate-limiters","label":"Route throttles","type":"middleware","layer":"entry","path":"routes/api.admin.php, routes/api.public.php","description":"Throttle groups: 5/min on the auth entry points, 10/min on auth/user and on the whole public API."},{"id":"form-requests","label":"Form request family","type":"other","layer":"entry","path":"app/Http/Requests","description":"Five-to-six FormRequests per resource holding all validation rules, the ?with allowlist and the authorize() decision."},{"id":"inject-with-trait","label":"InjectWith trait","type":"other","layer":"entry","path":"app/Traits/InjectWith.php","description":"Rewrites the comma-separated ?with=a,b query string into a camelCase array before validation so controllers can eager-load it."},{"id":"temporary-file-rule","label":"TemporaryFileRule","type":"other","layer":"entry","path":"app/Rules/TemporaryFileRule.php","description":"Validation rule asserting that a submitted upload id still resolves to a cached TemporaryFile."},{"id":"user-policy","label":"UserPolicy","type":"other","layer":"entry","path":"app/Policies/UserPolicy.php","description":"The only policy in the app; gates user create/update/delete/bulkDestroy on the superadmin flag."},{"id":"api-resources","label":"Admin API resources","type":"other","layer":"entry","path":"app/Http/Resources","description":"Eloquent API resources that shape every authenticated admin response."},{"id":"public-api-resources","label":"Public API resources","type":"other","layer":"entry","path":"app/Http/Resources/Public","description":"Separate Public{Model}Resource classes exposing a reduced payload on unauthenticated endpoints."},{"id":"auth-controller","label":"AuthController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/AuthController.php","description":"Login, logout, current user, and the API-driven forgot/reset password pair."},{"id":"dashboard-controller","label":"DashboardController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/DashboardController.php","description":"Returns per-tournament counters (registrations paid/arrived, matches by status) for active tournaments."},{"id":"user-controller","label":"UserController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/UserController.php","description":"CRUD plus bulk delete for admin users, the only policy-guarded resource."},{"id":"weight-category-controller","label":"WeightCategoryController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/WeightCategoryController.php","description":"CRUD plus bulk delete for the shared weight-category reference data."},{"id":"discipline-controller","label":"DisciplineController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/DisciplineController.php","description":"CRUD plus bulk delete for disciplines, including default rounds and minutes per round."},{"id":"experience-tier-controller","label":"ExperienceTierController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/ExperienceTierController.php","description":"CRUD plus bulk delete for experience tiers, the global match-count bands used by matchmaking."},{"id":"athlete-controller","label":"AthleteController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/AthleteController.php","description":"Athlete CRUD with filters (gender, adult, match-count range, tournament membership) and photo attachment."},{"id":"tournament-controller","label":"TournamentController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/TournamentController.php","description":"Tournament CRUD with cover-image attachment and transactional bulk delete."},{"id":"tournament-registration-controller","label":"TournamentRegistrationController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/TournamentRegistrationController.php","description":"Nested index/store for a tournament's registrations under /tournaments/{tournament}/registrations."},{"id":"tournament-match-record-controller","label":"TournamentMatchRecordController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/TournamentMatchRecordController.php","description":"Nested match-record index/store plus the two custom actions: generate the fight card and render the match-sheet PDF."},{"id":"tournament-experience-tier-controller","label":"TournamentExperienceTierController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/TournamentExperienceTierController.php","description":"Nested index/store for a tournament's own experience tiers, which override the global ones."},{"id":"registration-controller","label":"RegistrationController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/RegistrationController.php","description":"Registration CRUD with unpaid/unarrived/weight-exceeded filters and the single-registration PDF."},{"id":"match-record-controller","label":"MatchRecordController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/MatchRecordController.php","description":"Flat match-record CRUD used to edit a bout's result, status and position in the card."},{"id":"temporary-upload-controller","label":"TemporaryUploadController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/TemporaryUploadController.php","description":"Accepts a file up front and returns a temporary id later attached to a model's media collection."},{"id":"media-controller","label":"MediaController","type":"controller","layer":"entry","path":"app/Http/Controllers/MediaController.php","description":"Orphan: exposes download and destroy for media but no route file references it, so it is currently unreachable."},{"id":"public-registration-form-controller","label":"PublicRegistrationFormController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/PublicRegistrationFormController.php","description":"Unauthenticated registration funnel: athlete lookup by tax number, athlete/registration creation, reference lists and the registration PDF."},{"id":"public-tournament-controller","label":"PublicTournamentController","type":"controller","layer":"entry","path":"app/Http/Controllers/Api/PublicTournamentController.php","description":"Public read-only board of in-progress and completed tournaments and their match records, response-cached for 60 seconds."},{"id":"tournament-model","label":"Tournament","type":"model","layer":"domain","path":"app/Models/Tournament.php","description":"Aggregate root of the domain: owns registrations, match records and experience tiers, and drives matchmaking."},{"id":"athlete-model","label":"Athlete","type":"model","layer":"domain","path":"app/Models/Athlete.php","description":"Competitor identified publicly by tax number; derives age, adult status and total match count from generic plus registered bouts."},{"id":"registration-model","label":"Registration","type":"model","layer":"domain","path":"app/Models/Registration.php","description":"Join of athlete, tournament, discipline and weight category tracking payment, arrival and weigh-in, and detecting duplicates."},{"id":"match-record-model","label":"MatchRecord","type":"model","layer":"domain","path":"app/Models/MatchRecord.php","description":"A bout between a red and a blue corner with contiguous sort order, status, end method and judges' points."},{"id":"discipline-model","label":"Discipline","type":"model","layer":"domain","path":"app/Models/Discipline.php","description":"Reference data for a fighting discipline plus its default round count and round length."},{"id":"weight-category-model","label":"WeightCategory","type":"model","layer":"domain","path":"app/Models/WeightCategory.php","description":"Reference data holding a weight limit used both for pairing and for weigh-in checks."},{"id":"experience-tier-model","label":"ExperienceTier","type":"model","layer":"domain","path":"app/Models/ExperienceTier.php","description":"A non-overlapping match-count band, either global or scoped to one tournament, that decides who may be paired with whom."},{"id":"user-model","label":"User","type":"model","layer":"domain","path":"app/Models/User.php","description":"Admin account with Sanctum tokens, a superadmin flag and the API-driven password-reset notification hook."},{"id":"media-model","label":"Media","type":"model","layer":"domain","path":"app/Models/Media.php","description":"Overrides the medialibrary media model to append a short-lived temporary_url when the disk supports one."},{"id":"tournament-observer","label":"TournamentObserver","type":"observer","layer":"domain","path":"app/Observers/TournamentObserver.php","description":"Delete guard: aborts with 409 when the tournament still has registrations or match records."},{"id":"athlete-observer","label":"AthleteObserver","type":"observer","layer":"domain","path":"app/Observers/AthleteObserver.php","description":"Normalizes full name and tax number on save and blocks deletion while registrations or bouts reference the athlete."},{"id":"registration-observer","label":"RegistrationObserver","type":"observer","layer":"domain","path":"app/Observers/RegistrationObserver.php","description":"Rejects duplicate registrations, blocks deletion once bouts exist, and re-syncs the tournament's matchmaking issues."},{"id":"match-record-observer","label":"MatchRecordObserver","type":"observer","layer":"domain","path":"app/Observers/MatchRecordObserver.php","description":"Keeps sort order contiguous, re-syncs matchmaking issues and athlete counters, and broadcasts on every write."},{"id":"experience-tier-observer","label":"ExperienceTierObserver","type":"observer","layer":"domain","path":"app/Observers/ExperienceTierObserver.php","description":"Aborts with 400 when a created or updated tier would overlap another enabled tier in the same scope."},{"id":"reference-observers","label":"Reference-data observers","type":"observer","layer":"domain","path":"app/Observers/DisciplineObserver.php, app/Observers/WeightCategoryObserver.php, app/Observers/UserObserver.php","description":"Discipline and weight-category observers guard deletes; the user observer is an empty stub."},{"id":"matchmaking-service","label":"MatchmakingService","type":"service","layer":"domain","path":"app/Services/MatchmakingService.php","description":"The only service class: groups unpaired registrations by discipline, weight, gender, age and tier, then emits pairs and orphan issues."},{"id":"reorder-match-records-action","label":"ReorderMatchRecordsAction","type":"service","layer":"domain","path":"app/Actions/ReorderMatchRecordsAction.php","description":"Shifts sibling sort values inside a transaction so a tournament's card stays contiguous on insert, move and delete."},{"id":"store-temporary-upload-action","label":"StoreTemporaryUploadAction","type":"service","layer":"domain","path":"app/Actions/StoreTemporaryUploadAction.php","description":"Writes an uploaded file to the local temp folder and caches its descriptor under a UUID for 60 minutes."},{"id":"enums","label":"Domain enums","type":"other","layer":"domain","path":"app/Enums","description":"String-backed PHP enums for tournament status, match status and end method, athlete gender and PDF type."},{"id":"model-scopes","label":"Global model scopes","type":"other","layer":"domain","path":"app/Models/Scopes","description":"Seven global scope classes wired via #[ScopedBy]; all are currently no-op placeholders that only look the user up."},{"id":"interacts-with-media-trait","label":"InteractsWithMedia trait","type":"other","layer":"domain","path":"app/Traits/InteractsWithMedia.php","description":"Wraps the medialibrary trait and adds addMediaFromTemporaryFile, turning a cached upload id into attached media."},{"id":"temporary-file","label":"TemporaryFile value object","type":"other","layer":"domain","path":"app/Support/TemporaryFile.php","description":"Readonly descriptor of a pending upload (disk, path, name, mime, size) that can rehydrate an UploadedFile."},{"id":"migrations","label":"Migrations","type":"other","layer":"data","path":"database/migrations","description":"Schema for the domain tables plus users, cache, jobs, personal access tokens and media; all keys are UUIDs and enums are stored as strings."},{"id":"factories","label":"Model factories","type":"other","layer":"data","path":"database/factories","description":"Factories for all eight domain models, the state source for every feature test."},{"id":"seeders","label":"Seeders","type":"other","layer":"data","path":"database/seeders","description":"Seeds reference data and a demo tournament with registrations and match records."},{"id":"postgres","label":"PostgreSQL","type":"external","layer":"data","path":"config/database.php","description":"Primary datastore for every model, run as postgres:17-alpine in both Sail and production compose."},{"id":"redis","label":"Redis","type":"external","layer":"data","path":"config/cache.php, config/queue.php","description":"Backs cache (temporary uploads, response cache), sessions and the Horizon queue in production."},{"id":"match-record-changed-event","label":"MatchRecordChanged","type":"event","layer":"async","path":"app/Events/MatchRecordChanged.php","description":"ShouldBroadcast + ShouldDispatchAfterCommit event pushing {refresh: true} to tournaments.{id}.match_records."},{"id":"reverb","label":"Laravel Reverb","type":"external","layer":"async","path":"config/reverb.php","description":"WebSocket server delivering broadcast payloads to connected scoreboard and admin clients."},{"id":"horizon","label":"Laravel Horizon","type":"infra","layer":"async","path":"config/horizon.php","description":"Supervises the Redis queue workers that run broadcasts, queued mail and media conversions."},{"id":"reset-password-notification","label":"ResetPasswordNotification","type":"job","layer":"async","path":"app/Notifications/ResetPasswordNotification.php","description":"Queued mail notification carrying the frontend reset URL built from the Laravel password broker token."},{"id":"cleanup-temporary-uploads-command","label":"CleanupTemporaryUploadsCommand","type":"job","layer":"async","path":"app/Console/Commands/CleanupTemporaryUploadsCommand.php","description":"Deletes temp files older than the given minutes so abandoned uploads do not accumulate."},{"id":"scheduler","label":"Task scheduler","type":"infra","layer":"async","path":"routes/console.php","description":"Schedules upload cleanup every six hours, horizon:snapshot every five minutes, and nightly backups only when the backup disk is configured."},{"id":"spatie-laravel-pdf","label":"spatie/laravel-pdf","type":"external","layer":"integration","path":"config/laravel-pdf.php","description":"Renders Blade views to A4 PDFs through the DOMPDF driver."},{"id":"pdf-views","label":"PDF Blade templates","type":"other","layer":"integration","path":"resources/views/pdf","description":"Server-rendered sheets: one registration form and the simple/detailed tournament match-record cards."},{"id":"email-view-reset-password","label":"Reset-password email view","type":"other","layer":"integration","path":"resources/views/emails/auth/reset-password.blade.php","description":"The only mail template; renders the password-reset link sent to an admin user."},{"id":"mailer","label":"SMTP mailer","type":"external","layer":"integration","path":"config/mail.php","description":"Outgoing mail transport, pointed at Mailpit in local development."},{"id":"spatie-medialibrary","label":"spatie/laravel-medialibrary","type":"external","layer":"integration","path":"config/media-library.php","description":"Stores model files and queues conversions after commit, using the app's overridden Media model."},{"id":"s3-storage","label":"S3-compatible object storage","type":"external","layer":"integration","path":"config/filesystems.php","description":"Destination disk for media and for nightly backups, accessed via league/flysystem-aws-s3-v3."},{"id":"local-temp-disk","label":"Local temp disk","type":"external","layer":"integration","path":"storage/app/private/temp","description":"Holds pending uploads on the local disk until they are attached to a model or pruned."},{"id":"spatie-responsecache","label":"spatie/laravel-responsecache","type":"external","layer":"integration","path":"app/Http/Controllers/Api/PublicTournamentController.php","description":"Caches whole public-tournament responses for 60 seconds via the #[Cache] attribute; disabled in tests."},{"id":"spatie-laravel-backup","label":"spatie/laravel-backup","type":"external","layer":"integration","path":"config/backup.php","description":"Nightly database and file backup with clean and monitor steps, skipped when no destination disk is configured."},{"id":"config","label":"Configuration","type":"infra","layer":"infra","path":"config","description":"Environment-driven config for database, cache, queue, broadcasting, filesystems, media, PDF, backup and Horizon."},{"id":"lang","label":"Translations","type":"infra","layer":"infra","path":"lang","description":"en/it message files, including the errors.* keys the observers abort with."},{"id":"app-service-provider","label":"AppServiceProvider","type":"infra","layer":"infra","path":"app/Providers/AppServiceProvider.php","description":"Registered but empty: both register() and boot() are no-ops, so no service binding happens here."},{"id":"horizon-service-provider","label":"HorizonServiceProvider","type":"infra","layer":"infra","path":"app/Providers/HorizonServiceProvider.php","description":"Defines the viewHorizon gate as always-true, leaving dashboard access to the basic-auth middleware."},{"id":"middleware-horizon-basic-auth","label":"HorizonBasicAuth","type":"middleware","layer":"infra","path":"app/Http/Middleware/HorizonBasicAuth.php","description":"Guards the Horizon dashboard with HTTP basic auth read from config instead of the open gate."},{"id":"docker-production-image","label":"Production image","type":"infra","layer":"infra","path":"docker/production/Dockerfile, docker/production/entrypoint.sh","description":"Single app image whose entrypoint runs migrations and caches config before handing over to supervisord."},{"id":"supervisord","label":"supervisord","type":"infra","layer":"infra","path":"docker/production/supervisord.conf","description":"Keeps php-fpm, Caddy, Horizon, Reverb and the scheduler alive inside the single app container."},{"id":"caddy","label":"Caddy web server","type":"infra","layer":"infra","path":"docker/production/Caddyfile","description":"Terminates TLS, proxies /app/* to Reverb, blocks dotfiles and forwards everything else to php-fpm."},{"id":"compose-production","label":"Production compose","type":"infra","layer":"infra","path":"compose.production.yml","description":"Runs the app image next to postgres:17-alpine and redis:7-alpine with health-gated startup and persisted volumes."},{"id":"sail-compose","label":"Sail dev stack","type":"infra","layer":"infra","path":"compose.yaml","description":"Local development stack: application container plus PostgreSQL, Redis and Mailpit."},{"id":"test-suite","label":"Feature test suite","type":"other","layer":"infra","path":"tests","description":"One feature test per controller hitting the real /api paths, on a lazily refreshed database with the response cache forced off."}],"edges":[{"from":"public-index","to":"bootstrap-app","type":"depends_on","label":"boots the framework"},{"from":"bootstrap-app","to":"routes-api-admin","type":"depends_on","label":"mounts /api/admin"},{"from":"bootstrap-app","to":"routes-api-public","type":"depends_on","label":"mounts /api/public"},{"from":"bootstrap-app","to":"routes-web","type":"depends_on","label":"mounts web routes"},{"from":"bootstrap-app","to":"routes-channels","type":"depends_on","label":"mounts channels"},{"from":"bootstrap-app","to":"middleware-set-locale","type":"depends_on","label":"prepends to api group"},{"from":"bootstrap-app","to":"config","type":"reads","label":"reads app config"},{"from":"bootstrap-app","to":"app-service-provider","type":"depends_on","label":"registers provider"},{"from":"bootstrap-app","to":"horizon-service-provider","type":"depends_on","label":"registers provider"},{"from":"middleware-set-locale","to":"lang","type":"depends_on","label":"selects locale files"},{"from":"routes-api-admin","to":"auth-sanctum","type":"depends_on","label":"auth:sanctum group"},{"from":"routes-api-admin","to":"rate-limiters","type":"depends_on","label":"throttle:5,1 on auth"},{"from":"routes-api-public","to":"rate-limiters","type":"depends_on","label":"global throttle:10,1"},{"from":"auth-sanctum","to":"user-model","type":"reads","label":"resolves token owner"},{"from":"routes-api-admin","to":"auth-controller","type":"calls"},{"from":"routes-api-admin","to":"dashboard-controller","type":"calls"},{"from":"routes-api-admin","to":"user-controller","type":"calls"},{"from":"routes-api-admin","to":"weight-category-controller","type":"calls"},{"from":"routes-api-admin","to":"discipline-controller","type":"calls"},{"from":"routes-api-admin","to":"experience-tier-controller","type":"calls"},{"from":"routes-api-admin","to":"athlete-controller","type":"calls"},{"from":"routes-api-admin","to":"tournament-controller","type":"calls"},{"from":"routes-api-admin","to":"tournament-registration-controller","type":"calls"},{"from":"routes-api-admin","to":"tournament-match-record-controller","type":"calls","label":"incl. generate + pdf"},{"from":"routes-api-admin","to":"tournament-experience-tier-controller","type":"calls"},{"from":"routes-api-admin","to":"registration-controller","type":"calls"},{"from":"routes-api-admin","to":"match-record-controller","type":"calls"},{"from":"routes-api-admin","to":"temporary-upload-controller","type":"calls"},{"from":"routes-api-public","to":"public-registration-form-controller","type":"calls"},{"from":"routes-api-public","to":"public-tournament-controller","type":"calls"},{"from":"auth-controller","to":"form-requests","type":"depends_on"},{"from":"user-controller","to":"form-requests","type":"depends_on"},{"from":"weight-category-controller","to":"form-requests","type":"depends_on"},{"from":"discipline-controller","to":"form-requests","type":"depends_on"},{"from":"experience-tier-controller","to":"form-requests","type":"depends_on"},{"from":"athlete-controller","to":"form-requests","type":"depends_on"},{"from":"tournament-controller","to":"form-requests","type":"depends_on"},{"from":"tournament-registration-controller","to":"form-requests","type":"depends_on","label":"injects tournament_id"},{"from":"tournament-match-record-controller","to":"form-requests","type":"depends_on","label":"injects tournament_id"},{"from":"tournament-experience-tier-controller","to":"form-requests","type":"depends_on"},{"from":"registration-controller","to":"form-requests","type":"depends_on"},{"from":"match-record-controller","to":"form-requests","type":"depends_on"},{"from":"temporary-upload-controller","to":"form-requests","type":"depends_on"},{"from":"media-controller","to":"form-requests","type":"depends_on"},{"from":"public-registration-form-controller","to":"form-requests","type":"depends_on"},{"from":"public-tournament-controller","to":"form-requests","type":"depends_on"},{"from":"form-requests","to":"inject-with-trait","type":"depends_on","label":"prepareForValidation"},{"from":"form-requests","to":"temporary-file-rule","type":"depends_on","label":"validates upload ids"},{"from":"form-requests","to":"user-policy","type":"calls","label":"authorize() delegates"},{"from":"user-policy","to":"user-model","type":"reads","label":"superadmin flag"},{"from":"temporary-file-rule","to":"redis","type":"reads","label":"cached descriptor"},{"from":"auth-controller","to":"user-model","type":"writes","label":"issues and revokes tokens"},{"from":"auth-controller","to":"api-resources","type":"calls"},{"from":"dashboard-controller","to":"tournament-model","type":"reads","label":"withCount aggregates"},{"from":"dashboard-controller","to":"api-resources","type":"calls"},{"from":"user-controller","to":"user-model","type":"writes"},{"from":"user-controller","to":"api-resources","type":"calls"},{"from":"weight-category-controller","to":"weight-category-model","type":"writes"},{"from":"weight-category-controller","to":"api-resources","type":"calls"},{"from":"discipline-controller","to":"discipline-model","type":"writes"},{"from":"discipline-controller","to":"api-resources","type":"calls"},{"from":"experience-tier-controller","to":"experience-tier-model","type":"writes"},{"from":"experience-tier-controller","to":"api-resources","type":"calls"},{"from":"athlete-controller","to":"athlete-model","type":"writes"},{"from":"athlete-controller","to":"interacts-with-media-trait","type":"calls","label":"attaches photo"},{"from":"athlete-controller","to":"api-resources","type":"calls"},{"from":"tournament-controller","to":"tournament-model","type":"writes"},{"from":"tournament-controller","to":"interacts-with-media-trait","type":"calls","label":"attaches cover"},{"from":"tournament-controller","to":"api-resources","type":"calls"},{"from":"tournament-registration-controller","to":"tournament-model","type":"reads","label":"route-bound parent"},{"from":"tournament-registration-controller","to":"registration-model","type":"writes"},{"from":"tournament-registration-controller","to":"api-resources","type":"calls"},{"from":"tournament-match-record-controller","to":"tournament-model","type":"calls","label":"runMatchmaking()"},{"from":"tournament-match-record-controller","to":"match-record-model","type":"writes"},{"from":"tournament-match-record-controller","to":"api-resources","type":"calls"},{"from":"tournament-match-record-controller","to":"enums","type":"depends_on","label":"TournamentPdfTypeEnum"},{"from":"tournament-match-record-controller","to":"spatie-laravel-pdf","type":"calls","label":"match sheet"},{"from":"tournament-experience-tier-controller","to":"tournament-model","type":"reads"},{"from":"tournament-experience-tier-controller","to":"experience-tier-model","type":"writes"},{"from":"tournament-experience-tier-controller","to":"api-resources","type":"calls"},{"from":"registration-controller","to":"registration-model","type":"writes"},{"from":"registration-controller","to":"api-resources","type":"calls"},{"from":"registration-controller","to":"spatie-laravel-pdf","type":"calls","label":"registration form"},{"from":"match-record-controller","to":"match-record-model","type":"writes"},{"from":"match-record-controller","to":"api-resources","type":"calls"},{"from":"temporary-upload-controller","to":"store-temporary-upload-action","type":"calls"},{"from":"temporary-upload-controller","to":"api-resources","type":"calls"},{"from":"media-controller","to":"media-model","type":"writes","label":"download / delete"},{"from":"public-registration-form-controller","to":"athlete-model","type":"writes","label":"firstOrCreate by tax_number"},{"from":"public-registration-form-controller","to":"registration-model","type":"writes"},{"from":"public-registration-form-controller","to":"tournament-model","type":"reads","label":"registrations open only"},{"from":"public-registration-form-controller","to":"discipline-model","type":"reads"},{"from":"public-registration-form-controller","to":"weight-category-model","type":"reads"},{"from":"public-registration-form-controller","to":"public-api-resources","type":"calls"},{"from":"public-registration-form-controller","to":"api-resources","type":"calls","label":"reuses reference resources"},{"from":"public-registration-form-controller","to":"spatie-laravel-pdf","type":"calls"},{"from":"public-tournament-controller","to":"tournament-model","type":"reads"},{"from":"public-tournament-controller","to":"match-record-model","type":"reads"},{"from":"public-tournament-controller","to":"public-api-resources","type":"calls"},{"from":"public-tournament-controller","to":"spatie-responsecache","type":"depends_on","label":"#[Cache(lifetime: 60)]"},{"from":"spatie-responsecache","to":"redis","type":"writes","label":"stores rendered responses"},{"from":"spatie-laravel-pdf","to":"pdf-views","type":"reads"},{"from":"api-resources","to":"media-model","type":"reads","label":"serialises media urls"},{"from":"tournament-observer","to":"tournament-model","type":"observes"},{"from":"athlete-observer","to":"athlete-model","type":"observes"},{"from":"registration-observer","to":"registration-model","type":"observes"},{"from":"match-record-observer","to":"match-record-model","type":"observes"},{"from":"experience-tier-observer","to":"experience-tier-model","type":"observes"},{"from":"reference-observers","to":"discipline-model","type":"observes"},{"from":"reference-observers","to":"weight-category-model","type":"observes"},{"from":"reference-observers","to":"user-model","type":"observes"},{"from":"tournament-observer","to":"lang","type":"reads","label":"errors.* messages"},{"from":"registration-observer","to":"lang","type":"reads","label":"errors.* messages"},{"from":"match-record-observer","to":"reorder-match-records-action","type":"calls","label":"keeps sort contiguous"},{"from":"match-record-observer","to":"match-record-changed-event","type":"publishes","label":"on every CRUD"},{"from":"match-record-observer","to":"tournament-model","type":"calls","label":"syncMatchmakingIssues()"},{"from":"match-record-observer","to":"athlete-model","type":"writes","label":"syncMatchRecordsCount()"},{"from":"registration-observer","to":"tournament-model","type":"calls","label":"syncMatchmakingIssues()"},{"from":"experience-tier-observer","to":"experience-tier-model","type":"reads","label":"overlap check"},{"from":"reorder-match-records-action","to":"match-record-model","type":"writes","label":"shifts sort in a transaction"},{"from":"tournament-model","to":"matchmaking-service","type":"calls","label":"runMatchmaking / issues"},{"from":"matchmaking-service","to":"registration-model","type":"reads","label":"unpaired registrations"},{"from":"matchmaking-service","to":"experience-tier-model","type":"reads","label":"tournament tiers override global"},{"from":"matchmaking-service","to":"match-record-model","type":"reads","label":"already-paired athletes"},{"from":"matchmaking-service","to":"athlete-model","type":"reads","label":"gender, age, match count"},{"from":"tournament-model","to":"match-record-model","type":"writes","label":"creates generated pairs"},{"from":"tournament-model","to":"registration-model","type":"reads"},{"from":"tournament-model","to":"experience-tier-model","type":"reads"},{"from":"registration-model","to":"athlete-model","type":"depends_on"},{"from":"registration-model","to":"discipline-model","type":"depends_on"},{"from":"registration-model","to":"weight-category-model","type":"depends_on"},{"from":"match-record-model","to":"athlete-model","type":"depends_on","label":"red / blue / winner"},{"from":"match-record-model","to":"discipline-model","type":"depends_on"},{"from":"match-record-model","to":"weight-category-model","type":"depends_on"},{"from":"match-record-model","to":"enums","type":"depends_on"},{"from":"tournament-model","to":"enums","type":"depends_on"},{"from":"athlete-model","to":"enums","type":"depends_on"},{"from":"tournament-model","to":"model-scopes","type":"depends_on"},{"from":"athlete-model","to":"model-scopes","type":"depends_on"},{"from":"registration-model","to":"model-scopes","type":"depends_on"},{"from":"match-record-model","to":"model-scopes","type":"depends_on"},{"from":"discipline-model","to":"model-scopes","type":"depends_on"},{"from":"weight-category-model","to":"model-scopes","type":"depends_on"},{"from":"user-model","to":"model-scopes","type":"depends_on"},{"from":"tournament-model","to":"interacts-with-media-trait","type":"depends_on","label":"cover collection"},{"from":"athlete-model","to":"interacts-with-media-trait","type":"depends_on","label":"photo collection"},{"from":"interacts-with-media-trait","to":"temporary-file","type":"reads"},{"from":"interacts-with-media-trait","to":"redis","type":"reads","label":"cached upload descriptor"},{"from":"interacts-with-media-trait","to":"spatie-medialibrary","type":"calls"},{"from":"store-temporary-upload-action","to":"temporary-file","type":"writes"},{"from":"store-temporary-upload-action","to":"local-temp-disk","type":"writes"},{"from":"store-temporary-upload-action","to":"redis","type":"writes","label":"60-minute TTL"},{"from":"temporary-file","to":"local-temp-disk","type":"reads"},{"from":"spatie-medialibrary","to":"media-model","type":"writes"},{"from":"spatie-medialibrary","to":"s3-storage","type":"writes"},{"from":"spatie-medialibrary","to":"redis","type":"publishes","label":"queues conversions after commit"},{"from":"media-model","to":"s3-storage","type":"reads","label":"temporary_url"},{"from":"tournament-model","to":"postgres","type":"writes"},{"from":"athlete-model","to":"postgres","type":"writes"},{"from":"registration-model","to":"postgres","type":"writes"},{"from":"match-record-model","to":"postgres","type":"writes"},{"from":"discipline-model","to":"postgres","type":"writes"},{"from":"weight-category-model","to":"postgres","type":"writes"},{"from":"experience-tier-model","to":"postgres","type":"writes"},{"from":"user-model","to":"postgres","type":"writes"},{"from":"media-model","to":"postgres","type":"writes"},{"from":"reorder-match-records-action","to":"postgres","type":"writes","label":"bulk increment / decrement"},{"from":"migrations","to":"postgres","type":"writes","label":"UUID keys, string enum columns"},{"from":"factories","to":"postgres","type":"writes"},{"from":"seeders","to":"factories","type":"calls"},{"from":"test-suite","to":"factories","type":"calls"},{"from":"test-suite","to":"routes-api-admin","type":"calls","label":"getJson / postJson"},{"from":"test-suite","to":"routes-api-public","type":"calls"},{"from":"match-record-changed-event","to":"redis","type":"publishes","label":"queued broadcast"},{"from":"horizon","to":"redis","type":"reads","label":"pops jobs"},{"from":"horizon","to":"reverb","type":"publishes","label":"broadcast payload"},{"from":"horizon","to":"reset-password-notification","type":"calls","label":"runs queued mail"},{"from":"horizon","to":"config","type":"reads","label":"supervisor settings"},{"from":"user-model","to":"reset-password-notification","type":"publishes","label":"sendPasswordResetNotification"},{"from":"reset-password-notification","to":"redis","type":"publishes","label":"ShouldQueue"},{"from":"reset-password-notification","to":"email-view-reset-password","type":"reads"},{"from":"reset-password-notification","to":"mailer","type":"calls"},{"from":"scheduler","to":"cleanup-temporary-uploads-command","type":"calls","label":"every six hours"},{"from":"scheduler","to":"horizon","type":"calls","label":"horizon:snapshot every 5 min"},{"from":"scheduler","to":"spatie-laravel-backup","type":"calls","label":"nightly, disk permitting"},{"from":"cleanup-temporary-uploads-command","to":"local-temp-disk","type":"writes","label":"prunes expired files"},{"from":"spatie-laravel-backup","to":"postgres","type":"reads"},{"from":"spatie-laravel-backup","to":"s3-storage","type":"writes"},{"from":"match-record-changed-event","to":"routes-channels","type":"depends_on","label":"public channel, no auth callback"},{"from":"horizon-service-provider","to":"horizon","type":"depends_on","label":"viewHorizon gate"},{"from":"middleware-horizon-basic-auth","to":"horizon","type":"depends_on","label":"guards the dashboard"},{"from":"docker-production-image","to":"supervisord","type":"depends_on"},{"from":"docker-production-image","to":"migrations","type":"calls","label":"entrypoint migrates on boot"},{"from":"supervisord","to":"caddy","type":"calls"},{"from":"supervisord","to":"public-index","type":"calls","label":"php-fpm pool"},{"from":"supervisord","to":"horizon","type":"calls"},{"from":"supervisord","to":"reverb","type":"calls"},{"from":"supervisord","to":"scheduler","type":"calls","label":"schedule:work"},{"from":"caddy","to":"public-index","type":"calls","label":"php_fastcgi"},{"from":"caddy","to":"reverb","type":"calls","label":"proxies /app/* over wss"},{"from":"caddy","to":"routes-web","type":"reads","label":"serves /storage static files"},{"from":"compose-production","to":"docker-production-image","type":"depends_on"},{"from":"compose-production","to":"postgres","type":"depends_on","label":"health-gated"},{"from":"compose-production","to":"redis","type":"depends_on","label":"health-gated"},{"from":"sail-compose","to":"postgres","type":"depends_on"},{"from":"sail-compose","to":"redis","type":"depends_on"},{"from":"sail-compose","to":"mailer","type":"depends_on","label":"Mailpit"}],"flows":[{"id":"admin-crud-request","name":"Authenticated admin CRUD request","description":"The shape every /api/admin/ endpoint follows: locale resolution, Sanctum token auth, FormRequest validation with ?with eager-loading, model write guarded by an observer, then an API resource response.","steps":["public-index","bootstrap-app","middleware-set-locale","routes-api-admin","auth-sanctum","form-requests","tournament-controller","tournament-model","tournament-observer","postgres","api-resources"]},{"id":"tournament-matchmaking","name":"Fight card generation","description":"POST tournaments/{tournament}/match_records/generate pairs unpaired registrations by discipline, weight, gender, age and experience tier, persists the bouts with contiguous sort order, and records unpairable registrations as matchmaking issues.","steps":["routes-api-admin","tournament-match-record-controller","tournament-model","matchmaking-service","experience-tier-model","registration-model","match-record-model","match-record-observer","reorder-match-records-action","postgres","match-record-changed-event","redis","horizon","reverb"]},{"id":"realtime-match-record-broadcast","name":"Live match-record push","description":"Any edit to a bout (result, status, position) fires MatchRecordChanged after commit; the queued broadcast is picked up by Horizon and delivered over Reverb on the tournament's public channel.","steps":["routes-api-admin","match-record-controller","match-record-model","match-record-observer","match-record-changed-event","redis","horizon","reverb"]},{"id":"public-registration-submission","name":"Public registration submission","description":"An athlete self-registers from the public form: lookup or creation by tax number, duplicate-guarded registration, a matchmaking-issues re-sync on the tournament, and finally the printable registration PDF.","steps":["routes-api-public","rate-limiters","public-registration-form-controller","form-requests","athlete-model","registration-model","registration-observer","tournament-model","matchmaking-service","postgres","spatie-laravel-pdf","pdf-views"]},{"id":"public-tournament-board","name":"Public tournament board read","description":"Unauthenticated clients read in-progress and completed tournaments and their match records through a 60-second response cache, served by the reduced Public* resources.","steps":["routes-api-public","rate-limiters","public-tournament-controller","spatie-responsecache","redis","tournament-model","match-record-model","postgres","public-api-resources"]},{"id":"media-upload-lifecycle","name":"Two-step file upload and media attachment","description":"A file is uploaded ahead of the form, parked on the local temp disk with a cached descriptor, then attached to a model's media collection on save; whatever is never attached is pruned by the scheduled cleanup command.","steps":["routes-api-admin","temporary-upload-controller","store-temporary-upload-action","local-temp-disk","redis","athlete-controller","interacts-with-media-trait","spatie-medialibrary","s3-storage","media-model","scheduler","cleanup-temporary-uploads-command"]},{"id":"password-reset","name":"API-driven password reset","description":"auth/forgot_password sends a queued notification carrying a frontend reset URL; auth/reset_password then rewrites the password and revokes every existing token.","steps":["routes-api-admin","auth-controller","form-requests","user-model","reset-password-notification","redis","horizon","email-view-reset-password","mailer"]}]};
 
-const LAYERS = ['entry', 'domain', 'data', 'async', 'integration', 'infra'];
-const LAYER_LABEL = {
-  entry: 'entry · http',
-  domain: 'domain · logic',
-  data: 'data · models',
-  async: 'async · queue',
-  integration: 'integration',
-  infra: 'infra'
-};
-const layerColor = l => getComputedStyle(document.documentElement).getPropertyValue('--l-' + l).trim() || '#8A8A9E';
-
-/* ── Layout: one band per layer, wrapped into sub-columns ── */
-const NW = 196, NH = 42, VGAP = 14, COLGAP = 34, BANDGAP = 78, MAXROWS = 14, TOP = 54;
-
-const byId = new Map(GRAPH.nodes.map(n => [n.id, n]));
-let x = 0;
-const bands = [];
-
-LAYERS.forEach(layer => {
-  const list = GRAPH.nodes.filter(n => n.layer === layer);
-  if (!list.length) { return; }
-  const cols = Math.ceil(list.length / MAXROWS);
-  const rows = Math.ceil(list.length / cols);
-  list.forEach((n, i) => {
-    const c = Math.floor(i / rows), r = i % rows;
-    n.x = x + c * (NW + COLGAP);
-    n.y = TOP + r * (NH + VGAP);
-    n.w = NW;
-    n.h = NH;
-  });
-  const width = cols * NW + (cols - 1) * COLGAP;
-  bands.push({ layer, x, width });
-  x += width + BANDGAP;
-});
-
-/* ── Render ── */
-const svg = document.getElementById('svg');
-const gEdges = document.getElementById('edges');
-const gNodes = document.getElementById('nodes');
-const gLabels = document.getElementById('labels');
-const gFlow = document.getElementById('flowlayer');
-const viewport = document.getElementById('viewport');
-const tip = document.getElementById('tip');
+const LAYERS = [
+  ['entry',       'Entry',       'var(--entry)',       '#3d7dd8'],
+  ['domain',      'Domain',      'var(--domain)',      '#7a5cd6'],
+  ['data',        'Data',        'var(--data)',        '#2f9e6e'],
+  ['async',       'Async',       'var(--async)',       '#c9803a'],
+  ['integration', 'Integration', 'var(--integration)', '#c2557d'],
+  ['infra',       'Infra',       'var(--infra)',       '#4b5a71'],
+];
+const COLOR = Object.fromEntries(LAYERS.map(l => [l[0], l[3]]));
 const NS = 'http://www.w3.org/2000/svg';
-const el = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) { e.setAttribute(k, a[k]); } return e; };
 
-bands.forEach(b => {
-  const t = el('text', { x: b.x, y: 26, class: 'edgelabel' });
-  t.style.textAnchor = 'start';
-  t.setAttribute('fill', layerColor(b.layer));
-  t.style.letterSpacing = '0.12em';
-  t.style.textTransform = 'uppercase';
-  t.style.fontSize = '10px';
-  t.textContent = LAYER_LABEL[b.layer];
-  gLabels.appendChild(t);
-});
+const NODE_W = 190, NODE_H = 46, GAP_X = 26, GAP_Y = 20, BAND_HEAD = 26, BAND_GAP = 44, PAD = 40;
 
-function anchors(a, b) {
-  const forward = b.x >= a.x;
-  const sx = forward ? a.x + a.w : a.x;
-  const tx = forward ? b.x : b.x + b.w;
-  return { sx, sy: a.y + a.h / 2, tx, ty: b.y + b.h / 2, forward };
-}
-function edgePath(a, b) {
-  const { sx, sy, tx, ty, forward } = anchors(a, b);
-  const d = Math.max(40, Math.abs(tx - sx) * 0.45);
-  const c1 = forward ? sx + d : sx - d;
-  const c2 = forward ? tx - d : tx + d;
-  return `M ${sx} ${sy} C ${c1} ${sy}, ${c2} ${ty}, ${tx} ${ty}`;
-}
+const byId = Object.fromEntries(GRAPH.nodes.map(n => [n.id, n]));
+const svg = document.getElementById('graph');
+const root = document.getElementById('root');
+const gBands = document.getElementById('bands');
+const gEdges = document.getElementById('edges');
+const gOverlay = document.getElementById('overlay');
+const gNodes = document.getElementById('nodes');
+const gEdgeLabels = document.getElementById('edgelabels');
+const tooltip = document.getElementById('tooltip');
+const stage = document.getElementById('stage');
 
-const edgeEls = [];
-GRAPH.edges.forEach((e, i) => {
-  const a = byId.get(e.from), b = byId.get(e.to);
-  const d = edgePath(a, b);
-  const p = el('path', { d, class: 'edge', 'marker-end': 'url(#arrow)' });
-  const hit = el('path', { d, class: 'edge-hit' });
-  gEdges.appendChild(p);
-  gEdges.appendChild(hit);
-  const rec = { e, p, hit, a, b, i };
-  edgeEls.push(rec);
-  hit.addEventListener('mouseenter', ev => showEdgeTip(rec, ev));
-  hit.addEventListener('mousemove', ev => place(ev.clientX, ev.clientY));
-  hit.addEventListener('mouseleave', hideTip);
-});
-
-const nodeEls = new Map();
-GRAPH.nodes.forEach(n => {
-  const g = el('g', { class: 'node', transform: `translate(${n.x},${n.y})` });
-  g.appendChild(el('rect', { width: n.w, height: n.h }));
-  g.appendChild(el('rect', { width: 3, height: n.h, class: 'accentbar', fill: layerColor(n.layer) }));
-  const label = el('text', { x: 12, y: n.h / 2 - 5 });
-  label.textContent = n.label.length > 26 ? n.label.slice(0, 25) + '…' : n.label;
-  const sub = el('text', { x: 12, y: n.h / 2 + 9, class: 'sub' });
-  sub.textContent = n.type;
-  g.appendChild(label);
-  g.appendChild(sub);
-  gNodes.appendChild(g);
-  nodeEls.set(n.id, g);
-
-  const enter = ev => { showNodeTip(n, ev); highlightNode(n.id, true); };
-  g.addEventListener('mouseenter', enter);
-  g.addEventListener('mousemove', ev => place(ev.clientX, ev.clientY));
-  g.addEventListener('mouseleave', () => { hideTip(); highlightNode(n.id, false); });
-  g.addEventListener('click', ev => { ev.stopPropagation(); showNodeTip(n, ev); place(ev.clientX, ev.clientY); });
-});
-
-/* ── Tooltip ── */
-function showNodeTip(n, ev) {
-  tip.style.borderLeftColor = layerColor(n.layer);
-  tip.innerHTML = '<div class="t-name"></div><div class="t-meta"></div><div class="t-path"></div><div class="t-desc"></div>';
-  tip.querySelector('.t-name').textContent = n.label;
-  tip.querySelector('.t-meta').textContent = n.type + ' · ' + n.layer;
-  tip.querySelector('.t-path').textContent = n.path;
-  tip.querySelector('.t-desc').textContent = n.description;
-  tip.classList.add('on');
-  place(ev.clientX, ev.clientY);
-}
-function showEdgeTip(rec, ev) {
-  tip.style.borderLeftColor = '#6E6E90';
-  tip.innerHTML = '<div class="t-name"></div><div class="t-meta"></div><div class="t-desc"></div>';
-  tip.querySelector('.t-name').textContent = rec.a.label + ' → ' + rec.b.label;
-  tip.querySelector('.t-meta').textContent = rec.e.type;
-  tip.querySelector('.t-desc').textContent = rec.e.label || '';
-  tip.classList.add('on');
-  place(ev.clientX, ev.clientY);
-}
-function hideTip() { tip.classList.remove('on'); }
-function place(cx, cy) {
-  const r = tip.getBoundingClientRect();
-  let left = cx + 16, top = cy + 16;
-  if (left + r.width > window.innerWidth - 8) { left = cx - r.width - 16; }
-  if (top + r.height > window.innerHeight - 8) { top = cy - r.height - 16; }
-  tip.style.left = Math.max(8, left) + 'px';
-  tip.style.top = Math.max(8, top) + 'px';
-}
-
-function highlightNode(id, on) {
-  if (activeFlow) { return; }
-  nodeEls.get(id).classList.toggle('hot', on);
-  edgeEls.forEach(r => {
-    if (r.e.from === id || r.e.to === id) { r.p.classList.toggle('incident', on); }
-  });
-}
-
-/* ── Flows ── */
+let layout = null;          // {pos:{id:{x,y}}, width, height}
 let activeFlow = null;
-const flowsBox = document.getElementById('flows');
+let view = {x:0, y:0, k:1};
 
-GRAPH.flows.forEach(f => {
-  const card = document.createElement('div');
-  card.className = 'flow';
-  card.dataset.id = f.id;
-  const nm = document.createElement('div'); nm.className = 'flow-name'; nm.textContent = f.name;
-  const ds = document.createElement('div'); ds.className = 'flow-desc'; ds.textContent = f.description;
-  card.appendChild(nm); card.appendChild(ds);
-  card.addEventListener('click', () => selectFlow(activeFlow === f.id ? null : f.id));
-  flowsBox.appendChild(card);
-});
+/* ------------------------------------------------------------------ layout */
+function bandsOf(){
+  return LAYERS.map(([key,label]) => ({key, label, nodes: GRAPH.nodes.filter(n => n.layer === key)}))
+               .filter(b => b.nodes.length);
+}
 
-function selectFlow(id) {
-  activeFlow = id;
-  gFlow.innerHTML = '';
-  document.querySelectorAll('.steps').forEach(s => s.remove());
-  document.querySelectorAll('.flow').forEach(c => c.classList.toggle('active', c.dataset.id === id));
-  nodeEls.forEach(g => { g.classList.remove('dim', 'flowlit', 'hot'); });
-  edgeEls.forEach(r => { r.p.classList.remove('dim', 'flow', 'incident'); });
-
-  if (!id) { return; }
-  const flow = GRAPH.flows.find(f => f.id === id);
-  const set = new Set(flow.steps);
-
-  nodeEls.forEach((g, nid) => { g.classList.toggle('dim', !set.has(nid)); g.classList.toggle('flowlit', set.has(nid)); });
-
-  const pairs = new Set();
-  for (let i = 0; i < flow.steps.length - 1; i++) { pairs.add(flow.steps[i] + '>' + flow.steps[i + 1]); }
-  edgeEls.forEach(r => {
-    const onPath = pairs.has(r.e.from + '>' + r.e.to) || pairs.has(r.e.to + '>' + r.e.from);
-    r.p.classList.toggle('flow', onPath);
-    r.p.classList.toggle('dim', !onPath);
+function computeLayout(cols){
+  const bands = bandsOf();
+  const width = cols * NODE_W + (cols - 1) * GAP_X;
+  const pos = {}, bandBoxes = [];
+  let y = 0;
+  bands.forEach((band, bi) => {
+    if (bi) y += BAND_GAP;
+    const top = y;
+    y += BAND_HEAD;
+    const rows = Math.ceil(band.nodes.length / cols);
+    for (let r = 0; r < rows; r++){
+      const slice = band.nodes.slice(r * cols, (r + 1) * cols);
+      const rowW = slice.length * NODE_W + (slice.length - 1) * GAP_X;
+      const x0 = (width - rowW) / 2;
+      slice.forEach((n, i) => {
+        pos[n.id] = {x: x0 + i * (NODE_W + GAP_X), y: y + r * (NODE_H + GAP_Y)};
+      });
+    }
+    y += rows * NODE_H + (rows - 1) * GAP_Y;
+    bandBoxes.push({label: band.label, key: band.key, top, bottom: y});
   });
+  return {pos, bandBoxes, width, height: y, cols};
+}
 
-  for (let i = 0; i < flow.steps.length - 1; i++) {
-    const a = byId.get(flow.steps[i]), b = byId.get(flow.steps[i + 1]);
-    gFlow.appendChild(el('path', { d: edgePath(a, b), class: 'flowseq', 'marker-end': 'url(#arrow-flow)' }));
+/** Pick the column count whose aspect ratio fits the current stage best. */
+function bestLayout(){
+  const w = stage.clientWidth - PAD * 2, h = stage.clientHeight - PAD * 2;
+  let best = null;
+  for (let cols = 4; cols <= 12; cols++){
+    const L = computeLayout(cols);
+    const k = Math.min(w / L.width, h / L.height);
+    if (!best || k > best.k) best = {k, L};
   }
-  flow.steps.forEach((sid, i) => {
-    const n = byId.get(sid);
-    const g = el('g', { class: 'stepbadge', transform: `translate(${n.x - 2},${n.y - 2})` });
-    g.appendChild(el('circle', { r: 9 }));
-    const t = el('text', {}); t.textContent = i + 1;
-    g.appendChild(t);
-    gFlow.appendChild(g);
+  return best.L;
+}
+
+/* ------------------------------------------------------------------ render */
+function el(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function fitText(textEl, str, max){
+  textEl.textContent = str;
+  if (textEl.getComputedTextLength() <= max) return;
+  let s = str;
+  while (s.length > 2 && textEl.getComputedTextLength() > max){
+    s = s.slice(0, -1);
+    textEl.textContent = s + '…';
+  }
+}
+
+function anchor(a, b){
+  // point on rect `a` border, on the segment towards the centre of `b`
+  const ac = {x: a.x + NODE_W / 2, y: a.y + NODE_H / 2};
+  const bc = {x: b.x + NODE_W / 2, y: b.y + NODE_H / 2};
+  const dx = bc.x - ac.x, dy = bc.y - ac.y;
+  if (!dx && !dy) return ac;
+  const sx = dx ? (NODE_W / 2) / Math.abs(dx) : Infinity;
+  const sy = dy ? (NODE_H / 2) / Math.abs(dy) : Infinity;
+  const t = Math.min(sx, sy);
+  return {x: ac.x + dx * t, y: ac.y + dy * t};
+}
+
+function edgePath(from, to){
+  const a = anchor(from, to), b = anchor(to, from);
+  const dy = b.y - a.y, dx = b.x - a.x;
+  const off = Math.max(24, Math.min(120, Math.abs(dy) * .45 + Math.abs(dx) * .08));
+  const vertical = Math.abs(dy) >= Math.abs(dx);
+  const c1 = vertical ? {x: a.x, y: a.y + Math.sign(dy || 1) * off} : {x: a.x + Math.sign(dx || 1) * off, y: a.y};
+  const c2 = vertical ? {x: b.x, y: b.y - Math.sign(dy || 1) * off} : {x: b.x - Math.sign(dx || 1) * off, y: b.y};
+  return `M${a.x},${a.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${b.x},${b.y}`;
+}
+
+function render(){
+  layout = bestLayout();
+  [gBands, gEdges, gOverlay, gNodes, gEdgeLabels].forEach(g => g.replaceChildren());
+
+  let defs = svg.querySelector('defs');
+  if (!defs){
+    defs = el('defs', {}, svg);
+    const mk = (id, color) => {
+      const m = el('marker', {id, viewBox:'0 0 8 8', refX:'7', refY:'4', markerWidth:'6',
+                              markerHeight:'6', orient:'auto-start-reverse'}, defs);
+      el('path', {d:'M0,0 L8,4 L0,8 z', fill:color}, m);
+    };
+    mk('arrow', '#33445e'); mk('arrow-hot', '#5ec8ff'); mk('arrow-on', '#ffb454');
+  }
+
+  // bands
+  layout.bandBoxes.forEach(b => {
+    el('text', {x: 0, y: b.top + 14, class:'band-label'}, gBands).textContent = b.label;
+    el('line', {x1: 0, y1: b.top + 19, x2: layout.width, y2: b.top + 19, class:'band-rule'}, gBands);
   });
 
-  const card = document.querySelector(`.flow[data-id="${id}"]`);
-  const ol = document.createElement('ol');
-  ol.className = 'steps';
-  flow.steps.forEach((sid, i) => {
-    const n = byId.get(sid);
-    const li = document.createElement('li');
-    const num = document.createElement('span'); num.className = 's-num'; num.textContent = String(i + 1).padStart(2, '0');
-    const wrap = document.createElement('span');
-    const nm = document.createElement('span'); nm.className = 's-name'; nm.textContent = n.label;
-    const ly = document.createElement('span'); ly.className = 's-layer'; ly.textContent = n.type + ' · ' + n.layer;
-    ly.style.color = layerColor(n.layer);
-    wrap.appendChild(nm); wrap.appendChild(ly);
-    li.appendChild(num); li.appendChild(wrap);
-    li.addEventListener('click', ev => { ev.stopPropagation(); centerOn(n); });
-    ol.appendChild(li);
+  // edges
+  GRAPH.edges.forEach((e, i) => {
+    const a = layout.pos[e.from], b = layout.pos[e.to];
+    const d = edgePath(a, b);
+    const p = el('path', {d, class:'edge', 'marker-end':'url(#arrow)', 'data-i': i}, gEdges);
+    const hit = el('path', {d, class:'edge-hit', 'data-i': i}, gEdges);
+    e._path = p;
+    hit.addEventListener('pointerenter', () => showEdgeLabel(e, i));
+    hit.addEventListener('pointerleave', hideEdgeLabel);
   });
-  card.appendChild(ol);
-  fitTo(flow.steps.map(s => byId.get(s)));
-}
-document.getElementById('clear').addEventListener('click', () => selectFlow(null));
 
-/* ── Pan & zoom ── */
-let scale = 1, tx = 0, ty = 0;
-const apply = () => viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+  // nodes
+  GRAPH.nodes.forEach(n => {
+    const p = layout.pos[n.id];
+    const g = el('g', {class:'node', 'data-id': n.id, transform:`translate(${p.x},${p.y})`}, gNodes);
+    el('rect', {width: NODE_W, height: NODE_H, fill: COLOR[n.layer] + '2e', stroke: COLOR[n.layer]}, g);
+    el('rect', {width: 4, height: NODE_H, fill: COLOR[n.layer], rx: 2}, g);
+    const t = el('text', {x: 14, y: NODE_H / 2, fill:'#e6edf7'}, g);
+    fitText(t, n.label, NODE_W - 24);
+    n._g = g;
+    g.addEventListener('pointerenter', ev => { showTip(n, ev); highlight(n.id, true); });
+    g.addEventListener('pointerleave', () => { hideTip(); highlight(n.id, false); });
+    g.addEventListener('click', ev => { ev.stopPropagation(); showTip(n, ev); });
+  });
 
-function bounds(list) {
-  const ns = list || GRAPH.nodes;
-  return {
-    x0: Math.min(...ns.map(n => n.x)) - 40,
-    y0: Math.min(...ns.map(n => n.y)) - 60,
-    x1: Math.max(...ns.map(n => n.x + n.w)) + 40,
-    y1: Math.max(...ns.map(n => n.y + n.h)) + 40
-  };
+  applyFlow();
 }
-function fitTo(list) {
-  const b = bounds(list);
-  const r = svg.getBoundingClientRect();
-  scale = Math.min(r.width / (b.x1 - b.x0), r.height / (b.y1 - b.y0), 1.6);
-  tx = (r.width - (b.x1 - b.x0) * scale) / 2 - b.x0 * scale;
-  ty = (r.height - (b.y1 - b.y0) * scale) / 2 - b.y0 * scale;
-  apply();
+
+/* ------------------------------------------------------------ interactions */
+function showEdgeLabel(e, i){
+  if (activeFlow) return;
+  e._path.classList.add('hot');
+  e._path.setAttribute('marker-end', 'url(#arrow-hot)');
+  const a = layout.pos[e.from], b = layout.pos[e.to];
+  const mx = (a.x + b.x) / 2 + NODE_W / 2, my = (a.y + b.y) / 2 + NODE_H / 2;
+  const t = el('text', {x: mx, y: my, class:'edge-label', 'text-anchor':'middle'}, gEdgeLabels);
+  t.textContent = e.label ? `${e.type} · ${e.label}` : e.type;
 }
-function centerOn(n) {
-  const r = svg.getBoundingClientRect();
-  scale = Math.max(scale, 0.9);
-  tx = r.width / 2 - (n.x + n.w / 2) * scale;
-  ty = r.height / 2 - (n.y + n.h / 2) * scale;
-  apply();
+function hideEdgeLabel(){
+  gEdgeLabels.replaceChildren();
+  GRAPH.edges.forEach(e => {
+    e._path.classList.remove('hot');
+    if (!e._path.classList.contains('on')) e._path.setAttribute('marker-end', 'url(#arrow)');
+  });
 }
-function zoomAt(cx, cy, factor) {
-  const r = svg.getBoundingClientRect();
-  const px = cx - r.left, py = cy - r.top;
-  const next = Math.min(3, Math.max(0.15, scale * factor));
-  tx = px - (px - tx) * (next / scale);
-  ty = py - (py - ty) * (next / scale);
-  scale = next;
-  apply();
+
+function highlight(id, on){
+  if (activeFlow) return;
+  GRAPH.edges.forEach(e => {
+    if (e.from !== id && e.to !== id) return;
+    e._path.classList.toggle('hot', on);
+    e._path.setAttribute('marker-end', on ? 'url(#arrow-hot)' : 'url(#arrow)');
+    const other = byId[e.from === id ? e.to : e.from];
+    other._g.classList.toggle('hot', on);
+  });
+  byId[id]._g.classList.toggle('hot', on);
+}
+
+function showTip(n, ev){
+  tooltip.innerHTML =
+    `<div class="tt-title"></div><div class="tt-meta"></div><div class="tt-path"></div><div class="tt-desc"></div>`;
+  tooltip.querySelector('.tt-title').textContent = n.label;
+  tooltip.querySelector('.tt-meta').textContent = `${n.type} · ${n.layer}`;
+  tooltip.querySelector('.tt-path').textContent = n.path;
+  tooltip.querySelector('.tt-desc').textContent = n.description;
+  tooltip.classList.add('show');
+  const r = stage.getBoundingClientRect();
+  const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+  let x = (ev.clientX - r.left) + 16, y = (ev.clientY - r.top) + 16;
+  x = Math.max(8, Math.min(x, r.width - tw - 8));
+  y = Math.max(8, Math.min(y, r.height - th - 8));
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+function hideTip(){ tooltip.classList.remove('show'); }
+
+/* -------------------------------------------------------------------- view */
+function applyView(){
+  root.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+}
+function fitTo(ids){
+  if (!layout) return;
+  let box;
+  if (ids && ids.length){
+    const xs = ids.map(i => layout.pos[i].x), ys = ids.map(i => layout.pos[i].y);
+    box = {x: Math.min(...xs), y: Math.min(...ys),
+           w: Math.max(...xs) + NODE_W - Math.min(...xs), h: Math.max(...ys) + NODE_H - Math.min(...ys)};
+  } else {
+    box = {x: 0, y: 0, w: layout.width, h: layout.height};
+  }
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const k = Math.min((W - PAD * 2) / box.w, (H - PAD * 2) / box.h, 1.6);
+  view.k = k;
+  view.x = (W - box.w * k) / 2 - box.x * k;
+  view.y = (H - box.h * k) / 2 - box.y * k;
+  applyView();
 }
 
 svg.addEventListener('wheel', ev => {
   ev.preventDefault();
-  zoomAt(ev.clientX, ev.clientY, ev.deltaY < 0 ? 1.12 : 1 / 1.12);
-}, { passive: false });
+  const r = svg.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const f = Math.exp(-ev.deltaY * 0.0016);
+  const k = Math.max(0.12, Math.min(4, view.k * f));
+  const ratio = k / view.k;
+  view.x = mx - (mx - view.x) * ratio;
+  view.y = my - (my - view.y) * ratio;
+  view.k = k;
+  applyView();
+}, {passive:false});
 
-let dragging = false, lastX = 0, lastY = 0;
+let drag = null;
 svg.addEventListener('pointerdown', ev => {
-  dragging = true; lastX = ev.clientX; lastY = ev.clientY;
-  svg.classList.add('dragging');
+  drag = {x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y};
   svg.setPointerCapture(ev.pointerId);
+  svg.classList.add('grabbing');
 });
 svg.addEventListener('pointermove', ev => {
-  if (!dragging) { return; }
-  tx += ev.clientX - lastX; ty += ev.clientY - lastY;
-  lastX = ev.clientX; lastY = ev.clientY;
-  apply();
+  if (!drag) return;
+  view.x = drag.vx + (ev.clientX - drag.x);
+  view.y = drag.vy + (ev.clientY - drag.y);
+  applyView();
 });
-const endDrag = () => { dragging = false; svg.classList.remove('dragging'); };
+const endDrag = () => { drag = null; svg.classList.remove('grabbing'); };
 svg.addEventListener('pointerup', endDrag);
 svg.addEventListener('pointercancel', endDrag);
-svg.addEventListener('pointerleave', endDrag);
+svg.addEventListener('click', ev => { if (ev.target === svg || ev.target.closest('#bands')) hideTip(); });
 
-document.getElementById('zin').addEventListener('click', () => {
-  const r = svg.getBoundingClientRect();
-  zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25);
-});
-document.getElementById('zout').addEventListener('click', () => {
-  const r = svg.getBoundingClientRect();
-  zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
-});
-document.getElementById('fit').addEventListener('click', () => fitTo(null));
+/* ------------------------------------------------------------------- flows */
+function stepEdgeKey(a, b){ return a + ' ' + b; }
 
-/* ── Legend & footer ── */
-const legend = document.getElementById('legend');
-bands.forEach(b => {
-  const s = document.createElement('span');
-  const i = document.createElement('i');
-  i.style.background = layerColor(b.layer);
-  s.appendChild(i);
-  s.appendChild(document.createTextNode(LAYER_LABEL[b.layer]));
-  legend.appendChild(s);
-});
-document.getElementById('foot').textContent =
-  GRAPH.nodes.length + ' nodi · ' + GRAPH.edges.length + ' relazioni · ' + GRAPH.flows.length + ' flussi — grafo generato da ' + GRAPH.generated_from + '. Stesso grafo disponibile come architecture.json per consumo da parte di agenti.';
-
-function refit() {
+function applyFlow(){
+  gOverlay.replaceChildren();
   const flow = activeFlow && GRAPH.flows.find(f => f.id === activeFlow);
-  fitTo(flow ? flow.steps.map(s => byId.get(s)) : null);
+
+  if (!flow){
+    GRAPH.nodes.forEach(n => n._g.classList.remove('dim','on'));
+    GRAPH.edges.forEach(e => {
+      e._path.classList.remove('dim','on','hot');
+      e._path.setAttribute('marker-end', 'url(#arrow)');
+    });
+    return;
+  }
+
+  const onNodes = new Set(flow.steps);
+  const pairs = new Set();
+  for (let i = 0; i < flow.steps.length - 1; i++) pairs.add(stepEdgeKey(flow.steps[i], flow.steps[i+1]));
+
+  GRAPH.nodes.forEach(n => {
+    n._g.classList.toggle('on', onNodes.has(n.id));
+    n._g.classList.toggle('dim', !onNodes.has(n.id));
+    n._g.classList.remove('hot');
+  });
+  GRAPH.edges.forEach(e => {
+    const on = pairs.has(stepEdgeKey(e.from, e.to));
+    e._path.classList.toggle('on', on);
+    e._path.classList.toggle('dim', !on);
+    e._path.classList.remove('hot');
+    e._path.setAttribute('marker-end', on ? 'url(#arrow-on)' : 'url(#arrow)');
+  });
+
+  // ordered overlay through every step, direct edge or not
+  const pts = flow.steps.map(id => {
+    const p = layout.pos[id];
+    return {x: p.x + NODE_W / 2, y: p.y + NODE_H / 2};
+  });
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++){
+    const a = pts[i-1], b = pts[i];
+    const off = Math.max(20, Math.abs(b.y - a.y) * .35);
+    d += ` C${a.x},${a.y + off} ${b.x},${b.y - off} ${b.x},${b.y}`;
+  }
+  el('path', {d, class:'flowline'}, gOverlay);
+  pts.forEach((p, i) => {
+    const g = el('g', {class:'badge', transform:`translate(${p.x - NODE_W/2 + 2},${p.y - NODE_H/2 - 2})`}, gOverlay);
+    el('circle', {r: 10, cx: 0, cy: 0}, g);
+    el('text', {x: 0, y: 0}, g).textContent = String(i + 1);
+  });
+
+  fitTo(flow.steps);
 }
-window.addEventListener('resize', refit);
-requestAnimationFrame(refit);
-window.addEventListener('load', refit);
+
+function selectFlow(id){
+  activeFlow = (activeFlow === id) ? null : id;
+  buildFlowList();
+  applyFlow();
+  if (!activeFlow) fitTo(null);
+}
+
+function buildFlowList(){
+  const wrap = document.getElementById('flows');
+  wrap.replaceChildren();
+  GRAPH.flows.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'flow' + (activeFlow === f.id ? ' active' : '');
+    const name = document.createElement('div');
+    name.className = 'fname'; name.textContent = f.name;
+    const desc = document.createElement('div');
+    desc.className = 'fdesc'; desc.textContent = f.description;
+    div.append(name, desc);
+    div.addEventListener('click', () => selectFlow(f.id));
+
+    if (activeFlow === f.id){
+      const ol = document.createElement('ol');
+      ol.className = 'steps';
+      f.steps.forEach(sid => {
+        const n = byId[sid];
+        const li = document.createElement('li');
+        const box = document.createElement('div');
+        box.textContent = n.label;
+        const sp = document.createElement('span');
+        sp.className = 'sp'; sp.textContent = n.path;
+        box.appendChild(sp);
+        li.appendChild(box);
+        li.addEventListener('click', ev => { ev.stopPropagation(); centerOn(sid); });
+        ol.appendChild(li);
+      });
+      div.appendChild(ol);
+    }
+    wrap.appendChild(div);
+  });
+}
+
+function centerOn(id){
+  const p = layout.pos[id];
+  const k = Math.max(view.k, 0.85);
+  view.k = k;
+  view.x = stage.clientWidth / 2 - (p.x + NODE_W / 2) * k;
+  view.y = stage.clientHeight / 2 - (p.y + NODE_H / 2) * k;
+  applyView();
+}
+
+/* -------------------------------------------------------------------- init */
+function buildLegend(){
+  const wrap = document.getElementById('legend');
+  LAYERS.forEach(([key, label, , hex]) => {
+    const n = GRAPH.nodes.filter(x => x.layer === key).length;
+    if (!n) return;
+    const s = document.createElement('span');
+    const i = document.createElement('i');
+    i.style.background = hex;
+    s.append(i, document.createTextNode(`${label} (${n})`));
+    wrap.appendChild(s);
+  });
+  document.getElementById('counts').textContent =
+    `${GRAPH.nodes.length} nodes · ${GRAPH.edges.length} edges · ${GRAPH.flows.length} flows`;
+}
+
+document.getElementById('btn-fit').addEventListener('click', () => fitTo(activeFlow ? GRAPH.flows.find(f => f.id === activeFlow).steps : null));
+document.getElementById('btn-clear').addEventListener('click', () => { if (activeFlow) selectFlow(activeFlow); });
+
+buildLegend();
+buildFlowList();
+render();
+requestAnimationFrame(() => { render(); fitTo(null); });
+window.addEventListener('load', () => { render(); fitTo(activeFlow ? GRAPH.flows.find(f => f.id === activeFlow).steps : null); });
+
+let rt;
+window.addEventListener('resize', () => {
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    render();
+    fitTo(activeFlow ? GRAPH.flows.find(f => f.id === activeFlow).steps : null);
+  }, 140);
+});
 </script>
+</body>
+</html>

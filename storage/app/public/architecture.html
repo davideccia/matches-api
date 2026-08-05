@@ -1,0 +1,2163 @@
+<!doctype html>
+<title>Architettura · matches-api</title>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ground:   #111118;
+  --ground-2: #1A1A24;
+  --ground-3: #23232F;
+  --text:     #EAE6DE;
+  --mid:      #8A8A9E;
+  --border:   #2A2A3A;
+  --accent:   #D44444;
+  --mono:     'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, 'Courier New', monospace;
+  --serif:    Georgia, 'Times New Roman', serif;
+  --sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+
+  --l-entry:       #D44444;
+  --l-domain:      #E07838;
+  --l-data:        #4AAD78;
+  --l-async:       #4A8CC4;
+  --l-integration: #9B7BD4;
+  --l-infra:       #72727E;
+}
+
+html, body { height: 100%; background: var(--ground); }
+body {
+  font-family: var(--sans);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.4rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin-bottom: 0.3rem;
+}
+h1 { font-family: var(--serif); font-size: 1.55rem; font-weight: normal; line-height: 1.1; }
+h1 em { font-style: normal; color: var(--accent); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 0.55rem 1rem; }
+.legend span {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mid);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.legend i { width: 9px; height: 9px; border-radius: 2px; display: block; }
+
+/* ── Shell ──────────────────────────────────────────── */
+.shell { flex: 1; display: flex; min-height: 0; }
+
+/* ── Diagram ────────────────────────────────────────── */
+.stage { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+#svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#svg.dragging { cursor: grabbing; }
+
+.edge { fill: none; stroke: #33334A; stroke-width: 1.1; }
+.edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
+.edge.incident { stroke: #6E6E90; stroke-width: 1.7; }
+.edge.flow { stroke: #EAE6DE; stroke-width: 2; }
+.dim { opacity: 0.09; }
+
+.node rect {
+  fill: var(--ground-2);
+  stroke: var(--border);
+  stroke-width: 1;
+  rx: 3;
+}
+.node.hot rect { fill: var(--ground-3); }
+.node .accentbar { stroke: none; rx: 0; }
+.node text {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--text);
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.node .sub {
+  font-size: 8.5px;
+  fill: var(--mid);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.node { cursor: pointer; }
+.node.flowlit rect { stroke: var(--text); stroke-width: 1.6; }
+
+.flowseq { fill: none; stroke: #EAE6DE; stroke-width: 2.2; stroke-dasharray: 7 5; }
+.stepbadge circle { fill: #EAE6DE; stroke: var(--ground); stroke-width: 1.5; }
+.stepbadge text { font-family: var(--mono); font-size: 9.5px; fill: #111118; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+
+.edgelabel {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--text);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.edgelabel-bg { fill: var(--ground); stroke: var(--border); rx: 2; }
+
+/* ── Controls ───────────────────────────────────────── */
+.controls {
+  position: absolute;
+  left: 0.9rem;
+  bottom: 0.9rem;
+  display: flex;
+  gap: 0.4rem;
+}
+.controls button {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mid);
+  background: var(--ground-2);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+}
+.controls button:hover { color: var(--text); border-color: var(--mid); }
+
+.hint {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--mid);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ── Tooltip ────────────────────────────────────────── */
+#tip {
+  position: fixed;
+  z-index: 20;
+  max-width: 330px;
+  background: var(--ground-3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--mid);
+  padding: 0.65rem 0.8rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.55);
+}
+#tip.on { opacity: 1; }
+#tip .t-name { font-family: var(--serif); font-size: 0.98rem; line-height: 1.2; }
+#tip .t-meta {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin: 0.2rem 0 0.45rem;
+}
+#tip .t-path {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--mid);
+  word-break: break-all;
+  margin-bottom: 0.4rem;
+}
+#tip .t-desc { font-size: 0.8rem; line-height: 1.55; }
+
+/* ── Panel ──────────────────────────────────────────── */
+.panel {
+  flex: none;
+  width: 330px;
+  border-left: 1px solid var(--border);
+  background: var(--ground-2);
+  overflow-y: auto;
+  padding: 1rem 1.1rem 2.5rem;
+}
+.panel-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.9rem;
+}
+.flow {
+  border: 1px solid var(--border);
+  background: var(--ground);
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 0.55rem;
+  cursor: pointer;
+}
+.flow:hover { border-color: var(--mid); }
+.flow.active { border-color: var(--accent); border-left-width: 3px; }
+.flow-name { font-family: var(--serif); font-size: 1rem; line-height: 1.2; }
+.flow-desc { font-size: 0.78rem; color: var(--mid); line-height: 1.5; margin-top: 0.3rem; overflow-wrap: anywhere; }
+
+.steps { list-style: none; margin: 0.7rem 0 0.2rem; }
+.steps li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 0.55rem;
+  align-items: baseline;
+  padding: 0.3rem 0;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+.steps li:hover .s-name { color: #fff; text-decoration: underline; }
+.s-num { font-family: var(--mono); font-size: 0.62rem; color: var(--mid); }
+.s-name { font-family: var(--mono); font-size: 0.73rem; line-height: 1.4; }
+.s-layer {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  color: var(--mid);
+}
+.clearflow {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mid);
+  background: none;
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+  margin-bottom: 0.9rem;
+}
+.clearflow:hover { color: var(--text); border-color: var(--mid); }
+
+.panel-foot {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--mid);
+  line-height: 1.7;
+  margin-top: 1.4rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .shell { flex-direction: column; }
+  .stage { height: 62vh; flex: none; }
+  .panel { width: auto; border-left: none; border-top: 1px solid var(--border); overflow: visible; }
+  .legend { display: none; }
+}
+</style>
+
+<div class="top">
+  <div>
+    <div class="eyebrow">matches-api · laravel 13 rest api · mappa architetturale</div>
+    <h1>Architettura <em>matches-api</em></h1>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<div class="shell">
+  <div class="stage">
+    <svg id="svg">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#4A4A64"></path>
+        </marker>
+        <marker id="arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#EAE6DE"></path>
+        </marker>
+      </defs>
+      <g id="viewport">
+        <g id="edges"></g>
+        <g id="flowlayer"></g>
+        <g id="nodes"></g>
+        <g id="labels"></g>
+      </g>
+    </svg>
+    <div class="controls">
+      <button id="zin">+</button>
+      <button id="zout">−</button>
+      <button id="fit">fit</button>
+    </div>
+    <div class="hint">scroll = zoom · drag = pan · hover = dettaglio</div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-label">Flussi end-to-end</div>
+    <button class="clearflow" id="clear">azzera selezione</button>
+    <div id="flows"></div>
+    <div class="panel-foot" id="foot"></div>
+  </aside>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const GRAPH = {
+ "generated_from": "matches-api (Laravel 13 REST API)",
+ "nodes": [
+  {
+   "id": "bootstrap-app",
+   "label": "bootstrap/app.php",
+   "type": "infra",
+   "layer": "infra",
+   "path": "bootstrap/app.php",
+   "description": "Application bootstrap: mounts the admin/public route files under their prefixes, registers middleware, aliases and the JSON exception renderer."
+  },
+  {
+   "id": "routes-admin",
+   "label": "routes/api.admin.php",
+   "type": "other",
+   "layer": "entry",
+   "path": "routes/api.admin.php",
+   "description": "Authenticated admin surface mounted at /api/admin: auth endpoints, dashboard, every apiResource, nested tournament routes and bulk deletes."
+  },
+  {
+   "id": "routes-public",
+   "label": "routes/api.public.php",
+   "type": "other",
+   "layer": "entry",
+   "path": "routes/api.public.php",
+   "description": "Unauthenticated surface mounted at /api/public with a global throttle:10,1: registration form endpoints and public tournament reads."
+  },
+  {
+   "id": "routes-web",
+   "label": "routes/web.php",
+   "type": "other",
+   "layer": "entry",
+   "path": "routes/web.php",
+   "description": "Minimal web surface: the welcome view and static redirects to documents published under storage/app/public."
+  },
+  {
+   "id": "middleware-set-locale",
+   "label": "SetLocale",
+   "type": "middleware",
+   "layer": "entry",
+   "path": "app/Http/Middleware/SetLocale.php",
+   "description": "Prepended to the api group; resolves the request locale from Accept-Language against the supported en/it list."
+  },
+  {
+   "id": "middleware-horizon-auth",
+   "label": "HorizonBasicAuth",
+   "type": "middleware",
+   "layer": "entry",
+   "path": "app/Http/Middleware/HorizonBasicAuth.php",
+   "description": "HTTP basic auth gate protecting the Horizon dashboard in non-local environments."
+  },
+  {
+   "id": "sanctum-guard",
+   "label": "auth:sanctum",
+   "type": "external",
+   "layer": "entry",
+   "path": "config/sanctum.php",
+   "description": "Laravel Sanctum personal access token guard protecting every admin route except the auth entry points."
+  },
+  {
+   "id": "controller-auth",
+   "label": "AuthController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/AuthController.php",
+   "description": "Login (issues a Sanctum token), current user, logout, and the forgot/reset password pair driven by the Password broker."
+  },
+  {
+   "id": "controller-dashboard",
+   "label": "DashboardController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/DashboardController.php",
+   "description": "Aggregates active tournaments with registration and match-record counts per status for the admin dashboard."
+  },
+  {
+   "id": "controller-user",
+   "label": "UserController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/UserController.php",
+   "description": "CRUD plus bulk delete for users, the only resource whose requests are policy-guarded."
+  },
+  {
+   "id": "controller-athlete",
+   "label": "AthleteController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/AthleteController.php",
+   "description": "CRUD, filtering and bulk delete for athletes, including photo media attachment from temporary uploads."
+  },
+  {
+   "id": "controller-tournament",
+   "label": "TournamentController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/TournamentController.php",
+   "description": "CRUD and bulk delete for tournaments, including cover media attachment from temporary uploads."
+  },
+  {
+   "id": "controller-registration",
+   "label": "RegistrationController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/RegistrationController.php",
+   "description": "CRUD, paid/arrived/weight filters, bulk delete and the single-registration PDF export."
+  },
+  {
+   "id": "controller-match-record",
+   "label": "MatchRecordController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/MatchRecordController.php",
+   "description": "CRUD and bulk delete for bouts; writes flow through the observer that keeps sort contiguous and broadcasts."
+  },
+  {
+   "id": "controller-discipline",
+   "label": "DisciplineController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/DisciplineController.php",
+   "description": "CRUD and bulk delete for the discipline reference data shared across tournaments."
+  },
+  {
+   "id": "controller-weight-category",
+   "label": "WeightCategoryController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/WeightCategoryController.php",
+   "description": "CRUD and bulk delete for the weight category reference data shared across tournaments."
+  },
+  {
+   "id": "controller-experience-tier",
+   "label": "ExperienceTierController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/ExperienceTierController.php",
+   "description": "CRUD and bulk delete for experience tiers, the match-count bands matchmaking pairs athletes within."
+  },
+  {
+   "id": "controller-tournament-registration",
+   "label": "TournamentRegistrationController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/TournamentRegistrationController.php",
+   "description": "Nested index/store for a tournament's registrations; the store request injects tournament_id from the bound model."
+  },
+  {
+   "id": "controller-tournament-match-record",
+   "label": "TournamentMatchRecordController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/TournamentMatchRecordController.php",
+   "description": "Nested index/store for a tournament's bouts plus the two custom actions: matchmaking generation and the fight-card PDF."
+  },
+  {
+   "id": "controller-tournament-experience-tier",
+   "label": "TournamentExperienceTierController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/TournamentExperienceTierController.php",
+   "description": "Nested index/store for tournament-scoped experience tiers, which override the global tiers when present."
+  },
+  {
+   "id": "controller-temporary-upload",
+   "label": "TemporaryUploadController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/TemporaryUploadController.php",
+   "description": "Accepts a file upload and returns a temporary-file handle later attached to a model's media collection."
+  },
+  {
+   "id": "controller-public-registration-form",
+   "label": "PublicRegistrationFormController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/PublicRegistrationFormController.php",
+   "description": "Unauthenticated registration flow: athlete lookup by tax_number, athlete/registration creation, reference lists and the registration PDF."
+  },
+  {
+   "id": "controller-public-tournament",
+   "label": "PublicTournamentController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/Api/PublicTournamentController.php",
+   "description": "Unauthenticated, response-cached reads of in-progress and completed tournaments and their match records."
+  },
+  {
+   "id": "controller-media",
+   "label": "MediaController",
+   "type": "controller",
+   "layer": "entry",
+   "path": "app/Http/Controllers/MediaController.php",
+   "description": "Download and delete endpoints for media models; currently not bound to any route file."
+  },
+  {
+   "id": "form-requests",
+   "label": "FormRequests",
+   "type": "other",
+   "layer": "entry",
+   "path": "app/Http/Requests/",
+   "description": "Five-to-six requests per resource (Index/Show/Store/Update/Destroy/BulkDestroy) carrying validation, the with allowlist and authorization."
+  },
+  {
+   "id": "trait-inject-with",
+   "label": "InjectWith trait",
+   "type": "other",
+   "layer": "entry",
+   "path": "app/Traits/InjectWith.php",
+   "description": "Turns the comma-separated ?with= query string into a camelCase array validated against each request's with.* allowlist."
+  },
+  {
+   "id": "api-resources",
+   "label": "API Resources",
+   "type": "other",
+   "layer": "entry",
+   "path": "app/Http/Resources/",
+   "description": "Eloquent API Resources shaping every admin JSON response, one per model plus the dashboard and temporary-file shapes."
+  },
+  {
+   "id": "public-api-resources",
+   "label": "Public API Resources",
+   "type": "other",
+   "layer": "entry",
+   "path": "app/Http/Resources/Public/",
+   "description": "Reduced-field resources used by the unauthenticated endpoints so public payloads never leak admin-only attributes."
+  },
+  {
+   "id": "service-matchmaking",
+   "label": "MatchmakingService",
+   "type": "service",
+   "layer": "domain",
+   "path": "app/Services/MatchmakingService.php",
+   "description": "Groups unpaired registrations by discipline, weight category, gender, age band and experience tier, then emits bout attributes and unpairable issues."
+  },
+  {
+   "id": "action-reorder-match-records",
+   "label": "ReorderMatchRecordsAction",
+   "type": "other",
+   "layer": "domain",
+   "path": "app/Actions/ReorderMatchRecordsAction.php",
+   "description": "Keeps the sort column contiguous per tournament across insert, move and delete, each inside a DB transaction."
+  },
+  {
+   "id": "action-store-temporary-upload",
+   "label": "StoreTemporaryUploadAction",
+   "type": "other",
+   "layer": "domain",
+   "path": "app/Actions/StoreTemporaryUploadAction.php",
+   "description": "Writes the uploaded file to the local temp disk and caches a TemporaryFile handle under a UUID for one hour."
+  },
+  {
+   "id": "support-temporary-file",
+   "label": "TemporaryFile",
+   "type": "other",
+   "layer": "domain",
+   "path": "app/Support/TemporaryFile.php",
+   "description": "Readonly value object describing a cached temporary upload and able to rehydrate it as an UploadedFile."
+  },
+  {
+   "id": "rule-temporary-file",
+   "label": "TemporaryFileRule",
+   "type": "other",
+   "layer": "domain",
+   "path": "app/Rules/TemporaryFileRule.php",
+   "description": "Validation rule asserting that a submitted temporary-file id still resolves to a live TemporaryFile in the cache."
+  },
+  {
+   "id": "policy-user",
+   "label": "UserPolicy",
+   "type": "other",
+   "layer": "domain",
+   "path": "app/Policies/UserPolicy.php",
+   "description": "Gates user create/update/delete/bulkDestroy on the acting user's superadmin flag."
+  },
+  {
+   "id": "enums",
+   "label": "Enums",
+   "type": "other",
+   "layer": "domain",
+   "path": "app/Enums/",
+   "description": "Backed string enums for tournament status, athlete gender, match status and end method, and PDF type (which maps to its Blade view)."
+  },
+  {
+   "id": "observer-match-record",
+   "label": "MatchRecordObserver",
+   "type": "observer",
+   "layer": "domain",
+   "path": "app/Observers/MatchRecordObserver.php",
+   "description": "Delegates sort maintenance to the reorder action, resyncs tournament issues and athlete counts, and broadcasts on every write."
+  },
+  {
+   "id": "observer-tournament",
+   "label": "TournamentObserver",
+   "type": "observer",
+   "layer": "domain",
+   "path": "app/Observers/TournamentObserver.php",
+   "description": "Delete guard aborting with 409 when the tournament still has registrations or match records."
+  },
+  {
+   "id": "observer-registration",
+   "label": "RegistrationObserver",
+   "type": "observer",
+   "layer": "domain",
+   "path": "app/Observers/RegistrationObserver.php",
+   "description": "Rejects duplicate registrations, blocks deletion once bouts exist, and resyncs the tournament's matchmaking issues on every write."
+  },
+  {
+   "id": "observer-athlete",
+   "label": "AthleteObserver",
+   "type": "observer",
+   "layer": "domain",
+   "path": "app/Observers/AthleteObserver.php",
+   "description": "Derives full_name, normalises tax_number, and blocks deletion while registrations or bouts reference the athlete."
+  },
+  {
+   "id": "observer-experience-tier",
+   "label": "ExperienceTierObserver",
+   "type": "observer",
+   "layer": "domain",
+   "path": "app/Observers/ExperienceTierObserver.php",
+   "description": "Prevents enabling a tier whose match-count band overlaps another enabled tier in the same scope."
+  },
+  {
+   "id": "observers-reference",
+   "label": "Reference observers",
+   "type": "observer",
+   "layer": "domain",
+   "path": "app/Observers/DisciplineObserver.php, app/Observers/WeightCategoryObserver.php, app/Observers/UserObserver.php",
+   "description": "Observers for the reference and user models, mainly delete guards and attribute normalisation."
+  },
+  {
+   "id": "model-tournament",
+   "label": "Tournament",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/Tournament.php",
+   "description": "Aggregate root owning registrations, match records and experience tiers; exposes runMatchmaking, syncMatchmakingIssues and a cover media collection."
+  },
+  {
+   "id": "model-athlete",
+   "label": "Athlete",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/Athlete.php",
+   "description": "Competitor looked up publicly by tax_number; computes age, is_adult and match_records_count and owns a photo media collection."
+  },
+  {
+   "id": "model-registration",
+   "label": "Registration",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/Registration.php",
+   "description": "Join of athlete, tournament, discipline and weight category tracking paid_at, arrived and weight_in, with duplicate and bout-existence checks."
+  },
+  {
+   "id": "model-match-record",
+   "label": "MatchRecord",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/MatchRecord.php",
+   "description": "A bout between red and blue corner with sort ordering, status, end method and a JSON judges_points array."
+  },
+  {
+   "id": "model-experience-tier",
+   "label": "ExperienceTier",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/ExperienceTier.php",
+   "description": "Named match-count band, global or tournament-scoped, used by matchmaking to keep pairings within comparable experience."
+  },
+  {
+   "id": "model-discipline",
+   "label": "Discipline",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/Discipline.php",
+   "description": "Reference data for a combat discipline including default round count and minutes per round."
+  },
+  {
+   "id": "model-weight-category",
+   "label": "WeightCategory",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/WeightCategory.php",
+   "description": "Reference data for a weight class, whose value backs the weight-in exceeded filter on registrations."
+  },
+  {
+   "id": "model-user",
+   "label": "User",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/User.php",
+   "description": "Admin account holding Sanctum tokens and the superadmin flag the user policy gates on."
+  },
+  {
+   "id": "model-media",
+   "label": "Media",
+   "type": "model",
+   "layer": "data",
+   "path": "app/Models/Media.php",
+   "description": "Overrides the medialibrary media model to append a short-lived temporary_url when the disk supports signed URLs."
+  },
+  {
+   "id": "model-scopes",
+   "label": "Model Scopes",
+   "type": "other",
+   "layer": "data",
+   "path": "app/Models/Scopes/",
+   "description": "Dedicated global scope classes applied per model via the ScopedBy attribute rather than inline query builder calls."
+  },
+  {
+   "id": "migrations",
+   "label": "Migrations",
+   "type": "other",
+   "layer": "data",
+   "path": "database/migrations/",
+   "description": "Schema definition with UUID primary and foreign keys throughout and enum columns stored as plain strings."
+  },
+  {
+   "id": "seeders-factories",
+   "label": "Seeders & Factories",
+   "type": "other",
+   "layer": "data",
+   "path": "database/seeders/, database/factories/",
+   "description": "Factories used by the feature tests and seeders that build a demo tournament dataset."
+  },
+  {
+   "id": "postgres",
+   "label": "PostgreSQL",
+   "type": "external",
+   "layer": "data",
+   "path": "config/database.php, compose.yaml",
+   "description": "Primary datastore for all domain tables, run as postgres:18-alpine locally and postgres:17-alpine in production."
+  },
+  {
+   "id": "event-match-record-changed",
+   "label": "MatchRecordChanged",
+   "type": "event",
+   "layer": "async",
+   "path": "app/Events/MatchRecordChanged.php",
+   "description": "ShouldBroadcast + ShouldDispatchAfterCommit event carrying only a refresh flag for a given tournament."
+  },
+  {
+   "id": "broadcast-channel",
+   "label": "tournaments.{id}.match_records",
+   "type": "event",
+   "layer": "async",
+   "path": "routes/channels.php",
+   "description": "Public broadcast channel per tournament that clients subscribe to for live fight-card refreshes."
+  },
+  {
+   "id": "notification-reset-password",
+   "label": "ResetPasswordNotification",
+   "type": "job",
+   "layer": "async",
+   "path": "app/Notifications/ResetPasswordNotification.php, resources/views/emails/auth/reset-password.blade.php",
+   "description": "Queued mail notification carrying the API-driven password reset link rendered from its Blade template."
+  },
+  {
+   "id": "schedule",
+   "label": "Scheduler",
+   "type": "job",
+   "layer": "async",
+   "path": "routes/console.php",
+   "description": "Schedules temporary-upload cleanup every six hours, horizon:snapshot every five minutes and the nightly backup trio when a destination disk is configured."
+  },
+  {
+   "id": "command-cleanup-temporary-uploads",
+   "label": "CleanupTemporaryUploadsCommand",
+   "type": "job",
+   "layer": "async",
+   "path": "app/Console/Commands/CleanupTemporaryUploadsCommand.php",
+   "description": "Prunes temp/ files on the local disk older than the given age so orphaned uploads do not accumulate."
+  },
+  {
+   "id": "horizon",
+   "label": "Laravel Horizon",
+   "type": "infra",
+   "layer": "async",
+   "path": "config/horizon.php",
+   "description": "Supervises the Redis queue workers that drain broadcasts, notifications and any queued work."
+  },
+  {
+   "id": "redis",
+   "label": "Redis",
+   "type": "external",
+   "layer": "async",
+   "path": "config/cache.php, config/queue.php, compose.yaml",
+   "description": "Backs cache (including temporary-upload handles), sessions and the Horizon queue connection."
+  },
+  {
+   "id": "reverb",
+   "label": "Laravel Reverb",
+   "type": "external",
+   "layer": "integration",
+   "path": "config/reverb.php, docker/production/supervisord.conf",
+   "description": "WebSocket server that delivers broadcast payloads to subscribed dashboard clients."
+  },
+  {
+   "id": "spatie-pdf",
+   "label": "spatie/laravel-pdf",
+   "type": "external",
+   "layer": "integration",
+   "path": "config/pdf.php",
+   "description": "PDF rendering pipeline (DOMPDF driver) invoked by the controllers that stream A4 documents."
+  },
+  {
+   "id": "pdf-views",
+   "label": "PDF Blade views",
+   "type": "other",
+   "layer": "integration",
+   "path": "resources/views/pdf/",
+   "description": "Server-rendered templates for the registration form and the simple/detailed tournament fight-card sheets."
+  },
+  {
+   "id": "medialibrary",
+   "label": "spatie/laravel-medialibrary",
+   "type": "external",
+   "layer": "integration",
+   "path": "app/Traits/InteractsWithMedia.php, config/media-library.php",
+   "description": "Attaches files to models; the local trait adds attachment straight from a cached temporary upload."
+  },
+  {
+   "id": "s3-storage",
+   "label": "S3 object storage",
+   "type": "external",
+   "layer": "integration",
+   "path": "config/filesystems.php",
+   "description": "S3-compatible disk holding media conversions and, when configured, the nightly backup archives."
+  },
+  {
+   "id": "responsecache",
+   "label": "spatie/laravel-responsecache",
+   "type": "external",
+   "layer": "integration",
+   "path": "config/responsecache.php",
+   "description": "Caches whole HTTP responses for the public tournament endpoints, which declare a 60 second lifetime."
+  },
+  {
+   "id": "laravel-backup",
+   "label": "spatie/laravel-backup",
+   "type": "external",
+   "layer": "integration",
+   "path": "config/backup.php",
+   "description": "Nightly database and file backup, cleanup and monitoring, registered only when the destination disk is configured."
+  },
+  {
+   "id": "mail-transport",
+   "label": "Mail transport",
+   "type": "external",
+   "layer": "integration",
+   "path": "config/mail.php",
+   "description": "Outgoing mail: Mailpit locally, real SMTP in production, used by the password reset notification."
+  },
+  {
+   "id": "lang",
+   "label": "Translations",
+   "type": "other",
+   "layer": "infra",
+   "path": "lang/",
+   "description": "en/it message catalogues backing the locale middleware and the abort messages raised by observers."
+  },
+  {
+   "id": "docker-sail",
+   "label": "Laravel Sail stack",
+   "type": "infra",
+   "layer": "infra",
+   "path": "compose.yaml, docker/8.5/",
+   "description": "Local development stack: PHP 8.5 app container plus PostgreSQL, Redis and Mailpit."
+  },
+  {
+   "id": "docker-production",
+   "label": "Production image",
+   "type": "infra",
+   "layer": "infra",
+   "path": "compose.production.yml, docker/production/",
+   "description": "Single app image where supervisord drives php-fpm, Caddy, Horizon, Reverb and the scheduler alongside Postgres and Redis containers."
+  },
+  {
+   "id": "tests",
+   "label": "Feature test suite",
+   "type": "other",
+   "layer": "infra",
+   "path": "tests/Feature/",
+   "description": "One PHPUnit feature test per controller hitting the real /api/admin and /api/public paths from factory-built state."
+  }
+ ],
+ "edges": [
+  {
+   "from": "bootstrap-app",
+   "to": "routes-admin",
+   "type": "depends_on",
+   "label": "mounts /api/admin"
+  },
+  {
+   "from": "bootstrap-app",
+   "to": "routes-public",
+   "type": "depends_on",
+   "label": "mounts /api/public"
+  },
+  {
+   "from": "bootstrap-app",
+   "to": "routes-web",
+   "type": "depends_on",
+   "label": "mounts web"
+  },
+  {
+   "from": "bootstrap-app",
+   "to": "middleware-set-locale",
+   "type": "depends_on",
+   "label": "prepends to api group"
+  },
+  {
+   "from": "middleware-set-locale",
+   "to": "lang",
+   "type": "reads",
+   "label": "selects catalogue"
+  },
+  {
+   "from": "routes-admin",
+   "to": "sanctum-guard",
+   "type": "depends_on",
+   "label": "auth:sanctum"
+  },
+  {
+   "from": "sanctum-guard",
+   "to": "model-user",
+   "type": "reads",
+   "label": "resolves token owner"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-auth",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-dashboard",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-user",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-athlete",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-tournament",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-registration",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-match-record",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-discipline",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-weight-category",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-experience-tier",
+   "type": "calls"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-tournament-registration",
+   "type": "calls",
+   "label": "nested"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-tournament-match-record",
+   "type": "calls",
+   "label": "nested + custom actions"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-tournament-experience-tier",
+   "type": "calls",
+   "label": "nested"
+  },
+  {
+   "from": "routes-admin",
+   "to": "controller-temporary-upload",
+   "type": "calls"
+  },
+  {
+   "from": "routes-public",
+   "to": "controller-public-registration-form",
+   "type": "calls"
+  },
+  {
+   "from": "routes-public",
+   "to": "controller-public-tournament",
+   "type": "calls"
+  },
+  {
+   "from": "controller-public-tournament",
+   "to": "responsecache",
+   "type": "depends_on",
+   "label": "Cache attribute"
+  },
+  {
+   "from": "form-requests",
+   "to": "trait-inject-with",
+   "type": "depends_on",
+   "label": "?with= parsing"
+  },
+  {
+   "from": "form-requests",
+   "to": "rule-temporary-file",
+   "type": "depends_on",
+   "label": "validates upload id"
+  },
+  {
+   "from": "form-requests",
+   "to": "policy-user",
+   "type": "calls",
+   "label": "authorize()"
+  },
+  {
+   "from": "policy-user",
+   "to": "model-user",
+   "type": "reads",
+   "label": "superadmin flag"
+  },
+  {
+   "from": "controller-auth",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-user",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-athlete",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-tournament",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-registration",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-match-record",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-discipline",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-weight-category",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-experience-tier",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-tournament-registration",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-tournament-match-record",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-tournament-experience-tier",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-temporary-upload",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-public-registration-form",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-public-tournament",
+   "to": "form-requests",
+   "type": "depends_on"
+  },
+  {
+   "from": "controller-media",
+   "to": "model-media",
+   "type": "calls",
+   "label": "download / delete"
+  },
+  {
+   "from": "controller-auth",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-dashboard",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-registration",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-match-record",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-tournament",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-athlete",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-tournament-match-record",
+   "to": "api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-public-registration-form",
+   "to": "public-api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-public-tournament",
+   "to": "public-api-resources",
+   "type": "calls"
+  },
+  {
+   "from": "controller-dashboard",
+   "to": "model-tournament",
+   "type": "reads",
+   "label": "withCount aggregates"
+  },
+  {
+   "from": "controller-auth",
+   "to": "model-user",
+   "type": "writes",
+   "label": "issues / revokes tokens"
+  },
+  {
+   "from": "controller-auth",
+   "to": "notification-reset-password",
+   "type": "publishes",
+   "label": "password broker"
+  },
+  {
+   "from": "controller-user",
+   "to": "model-user",
+   "type": "writes"
+  },
+  {
+   "from": "controller-athlete",
+   "to": "model-athlete",
+   "type": "writes"
+  },
+  {
+   "from": "controller-tournament",
+   "to": "model-tournament",
+   "type": "writes"
+  },
+  {
+   "from": "controller-registration",
+   "to": "model-registration",
+   "type": "writes"
+  },
+  {
+   "from": "controller-match-record",
+   "to": "model-match-record",
+   "type": "writes"
+  },
+  {
+   "from": "controller-discipline",
+   "to": "model-discipline",
+   "type": "writes"
+  },
+  {
+   "from": "controller-weight-category",
+   "to": "model-weight-category",
+   "type": "writes"
+  },
+  {
+   "from": "controller-experience-tier",
+   "to": "model-experience-tier",
+   "type": "writes"
+  },
+  {
+   "from": "controller-tournament-registration",
+   "to": "model-registration",
+   "type": "writes"
+  },
+  {
+   "from": "controller-tournament-match-record",
+   "to": "model-match-record",
+   "type": "writes"
+  },
+  {
+   "from": "controller-tournament-experience-tier",
+   "to": "model-experience-tier",
+   "type": "writes"
+  },
+  {
+   "from": "controller-public-registration-form",
+   "to": "model-athlete",
+   "type": "writes",
+   "label": "firstOrCreate by tax_number"
+  },
+  {
+   "from": "controller-public-registration-form",
+   "to": "model-registration",
+   "type": "writes"
+  },
+  {
+   "from": "controller-public-tournament",
+   "to": "model-tournament",
+   "type": "reads",
+   "label": "in progress / completed only"
+  },
+  {
+   "from": "controller-tournament-match-record",
+   "to": "model-tournament",
+   "type": "calls",
+   "label": "runMatchmaking()"
+  },
+  {
+   "from": "model-tournament",
+   "to": "service-matchmaking",
+   "type": "calls",
+   "label": "generate + issues"
+  },
+  {
+   "from": "service-matchmaking",
+   "to": "model-registration",
+   "type": "reads",
+   "label": "unpaired registrations"
+  },
+  {
+   "from": "service-matchmaking",
+   "to": "model-experience-tier",
+   "type": "reads",
+   "label": "tournament tiers override global"
+  },
+  {
+   "from": "service-matchmaking",
+   "to": "model-match-record",
+   "type": "reads",
+   "label": "already paired athletes"
+  },
+  {
+   "from": "controller-temporary-upload",
+   "to": "action-store-temporary-upload",
+   "type": "calls"
+  },
+  {
+   "from": "action-store-temporary-upload",
+   "to": "support-temporary-file",
+   "type": "writes",
+   "label": "caches handle"
+  },
+  {
+   "from": "action-store-temporary-upload",
+   "to": "redis",
+   "type": "writes",
+   "label": "cache put, 60 min TTL"
+  },
+  {
+   "from": "rule-temporary-file",
+   "to": "support-temporary-file",
+   "type": "reads"
+  },
+  {
+   "from": "medialibrary",
+   "to": "support-temporary-file",
+   "type": "reads",
+   "label": "addMediaFromTemporaryFile"
+  },
+  {
+   "from": "controller-athlete",
+   "to": "medialibrary",
+   "type": "calls",
+   "label": "photo collection"
+  },
+  {
+   "from": "controller-tournament",
+   "to": "medialibrary",
+   "type": "calls",
+   "label": "cover collection"
+  },
+  {
+   "from": "medialibrary",
+   "to": "model-media",
+   "type": "writes"
+  },
+  {
+   "from": "medialibrary",
+   "to": "s3-storage",
+   "type": "writes",
+   "label": "stores originals + conversions"
+  },
+  {
+   "from": "model-match-record",
+   "to": "observer-match-record",
+   "type": "observes"
+  },
+  {
+   "from": "model-tournament",
+   "to": "observer-tournament",
+   "type": "observes"
+  },
+  {
+   "from": "model-registration",
+   "to": "observer-registration",
+   "type": "observes"
+  },
+  {
+   "from": "model-athlete",
+   "to": "observer-athlete",
+   "type": "observes"
+  },
+  {
+   "from": "model-experience-tier",
+   "to": "observer-experience-tier",
+   "type": "observes"
+  },
+  {
+   "from": "model-discipline",
+   "to": "observers-reference",
+   "type": "observes"
+  },
+  {
+   "from": "model-weight-category",
+   "to": "observers-reference",
+   "type": "observes"
+  },
+  {
+   "from": "model-user",
+   "to": "observers-reference",
+   "type": "observes"
+  },
+  {
+   "from": "observer-match-record",
+   "to": "action-reorder-match-records",
+   "type": "calls",
+   "label": "keeps sort contiguous"
+  },
+  {
+   "from": "observer-match-record",
+   "to": "event-match-record-changed",
+   "type": "publishes",
+   "label": "on create/update/delete"
+  },
+  {
+   "from": "observer-match-record",
+   "to": "model-athlete",
+   "type": "writes",
+   "label": "syncMatchRecordsCount"
+  },
+  {
+   "from": "observer-match-record",
+   "to": "model-tournament",
+   "type": "writes",
+   "label": "syncMatchmakingIssues"
+  },
+  {
+   "from": "observer-registration",
+   "to": "model-tournament",
+   "type": "writes",
+   "label": "syncMatchmakingIssues"
+  },
+  {
+   "from": "observer-registration",
+   "to": "model-match-record",
+   "type": "reads",
+   "label": "delete guard"
+  },
+  {
+   "from": "observer-tournament",
+   "to": "model-registration",
+   "type": "reads",
+   "label": "409 delete guard"
+  },
+  {
+   "from": "observer-tournament",
+   "to": "model-match-record",
+   "type": "reads",
+   "label": "409 delete guard"
+  },
+  {
+   "from": "observer-athlete",
+   "to": "model-registration",
+   "type": "reads",
+   "label": "409 delete guard"
+  },
+  {
+   "from": "observer-experience-tier",
+   "to": "model-experience-tier",
+   "type": "reads",
+   "label": "overlap check"
+  },
+  {
+   "from": "action-reorder-match-records",
+   "to": "model-match-record",
+   "type": "writes",
+   "label": "increment / decrement sort"
+  },
+  {
+   "from": "model-tournament",
+   "to": "enums",
+   "type": "depends_on",
+   "label": "status cast"
+  },
+  {
+   "from": "model-match-record",
+   "to": "enums",
+   "type": "depends_on",
+   "label": "status / end method casts"
+  },
+  {
+   "from": "model-athlete",
+   "to": "enums",
+   "type": "depends_on",
+   "label": "gender cast"
+  },
+  {
+   "from": "model-tournament",
+   "to": "model-scopes",
+   "type": "depends_on"
+  },
+  {
+   "from": "model-athlete",
+   "to": "model-scopes",
+   "type": "depends_on"
+  },
+  {
+   "from": "model-registration",
+   "to": "model-scopes",
+   "type": "depends_on"
+  },
+  {
+   "from": "model-match-record",
+   "to": "model-scopes",
+   "type": "depends_on"
+  },
+  {
+   "from": "model-tournament",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-athlete",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-registration",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-match-record",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-experience-tier",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-discipline",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-weight-category",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-user",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "model-media",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "migrations",
+   "to": "postgres",
+   "type": "writes",
+   "label": "UUID schema"
+  },
+  {
+   "from": "seeders-factories",
+   "to": "postgres",
+   "type": "writes"
+  },
+  {
+   "from": "event-match-record-changed",
+   "to": "redis",
+   "type": "publishes",
+   "label": "queued after commit"
+  },
+  {
+   "from": "redis",
+   "to": "horizon",
+   "type": "depends_on",
+   "label": "queue connection"
+  },
+  {
+   "from": "horizon",
+   "to": "event-match-record-changed",
+   "type": "subscribes",
+   "label": "drains broadcast job"
+  },
+  {
+   "from": "event-match-record-changed",
+   "to": "broadcast-channel",
+   "type": "publishes",
+   "label": "{refresh:true}"
+  },
+  {
+   "from": "broadcast-channel",
+   "to": "reverb",
+   "type": "depends_on",
+   "label": "WebSocket delivery"
+  },
+  {
+   "from": "horizon",
+   "to": "notification-reset-password",
+   "type": "subscribes",
+   "label": "drains mail job"
+  },
+  {
+   "from": "notification-reset-password",
+   "to": "mail-transport",
+   "type": "calls"
+  },
+  {
+   "from": "middleware-horizon-auth",
+   "to": "horizon",
+   "type": "depends_on",
+   "label": "protects dashboard"
+  },
+  {
+   "from": "schedule",
+   "to": "command-cleanup-temporary-uploads",
+   "type": "calls",
+   "label": "every six hours"
+  },
+  {
+   "from": "schedule",
+   "to": "horizon",
+   "type": "calls",
+   "label": "horizon:snapshot"
+  },
+  {
+   "from": "schedule",
+   "to": "laravel-backup",
+   "type": "calls",
+   "label": "nightly, when disk configured"
+  },
+  {
+   "from": "command-cleanup-temporary-uploads",
+   "to": "support-temporary-file",
+   "type": "writes",
+   "label": "prunes temp/ files"
+  },
+  {
+   "from": "laravel-backup",
+   "to": "postgres",
+   "type": "reads",
+   "label": "dumps database"
+  },
+  {
+   "from": "laravel-backup",
+   "to": "s3-storage",
+   "type": "writes",
+   "label": "stores archives"
+  },
+  {
+   "from": "controller-registration",
+   "to": "spatie-pdf",
+   "type": "calls",
+   "label": "registration PDF"
+  },
+  {
+   "from": "controller-tournament-match-record",
+   "to": "spatie-pdf",
+   "type": "calls",
+   "label": "fight-card PDF"
+  },
+  {
+   "from": "controller-public-registration-form",
+   "to": "spatie-pdf",
+   "type": "calls",
+   "label": "public registration PDF"
+  },
+  {
+   "from": "spatie-pdf",
+   "to": "pdf-views",
+   "type": "reads",
+   "label": "renders Blade"
+  },
+  {
+   "from": "enums",
+   "to": "pdf-views",
+   "type": "depends_on",
+   "label": "TournamentPdfTypeEnum::viewName()"
+  },
+  {
+   "from": "responsecache",
+   "to": "redis",
+   "type": "writes",
+   "label": "cached responses"
+  },
+  {
+   "from": "docker-sail",
+   "to": "postgres",
+   "type": "depends_on"
+  },
+  {
+   "from": "docker-sail",
+   "to": "redis",
+   "type": "depends_on"
+  },
+  {
+   "from": "docker-sail",
+   "to": "mail-transport",
+   "type": "depends_on",
+   "label": "Mailpit"
+  },
+  {
+   "from": "docker-production",
+   "to": "horizon",
+   "type": "depends_on",
+   "label": "supervisord program"
+  },
+  {
+   "from": "docker-production",
+   "to": "reverb",
+   "type": "depends_on",
+   "label": "supervisord program"
+  },
+  {
+   "from": "docker-production",
+   "to": "schedule",
+   "type": "depends_on",
+   "label": "supervisord program"
+  },
+  {
+   "from": "docker-production",
+   "to": "bootstrap-app",
+   "type": "depends_on",
+   "label": "php-fpm + Caddy"
+  },
+  {
+   "from": "tests",
+   "to": "routes-admin",
+   "type": "calls",
+   "label": "getJson / postJson"
+  },
+  {
+   "from": "tests",
+   "to": "routes-public",
+   "type": "calls",
+   "label": "unauthenticated paths"
+  },
+  {
+   "from": "tests",
+   "to": "seeders-factories",
+   "type": "depends_on",
+   "label": "builds state"
+  }
+ ],
+ "flows": [
+  {
+   "id": "match-record-write",
+   "name": "Admin edits a bout (live refresh)",
+   "description": "An admin creates or updates a match record; the observer keeps the tournament's sort ordering contiguous, resyncs derived counts, and pushes a refresh over WebSocket to every dashboard watching that tournament.",
+   "steps": [
+    "routes-admin",
+    "sanctum-guard",
+    "controller-match-record",
+    "form-requests",
+    "model-match-record",
+    "observer-match-record",
+    "action-reorder-match-records",
+    "postgres",
+    "event-match-record-changed",
+    "redis",
+    "horizon",
+    "broadcast-channel",
+    "reverb"
+   ]
+  },
+  {
+   "id": "matchmaking",
+   "name": "Generate the fight card",
+   "description": "POST tournaments/{tournament}/match_records/generate runs matchmaking: unpaired registrations are grouped by discipline, weight, gender, age band and experience tier, paired into bouts inside a transaction, and whatever cannot be paired is stored as matchmaking issues.",
+   "steps": [
+    "routes-admin",
+    "controller-tournament-match-record",
+    "model-tournament",
+    "service-matchmaking",
+    "model-experience-tier",
+    "model-registration",
+    "model-match-record",
+    "observer-match-record",
+    "postgres",
+    "api-resources"
+   ]
+  },
+  {
+   "id": "public-registration",
+   "name": "Public registration form submit",
+   "description": "An athlete registers themselves from the unauthenticated form: they are looked up or created by tax_number, the registration is validated against duplicates, and the tournament's matchmaking issues are resynced immediately.",
+   "steps": [
+    "routes-public",
+    "controller-public-registration-form",
+    "form-requests",
+    "model-athlete",
+    "model-registration",
+    "observer-registration",
+    "model-tournament",
+    "postgres",
+    "public-api-resources"
+   ]
+  },
+  {
+   "id": "pdf-export",
+   "name": "PDF export",
+   "description": "A registration form or a tournament fight-card sheet is streamed as A4 PDF; the enum maps the requested type to its Blade view and spatie/laravel-pdf renders it with the DOMPDF driver.",
+   "steps": [
+    "routes-admin",
+    "controller-tournament-match-record",
+    "model-tournament",
+    "enums",
+    "spatie-pdf",
+    "pdf-views"
+   ]
+  },
+  {
+   "id": "upload-to-media",
+   "name": "Temporary upload becomes model media",
+   "description": "A file is uploaded to the temporary endpoint and cached as a handle; a later resource write validates that handle and promotes the file into the model's media collection on S3. Handles never claimed are pruned by the scheduled cleanup command.",
+   "steps": [
+    "routes-admin",
+    "controller-temporary-upload",
+    "action-store-temporary-upload",
+    "support-temporary-file",
+    "redis",
+    "rule-temporary-file",
+    "controller-athlete",
+    "medialibrary",
+    "model-media",
+    "s3-storage"
+   ]
+  },
+  {
+   "id": "password-reset",
+   "name": "API-driven password reset",
+   "description": "auth/forgot_password queues the reset notification through Horizon and mails the link; auth/reset_password then rewrites the password and revokes every existing Sanctum token.",
+   "steps": [
+    "routes-admin",
+    "controller-auth",
+    "notification-reset-password",
+    "redis",
+    "horizon",
+    "mail-transport",
+    "model-user",
+    "postgres"
+   ]
+  },
+  {
+   "id": "scheduled-maintenance",
+   "name": "Scheduled maintenance",
+   "description": "The scheduler prunes expired temporary uploads every six hours, snapshots Horizon metrics every five minutes, and runs the backup trio nightly whenever a destination disk is actually configured.",
+   "steps": [
+    "docker-production",
+    "schedule",
+    "command-cleanup-temporary-uploads",
+    "support-temporary-file",
+    "laravel-backup",
+    "postgres",
+    "s3-storage"
+   ]
+  }
+ ]
+};
+
+const LAYERS = ['entry', 'domain', 'data', 'async', 'integration', 'infra'];
+const LAYER_LABEL = {
+  entry: 'entry · http',
+  domain: 'domain · logic',
+  data: 'data · models',
+  async: 'async · queue',
+  integration: 'integration',
+  infra: 'infra'
+};
+const layerColor = l => getComputedStyle(document.documentElement).getPropertyValue('--l-' + l).trim() || '#8A8A9E';
+
+/* ── Layout: one band per layer, wrapped into sub-columns ── */
+const NW = 196, NH = 42, VGAP = 14, COLGAP = 34, BANDGAP = 78, MAXROWS = 14, TOP = 54;
+
+const byId = new Map(GRAPH.nodes.map(n => [n.id, n]));
+let x = 0;
+const bands = [];
+
+LAYERS.forEach(layer => {
+  const list = GRAPH.nodes.filter(n => n.layer === layer);
+  if (!list.length) { return; }
+  const cols = Math.ceil(list.length / MAXROWS);
+  const rows = Math.ceil(list.length / cols);
+  list.forEach((n, i) => {
+    const c = Math.floor(i / rows), r = i % rows;
+    n.x = x + c * (NW + COLGAP);
+    n.y = TOP + r * (NH + VGAP);
+    n.w = NW;
+    n.h = NH;
+  });
+  const width = cols * NW + (cols - 1) * COLGAP;
+  bands.push({ layer, x, width });
+  x += width + BANDGAP;
+});
+
+/* ── Render ── */
+const svg = document.getElementById('svg');
+const gEdges = document.getElementById('edges');
+const gNodes = document.getElementById('nodes');
+const gLabels = document.getElementById('labels');
+const gFlow = document.getElementById('flowlayer');
+const viewport = document.getElementById('viewport');
+const tip = document.getElementById('tip');
+const NS = 'http://www.w3.org/2000/svg';
+const el = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) { e.setAttribute(k, a[k]); } return e; };
+
+bands.forEach(b => {
+  const t = el('text', { x: b.x, y: 26, class: 'edgelabel' });
+  t.style.textAnchor = 'start';
+  t.setAttribute('fill', layerColor(b.layer));
+  t.style.letterSpacing = '0.12em';
+  t.style.textTransform = 'uppercase';
+  t.style.fontSize = '10px';
+  t.textContent = LAYER_LABEL[b.layer];
+  gLabels.appendChild(t);
+});
+
+function anchors(a, b) {
+  const forward = b.x >= a.x;
+  const sx = forward ? a.x + a.w : a.x;
+  const tx = forward ? b.x : b.x + b.w;
+  return { sx, sy: a.y + a.h / 2, tx, ty: b.y + b.h / 2, forward };
+}
+function edgePath(a, b) {
+  const { sx, sy, tx, ty, forward } = anchors(a, b);
+  const d = Math.max(40, Math.abs(tx - sx) * 0.45);
+  const c1 = forward ? sx + d : sx - d;
+  const c2 = forward ? tx - d : tx + d;
+  return `M ${sx} ${sy} C ${c1} ${sy}, ${c2} ${ty}, ${tx} ${ty}`;
+}
+
+const edgeEls = [];
+GRAPH.edges.forEach((e, i) => {
+  const a = byId.get(e.from), b = byId.get(e.to);
+  const d = edgePath(a, b);
+  const p = el('path', { d, class: 'edge', 'marker-end': 'url(#arrow)' });
+  const hit = el('path', { d, class: 'edge-hit' });
+  gEdges.appendChild(p);
+  gEdges.appendChild(hit);
+  const rec = { e, p, hit, a, b, i };
+  edgeEls.push(rec);
+  hit.addEventListener('mouseenter', ev => showEdgeTip(rec, ev));
+  hit.addEventListener('mousemove', ev => place(ev.clientX, ev.clientY));
+  hit.addEventListener('mouseleave', hideTip);
+});
+
+const nodeEls = new Map();
+GRAPH.nodes.forEach(n => {
+  const g = el('g', { class: 'node', transform: `translate(${n.x},${n.y})` });
+  g.appendChild(el('rect', { width: n.w, height: n.h }));
+  g.appendChild(el('rect', { width: 3, height: n.h, class: 'accentbar', fill: layerColor(n.layer) }));
+  const label = el('text', { x: 12, y: n.h / 2 - 5 });
+  label.textContent = n.label.length > 26 ? n.label.slice(0, 25) + '…' : n.label;
+  const sub = el('text', { x: 12, y: n.h / 2 + 9, class: 'sub' });
+  sub.textContent = n.type;
+  g.appendChild(label);
+  g.appendChild(sub);
+  gNodes.appendChild(g);
+  nodeEls.set(n.id, g);
+
+  const enter = ev => { showNodeTip(n, ev); highlightNode(n.id, true); };
+  g.addEventListener('mouseenter', enter);
+  g.addEventListener('mousemove', ev => place(ev.clientX, ev.clientY));
+  g.addEventListener('mouseleave', () => { hideTip(); highlightNode(n.id, false); });
+  g.addEventListener('click', ev => { ev.stopPropagation(); showNodeTip(n, ev); place(ev.clientX, ev.clientY); });
+});
+
+/* ── Tooltip ── */
+function showNodeTip(n, ev) {
+  tip.style.borderLeftColor = layerColor(n.layer);
+  tip.innerHTML = '<div class="t-name"></div><div class="t-meta"></div><div class="t-path"></div><div class="t-desc"></div>';
+  tip.querySelector('.t-name').textContent = n.label;
+  tip.querySelector('.t-meta').textContent = n.type + ' · ' + n.layer;
+  tip.querySelector('.t-path').textContent = n.path;
+  tip.querySelector('.t-desc').textContent = n.description;
+  tip.classList.add('on');
+  place(ev.clientX, ev.clientY);
+}
+function showEdgeTip(rec, ev) {
+  tip.style.borderLeftColor = '#6E6E90';
+  tip.innerHTML = '<div class="t-name"></div><div class="t-meta"></div><div class="t-desc"></div>';
+  tip.querySelector('.t-name').textContent = rec.a.label + ' → ' + rec.b.label;
+  tip.querySelector('.t-meta').textContent = rec.e.type;
+  tip.querySelector('.t-desc').textContent = rec.e.label || '';
+  tip.classList.add('on');
+  place(ev.clientX, ev.clientY);
+}
+function hideTip() { tip.classList.remove('on'); }
+function place(cx, cy) {
+  const r = tip.getBoundingClientRect();
+  let left = cx + 16, top = cy + 16;
+  if (left + r.width > window.innerWidth - 8) { left = cx - r.width - 16; }
+  if (top + r.height > window.innerHeight - 8) { top = cy - r.height - 16; }
+  tip.style.left = Math.max(8, left) + 'px';
+  tip.style.top = Math.max(8, top) + 'px';
+}
+
+function highlightNode(id, on) {
+  if (activeFlow) { return; }
+  nodeEls.get(id).classList.toggle('hot', on);
+  edgeEls.forEach(r => {
+    if (r.e.from === id || r.e.to === id) { r.p.classList.toggle('incident', on); }
+  });
+}
+
+/* ── Flows ── */
+let activeFlow = null;
+const flowsBox = document.getElementById('flows');
+
+GRAPH.flows.forEach(f => {
+  const card = document.createElement('div');
+  card.className = 'flow';
+  card.dataset.id = f.id;
+  const nm = document.createElement('div'); nm.className = 'flow-name'; nm.textContent = f.name;
+  const ds = document.createElement('div'); ds.className = 'flow-desc'; ds.textContent = f.description;
+  card.appendChild(nm); card.appendChild(ds);
+  card.addEventListener('click', () => selectFlow(activeFlow === f.id ? null : f.id));
+  flowsBox.appendChild(card);
+});
+
+function selectFlow(id) {
+  activeFlow = id;
+  gFlow.innerHTML = '';
+  document.querySelectorAll('.steps').forEach(s => s.remove());
+  document.querySelectorAll('.flow').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+  nodeEls.forEach(g => { g.classList.remove('dim', 'flowlit', 'hot'); });
+  edgeEls.forEach(r => { r.p.classList.remove('dim', 'flow', 'incident'); });
+
+  if (!id) { return; }
+  const flow = GRAPH.flows.find(f => f.id === id);
+  const set = new Set(flow.steps);
+
+  nodeEls.forEach((g, nid) => { g.classList.toggle('dim', !set.has(nid)); g.classList.toggle('flowlit', set.has(nid)); });
+
+  const pairs = new Set();
+  for (let i = 0; i < flow.steps.length - 1; i++) { pairs.add(flow.steps[i] + '>' + flow.steps[i + 1]); }
+  edgeEls.forEach(r => {
+    const onPath = pairs.has(r.e.from + '>' + r.e.to) || pairs.has(r.e.to + '>' + r.e.from);
+    r.p.classList.toggle('flow', onPath);
+    r.p.classList.toggle('dim', !onPath);
+  });
+
+  for (let i = 0; i < flow.steps.length - 1; i++) {
+    const a = byId.get(flow.steps[i]), b = byId.get(flow.steps[i + 1]);
+    gFlow.appendChild(el('path', { d: edgePath(a, b), class: 'flowseq', 'marker-end': 'url(#arrow-flow)' }));
+  }
+  flow.steps.forEach((sid, i) => {
+    const n = byId.get(sid);
+    const g = el('g', { class: 'stepbadge', transform: `translate(${n.x - 2},${n.y - 2})` });
+    g.appendChild(el('circle', { r: 9 }));
+    const t = el('text', {}); t.textContent = i + 1;
+    g.appendChild(t);
+    gFlow.appendChild(g);
+  });
+
+  const card = document.querySelector(`.flow[data-id="${id}"]`);
+  const ol = document.createElement('ol');
+  ol.className = 'steps';
+  flow.steps.forEach((sid, i) => {
+    const n = byId.get(sid);
+    const li = document.createElement('li');
+    const num = document.createElement('span'); num.className = 's-num'; num.textContent = String(i + 1).padStart(2, '0');
+    const wrap = document.createElement('span');
+    const nm = document.createElement('span'); nm.className = 's-name'; nm.textContent = n.label;
+    const ly = document.createElement('span'); ly.className = 's-layer'; ly.textContent = n.type + ' · ' + n.layer;
+    ly.style.color = layerColor(n.layer);
+    wrap.appendChild(nm); wrap.appendChild(ly);
+    li.appendChild(num); li.appendChild(wrap);
+    li.addEventListener('click', ev => { ev.stopPropagation(); centerOn(n); });
+    ol.appendChild(li);
+  });
+  card.appendChild(ol);
+  fitTo(flow.steps.map(s => byId.get(s)));
+}
+document.getElementById('clear').addEventListener('click', () => selectFlow(null));
+
+/* ── Pan & zoom ── */
+let scale = 1, tx = 0, ty = 0;
+const apply = () => viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+
+function bounds(list) {
+  const ns = list || GRAPH.nodes;
+  return {
+    x0: Math.min(...ns.map(n => n.x)) - 40,
+    y0: Math.min(...ns.map(n => n.y)) - 60,
+    x1: Math.max(...ns.map(n => n.x + n.w)) + 40,
+    y1: Math.max(...ns.map(n => n.y + n.h)) + 40
+  };
+}
+function fitTo(list) {
+  const b = bounds(list);
+  const r = svg.getBoundingClientRect();
+  scale = Math.min(r.width / (b.x1 - b.x0), r.height / (b.y1 - b.y0), 1.6);
+  tx = (r.width - (b.x1 - b.x0) * scale) / 2 - b.x0 * scale;
+  ty = (r.height - (b.y1 - b.y0) * scale) / 2 - b.y0 * scale;
+  apply();
+}
+function centerOn(n) {
+  const r = svg.getBoundingClientRect();
+  scale = Math.max(scale, 0.9);
+  tx = r.width / 2 - (n.x + n.w / 2) * scale;
+  ty = r.height / 2 - (n.y + n.h / 2) * scale;
+  apply();
+}
+function zoomAt(cx, cy, factor) {
+  const r = svg.getBoundingClientRect();
+  const px = cx - r.left, py = cy - r.top;
+  const next = Math.min(3, Math.max(0.15, scale * factor));
+  tx = px - (px - tx) * (next / scale);
+  ty = py - (py - ty) * (next / scale);
+  scale = next;
+  apply();
+}
+
+svg.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  zoomAt(ev.clientX, ev.clientY, ev.deltaY < 0 ? 1.12 : 1 / 1.12);
+}, { passive: false });
+
+let dragging = false, lastX = 0, lastY = 0;
+svg.addEventListener('pointerdown', ev => {
+  dragging = true; lastX = ev.clientX; lastY = ev.clientY;
+  svg.classList.add('dragging');
+  svg.setPointerCapture(ev.pointerId);
+});
+svg.addEventListener('pointermove', ev => {
+  if (!dragging) { return; }
+  tx += ev.clientX - lastX; ty += ev.clientY - lastY;
+  lastX = ev.clientX; lastY = ev.clientY;
+  apply();
+});
+const endDrag = () => { dragging = false; svg.classList.remove('dragging'); };
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+svg.addEventListener('pointerleave', endDrag);
+
+document.getElementById('zin').addEventListener('click', () => {
+  const r = svg.getBoundingClientRect();
+  zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25);
+});
+document.getElementById('zout').addEventListener('click', () => {
+  const r = svg.getBoundingClientRect();
+  zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
+});
+document.getElementById('fit').addEventListener('click', () => fitTo(null));
+
+/* ── Legend & footer ── */
+const legend = document.getElementById('legend');
+bands.forEach(b => {
+  const s = document.createElement('span');
+  const i = document.createElement('i');
+  i.style.background = layerColor(b.layer);
+  s.appendChild(i);
+  s.appendChild(document.createTextNode(LAYER_LABEL[b.layer]));
+  legend.appendChild(s);
+});
+document.getElementById('foot').textContent =
+  GRAPH.nodes.length + ' nodi · ' + GRAPH.edges.length + ' relazioni · ' + GRAPH.flows.length + ' flussi — grafo generato da ' + GRAPH.generated_from + '. Stesso grafo disponibile come architecture.json per consumo da parte di agenti.';
+
+function refit() {
+  const flow = activeFlow && GRAPH.flows.find(f => f.id === activeFlow);
+  fitTo(flow ? flow.steps.map(s => byId.get(s)) : null);
+}
+window.addEventListener('resize', refit);
+requestAnimationFrame(refit);
+window.addEventListener('load', refit);
+</script>

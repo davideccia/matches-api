@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\AthleteController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DisciplineController;
+use App\Http\Controllers\Api\ExperienceTierController;
 use App\Http\Controllers\Api\MatchRecordController;
 use App\Http\Controllers\Api\RegistrationController;
 use App\Http\Controllers\Api\TemporaryUploadController;
 use App\Http\Controllers\Api\TournamentController;
+use App\Http\Controllers\Api\TournamentExperienceTierController;
 use App\Http\Controllers\Api\TournamentMatchRecordController;
 use App\Http\Controllers\Api\TournamentRegistrationController;
 use App\Http\Controllers\Api\UserController;
@@ -41,6 +43,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('disciplines/bulk', [DisciplineController::class, 'bulkDestroy']);
     Route::apiResource('disciplines', DisciplineController::class);
 
+    Route::delete('experience_tiers/bulk', [ExperienceTierController::class, 'bulkDestroy']);
+    Route::apiResource('experience_tiers', ExperienceTierController::class);
+
     Route::delete('athletes/bulk', [AthleteController::class, 'bulkDestroy']);
     Route::apiResource('athletes', AthleteController::class);
 
@@ -50,6 +55,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('tournaments', TournamentController::class);
     Route::apiResource('tournaments.registrations', TournamentRegistrationController::class)->only(['index', 'store']);
     Route::apiResource('tournaments.match_records', TournamentMatchRecordController::class)->only(['index', 'store']);
+    Route::apiResource('tournaments.experience_tiers', TournamentExperienceTierController::class)->only(['index', 'store']);
 
     Route::delete('registrations/bulk', [RegistrationController::class, 'bulkDestroy']);
     Route::apiResource('registrations', RegistrationController::class);

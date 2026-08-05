@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             WeightCategorySeeder::class,
             DisciplineSeeder::class,
+            ExperienceTierSeeder::class,
             AthleteSeeder::class,
             TournamentSeeder::class,
             RegistrationSeeder::class,

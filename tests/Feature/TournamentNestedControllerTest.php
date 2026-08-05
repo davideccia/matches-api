@@ -6,6 +6,7 @@ use App\Enums\AthleteGenderEnum;
 use App\Enums\MatchRecordStatusEnum;
 use App\Models\Athlete;
 use App\Models\Discipline;
+use App\Models\ExperienceTier;
 use App\Models\MatchRecord;
 use App\Models\Registration;
 use App\Models\Tournament;
@@ -14,6 +15,20 @@ use Tests\TestCase;
 
 class TournamentNestedControllerTest extends TestCase
 {
+    // ---------------------------------------------------------------------
+    // generate (runMatchmaking)
+    // ---------------------------------------------------------------------
+
+    /**
+     * The global tiers the seeder ships with: matchmaking reads them from the
+     * database, so every generate test has to put them there first.
+     */
+    private function seedGlobalExperienceTiers(): void
+    {
+        ExperienceTier::factory()->enabled()->create(['tournament_id' => null, 'label' => 'beginner', 'min_match_count' => 0, 'max_match_count' => 4]);
+        ExperienceTier::factory()->enabled()->create(['tournament_id' => null, 'label' => 'intermediate', 'min_match_count' => 5, 'max_match_count' => 15]);
+        ExperienceTier::factory()->enabled()->create(['tournament_id' => null, 'label' => 'advanced', 'min_match_count' => 16, 'max_match_count' => null]);
+    }
     // ---------------------------------------------------------------------
     // registrations index
     // ---------------------------------------------------------------------
@@ -123,6 +138,152 @@ class TournamentNestedControllerTest extends TestCase
             'weight_category_id' => $weightCategory->id,
             'arrived' => false,
         ])->assertStatus(409);
+    }
+
+    // ---------------------------------------------------------------------
+    // experience_tiers index
+    // ---------------------------------------------------------------------
+
+    public function test_experience_tiers_index_returns_only_this_tournaments_tiers(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $other = Tournament::factory()->create();
+
+        $wanted = ExperienceTier::factory()->create(['tournament_id' => $tournament->id]);
+        ExperienceTier::factory()->create(['tournament_id' => $other->id]);
+        ExperienceTier::factory()->create(['tournament_id' => null]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/experience_tiers")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wanted->id);
+    }
+
+    public function test_experience_tiers_index_is_ordered_by_min_match_count(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        $advanced = ExperienceTier::factory()->create(['tournament_id' => $tournament->id, 'min_match_count' => 16, 'max_match_count' => null]);
+        $beginner = ExperienceTier::factory()->create(['tournament_id' => $tournament->id, 'min_match_count' => 0, 'max_match_count' => 4]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/experience_tiers")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $beginner->id)
+            ->assertJsonPath('data.1.id', $advanced->id);
+    }
+
+    public function test_experience_tiers_index_filters_by_enabled(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        $enabled = ExperienceTier::factory()->enabled()->create(['tournament_id' => $tournament->id, 'min_match_count' => 0, 'max_match_count' => 4]);
+        ExperienceTier::factory()->create(['tournament_id' => $tournament->id, 'min_match_count' => 5, 'max_match_count' => 9]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/experience_tiers?enabled=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $enabled->id);
+    }
+
+    public function test_experience_tiers_index_requires_authentication(): void
+    {
+        $tournament = Tournament::factory()->create();
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/experience_tiers")
+            ->assertUnauthorized();
+    }
+
+    // ---------------------------------------------------------------------
+    // experience_tiers store
+    // ---------------------------------------------------------------------
+
+    public function test_experience_tiers_store_injects_tournament_id_from_route(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        // tournament_id is intentionally NOT included in the body; it must be injected.
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers", [
+            'label' => 'rookie',
+            'min_match_count' => 0,
+            'max_match_count' => 4,
+            'enabled' => true,
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.tournament_id', $tournament->id)
+            ->assertJsonPath('data.label', 'rookie');
+
+        $this->assertDatabaseHas('experience_tiers', [
+            'tournament_id' => $tournament->id,
+            'label' => 'rookie',
+        ]);
+    }
+
+    public function test_experience_tiers_store_ignores_overlap_with_global_tiers(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        ExperienceTier::factory()->enabled()->create([
+            'tournament_id' => null,
+            'min_match_count' => 0,
+            'max_match_count' => 10,
+        ]);
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers", [
+            'label' => 'same range, own scope',
+            'min_match_count' => 0,
+            'max_match_count' => 10,
+            'enabled' => true,
+        ])->assertCreated();
+    }
+
+    public function test_experience_tiers_store_is_blocked_by_an_overlapping_tier_of_the_same_tournament(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        ExperienceTier::factory()->enabled()->create([
+            'tournament_id' => $tournament->id,
+            'min_match_count' => 0,
+            'max_match_count' => 10,
+        ]);
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers", [
+            'label' => 'overlapping',
+            'min_match_count' => 5,
+            'max_match_count' => 20,
+            'enabled' => true,
+        ])->assertStatus(400);
+
+        $this->assertDatabaseMissing('experience_tiers', ['label' => 'overlapping']);
+    }
+
+    public function test_experience_tiers_store_validates_required_fields(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers", [])
+            ->assertJsonValidationErrors(['label', 'min_match_count']);
+    }
+
+    public function test_experience_tiers_store_requires_authentication(): void
+    {
+        $tournament = Tournament::factory()->create();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers", [])
+            ->assertUnauthorized();
     }
 
     // ---------------------------------------------------------------------
@@ -236,13 +397,10 @@ class TournamentNestedControllerTest extends TestCase
             ]);
     }
 
-    // ---------------------------------------------------------------------
-    // generate (runMatchmaking)
-    // ---------------------------------------------------------------------
-
     public function test_generate_creates_match_records_for_paired_registrations(): void
     {
         $this->authenticate();
+        $this->seedGlobalExperienceTiers();
 
         $tournament = Tournament::factory()->create();
         $discipline = Discipline::factory()->create();
@@ -275,6 +433,7 @@ class TournamentNestedControllerTest extends TestCase
     public function test_generate_populates_matchmaking_issues_for_orphan(): void
     {
         $this->authenticate();
+        $this->seedGlobalExperienceTiers();
 
         $tournament = Tournament::factory()->create();
         $discipline = Discipline::factory()->create();
@@ -298,6 +457,140 @@ class TournamentNestedControllerTest extends TestCase
         $this->assertNotEmpty($issues);
         $this->assertSame($orphan->id, $issues[0]['registration_id']);
         $this->assertSame($orphanAthlete->id, $issues[0]['athlete_id']);
+        $this->assertSame('beginner', $issues[0]['experience_tier']);
+        $this->assertSame('unpaired', $issues[0]['reason']);
+    }
+
+    public function test_generate_keeps_athletes_apart_when_they_fall_in_different_tiers(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // Same group on every axis but experience: 0 matches is "beginner",
+        // 20 matches is "advanced", so they must not be paired.
+        foreach ([0, 20] as $matchCount) {
+            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => $matchCount]);
+            Registration::factory()->create([
+                'tournament_id' => $tournament->id,
+                'athlete_id' => $athlete->id,
+                'discipline_id' => $discipline->id,
+                'weight_category_id' => $weightCategory->id,
+            ]);
+        }
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->assertCount(2, $tournament->fresh()->matchmaking_issues);
+    }
+
+    public function test_generate_uses_tournament_tiers_instead_of_the_global_ones(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // A single unbounded tier for this tournament replaces the global ones,
+        // so the two athletes the globals would separate now share a tier.
+        ExperienceTier::factory()->enabled()->create([
+            'tournament_id' => $tournament->id,
+            'label' => 'open',
+            'min_match_count' => 0,
+            'max_match_count' => null,
+        ]);
+
+        foreach ([0, 20] as $matchCount) {
+            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => $matchCount]);
+            Registration::factory()->create([
+                'tournament_id' => $tournament->id,
+                'athlete_id' => $athlete->id,
+                'discipline_id' => $discipline->id,
+                'weight_category_id' => $weightCategory->id,
+            ]);
+        }
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->assertEmpty($tournament->fresh()->matchmaking_issues);
+    }
+
+    public function test_generate_falls_back_to_global_tiers_when_the_tournament_override_is_disabled(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // Disabled: it must be ignored, leaving the global tiers in charge.
+        ExperienceTier::factory()->create([
+            'tournament_id' => $tournament->id,
+            'label' => 'open',
+            'min_match_count' => 0,
+            'max_match_count' => null,
+        ]);
+
+        foreach ([0, 20] as $matchCount) {
+            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => $matchCount]);
+            Registration::factory()->create([
+                'tournament_id' => $tournament->id,
+                'athlete_id' => $athlete->id,
+                'discipline_id' => $discipline->id,
+                'weight_category_id' => $weightCategory->id,
+            ]);
+        }
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_generate_reports_athletes_not_covered_by_any_tier(): void
+    {
+        $this->authenticate();
+
+        // Only a narrow tier exists: an athlete above it belongs to no tier.
+        ExperienceTier::factory()->enabled()->create([
+            'tournament_id' => null,
+            'label' => 'beginner',
+            'min_match_count' => 0,
+            'max_match_count' => 4,
+        ]);
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        foreach (range(1, 2) as $i) {
+            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => 30]);
+            Registration::factory()->create([
+                'tournament_id' => $tournament->id,
+                'athlete_id' => $athlete->id,
+                'discipline_id' => $discipline->id,
+                'weight_category_id' => $weightCategory->id,
+            ]);
+        }
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $issues = $tournament->fresh()->matchmaking_issues;
+
+        $this->assertCount(2, $issues);
+        $this->assertNull($issues[0]['experience_tier']);
+        $this->assertSame('no_tier', $issues[0]['reason']);
     }
 
     public function test_generate_requires_authentication(): void

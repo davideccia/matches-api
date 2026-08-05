@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\MatchRecordStatusEnum;
+use App\Models\ExperienceTier;
 use App\Models\MatchRecord;
 use App\Models\Registration;
 use App\Models\Tournament;
+use Illuminate\Support\Collection;
 
 class MatchmakingService
 {
     private ?array $groups = null;
 
     private ?array $orphans = null;
+
+    /** @var Collection<int, ExperienceTier>|null */
+    private ?Collection $tiers = null;
 
     public function __construct(private readonly Tournament $tournament) {}
 
@@ -30,10 +35,7 @@ class MatchmakingService
 
         $registrations = $this->tournament->registrations()
             ->with([
-                'athlete' => fn ($q) => $q->withCount([
-                    'redCornerMatches' => fn ($q) => $q->where('status', MatchRecordStatusEnum::COMPLETED),
-                    'blueCornerMatches' => fn ($q) => $q->where('status', MatchRecordStatusEnum::COMPLETED),
-                ]),
+                'athlete',
                 'discipline',
                 'weightCategory',
             ])
@@ -42,7 +44,9 @@ class MatchmakingService
 
         return $registrations->map(function (Registration $registration) {
 
-            $matchCount = $registration->athlete->red_corner_matches_count + $registration->athlete->blue_corner_matches_count;
+            $matchCount = $registration->athlete->match_records_count;
+
+            $tier = $this->resolveTier($matchCount);
 
             return [
                 'registration_id' => $registration->id,
@@ -53,8 +57,9 @@ class MatchmakingService
                 'discipline_label' => $registration->discipline->label,
                 'weight_category_id' => $registration->weight_category_id,
                 'weight_category_label' => $registration->weightCategory->label,
-                'experience_tier' => $this->resolveTier($matchCount),
+                'experience_tier' => $tier,
                 'match_count' => $matchCount,
+                'reason' => $tier === null ? 'no_tier' : 'unpaired',
             ];
         })->values()->all();
     }
@@ -67,10 +72,7 @@ class MatchmakingService
 
         $registrations = $this->tournament->registrations()
             ->with([
-                'athlete' => fn ($q) => $q->withCount([
-                    'redCornerMatches' => fn ($q) => $q->where('status', MatchRecordStatusEnum::COMPLETED),
-                    'blueCornerMatches' => fn ($q) => $q->where('status', MatchRecordStatusEnum::COMPLETED),
-                ]),
+                'athlete',
                 'discipline',
                 'weightCategory',
             ])
@@ -87,14 +89,20 @@ class MatchmakingService
 
         foreach ($registrations as $registration) {
 
+            $tier = $this->resolveTier($registration->athlete->match_records_count);
+
+            if ($tier === null) {
+                $orphans[] = $this->describeOrphan($registration, null);
+
+                continue;
+            }
+
             $groupKey = implode('|', [
                 $registration->discipline_id,
                 $registration->weight_category_id,
                 $registration->athlete->gender->value,
                 $registration->athlete->is_adult ? 'adult' : 'minor',
             ]);
-
-            $tier = $this->resolveTier($registration->athlete->match_records_count);
 
             $groups[$groupKey][$tier][] = $registration;
         }
@@ -107,19 +115,7 @@ class MatchmakingService
 
                 foreach ($chunks as $pair) {
                     if (count($pair) < 2) {
-                        $orphan = $pair[0];
-
-                        $orphans[] = [
-                            'registration_id' => $orphan->id,
-                            'athlete_id' => $orphan->athlete_id,
-                            'athlete_name' => $orphan->athlete->full_name,
-                            'discipline_id' => $orphan->discipline_id,
-                            'discipline_label' => $orphan->discipline->label,
-                            'weight_category_id' => $orphan->weight_category_id,
-                            'weight_category_label' => $orphan->weightCategory->label,
-                            'experience_tier' => $tier,
-                            'match_count' => $orphan->athlete->match_records_count,
-                        ];
+                        $orphans[] = $this->describeOrphan($pair[0], $tier);
                     }
                 }
             }
@@ -129,13 +125,53 @@ class MatchmakingService
         $this->orphans = $orphans;
     }
 
-    private function resolveTier(int $matchCount): string
+    private function describeOrphan(Registration $registration, ?string $tier): array
     {
-        return match (true) {
-            $matchCount < 5 => 'beginner',
-            $matchCount <= 15 => 'intermediate',
-            default => 'advanced',
-        };
+        return [
+            'registration_id' => $registration->id,
+            'athlete_id' => $registration->athlete_id,
+            'athlete_name' => $registration->athlete->full_name,
+            'discipline_id' => $registration->discipline_id,
+            'discipline_label' => $registration->discipline->label,
+            'weight_category_id' => $registration->weight_category_id,
+            'weight_category_label' => $registration->weightCategory->label,
+            'experience_tier' => $tier,
+            'match_count' => $registration->athlete->match_records_count,
+            'reason' => $tier === null ? 'no_tier' : 'unpaired',
+        ];
+    }
+
+    /**
+     * The tournament's own enabled tiers replace the global ones entirely.
+     *
+     * @return Collection<int, ExperienceTier>
+     */
+    private function tiers(): Collection
+    {
+        if ($this->tiers !== null) {
+            return $this->tiers;
+        }
+
+        $override = ExperienceTier::query()
+            ->enabled()
+            ->where('tournament_id', $this->tournament->id)
+            ->orderBy('min_match_count')
+            ->get();
+
+        return $this->tiers = $override->isNotEmpty()
+            ? $override
+            : ExperienceTier::query()
+                ->enabled()
+                ->whereNull('tournament_id')
+                ->orderBy('min_match_count')
+                ->get();
+    }
+
+    private function resolveTier(int $matchCount): ?string
+    {
+        return $this->tiers()
+            ->first(fn (ExperienceTier $tier) => $tier->contains($matchCount))
+            ?->label;
     }
 
     public function generateMatchRecords(): array

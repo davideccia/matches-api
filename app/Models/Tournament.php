@@ -55,6 +55,11 @@ class Tournament extends Model implements HasMedia
         return $this->hasMany(MatchRecord::class)->orderBy('sort')->orderBy('id');
     }
 
+    public function experienceTiers(): HasMany
+    {
+        return $this->hasMany(ExperienceTier::class)->orderBy('min_match_count')->orderBy('id');
+    }
+
     public function coverMedia(): MorphOne
     {
         return $this->media()->where('collection_name', self::COVER_MEDIA_COLLECTION_NAME)->one();

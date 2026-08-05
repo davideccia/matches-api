@@ -31,6 +31,7 @@ class TournamentStoreRequest extends FormRequest
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([
                 'coverMedia',
+                'experienceTiers',
             ])],
         ];
     }

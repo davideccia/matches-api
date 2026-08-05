@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Tournament;
+namespace App\Http\Requests\ExperienceTier;
 
 use App\Traits\InjectWith;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class TournamentShowRequest extends FormRequest
+class ExperienceTierShowRequest extends FormRequest
 {
     use InjectWith;
 
@@ -20,8 +20,7 @@ class TournamentShowRequest extends FormRequest
         return [
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([
-                'coverMedia',
-                'experienceTiers',
+                'tournament',
             ])],
         ];
     }

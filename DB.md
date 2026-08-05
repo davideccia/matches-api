@@ -107,6 +107,17 @@ Table tournaments {
   updated_at       timestamptz       [null]
 }
 
+Table experience_tiers {
+  id              uuid        [pk]
+  tournament_id   uuid        [null, ref: > tournaments.id]  // null = global default; a tournament's own enabled tiers replace the globals entirely
+  label           varchar     [not null]
+  min_match_count int         [not null]
+  max_match_count int         [null]    // null = unbounded
+  enabled         boolean     [not null, default: false]
+  created_at      timestamptz [null]
+  updated_at      timestamptz [null]
+}
+
 Table registrations {
   id                 uuid        [pk]
   athlete_id         uuid        [not null, ref: > athletes.id]

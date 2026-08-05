@@ -157,6 +157,7 @@
     "errors.weight_category_has_athletes": "Cannot delete: weight category has athletes assigned to it.",
     "errors.registration_duplicate": "Cannot save: athlete is already registered for this tournament, discipline and weight category.",
     "errors.registration_has_match_records": "Cannot delete: registration has existing match records.",
+    "errors.experience_tier_overlapping_range": "Cannot save: an enabled experience tier already covers this match count range.",
     "enums.athlete_gender.male": "Male",
     "enums.athlete_gender.female": "Female",
     "enums.athlete_gender.hybrid": "Hybrid",

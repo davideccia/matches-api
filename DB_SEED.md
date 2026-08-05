@@ -13,12 +13,13 @@ Seeders run sequentially at startup (idempotent: each checks `count() > 0` and s
 | 1     | UserSeeder           | all     |
 | 2     | WeightCategorySeeder | dev     |
 | 3     | DisciplineSeeder     | dev     |
-| 4     | AthleteSeeder        | dev     |
-| 5     | TournamentSeeder     | dev     |
-| 6     | RegistrationSeeder   | dev     |
-| 7     | MatchSeeder          | dev     |
+| 4     | ExperienceTierSeeder | all     |
+| 5     | AthleteSeeder        | dev     |
+| 6     | TournamentSeeder     | dev     |
+| 7     | RegistrationSeeder   | dev     |
+| 8     | MatchSeeder          | dev     |
 
-`UserSeeder` runs on every profile (no profile restriction). All others are `dev`-only.
+`UserSeeder` runs on every profile (no profile restriction). `ExperienceTierSeeder` must also run everywhere: matchmaking reads its tiers from the database, and with none enabled no athlete can be paired. All others are `dev`-only.
 
 ---
 
@@ -64,7 +65,23 @@ One superadmin user, always seeded.
 
 ---
 
-## 4. Athletes
+## 4. Experience Tiers
+
+3 records, all global (`tournamentId` = null) and all enabled. They reproduce the thresholds matchmaking used to have hardcoded.
+
+| Label        | minMatchCount | maxMatchCount | enabled |
+|--------------|---------------|---------------|---------|
+| beginner     | 0             | 4             | true    |
+| intermediate | 5             | 15            | true    |
+| advanced     | 16            | null (unbounded) | true |
+
+A tier bound to a tournament overrides the globals for that tournament: if it has at least one *enabled* tier of its own, those replace the global set entirely. Athletes whose match count falls outside every enabled tier are not paired and show up in `matchmaking_issues` with `reason: no_tier`.
+
+No tournament-scoped tiers are seeded.
+
+---
+
+## 5. Athletes
 
 160 records total: 80 male + 80 female. All born on `1995-01-01`.
 
@@ -86,7 +103,7 @@ One superadmin user, always seeded.
 
 ---
 
-## 5. Tournaments
+## 6. Tournaments
 
 3 records.
 
@@ -98,7 +115,7 @@ One superadmin user, always seeded.
 
 ---
 
-## 6. Registrations
+## 7. Registrations
 
 Registrations link an athlete to a tournament with a discipline and weight category. All registrations have:
 
@@ -261,7 +278,7 @@ Each row produces 2 registrations (one per athlete).
 
 ---
 
-## 7. Matches
+## 8. Matches
 
 Matches use the same pair lists as registrations. All matches have:
 

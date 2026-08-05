@@ -65,7 +65,7 @@ class DisciplineController extends Controller
 
     public function destroy(DisciplineDestroyRequest $request, Discipline $discipline): JsonResponse
     {
-        $discipline->delete();
+        $discipline->deleteOrFail();
 
         return response()->json([], 204);
     }

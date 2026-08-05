@@ -77,7 +77,7 @@ class ExperienceTierController extends Controller
 
     public function destroy(ExperienceTierDestroyRequest $request, ExperienceTier $experienceTier): JsonResponse
     {
-        $experienceTier->delete();
+        $experienceTier->deleteOrFail();
 
         return response()->json([], 204);
     }

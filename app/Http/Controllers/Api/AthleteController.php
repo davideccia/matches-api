@@ -107,7 +107,7 @@ class AthleteController extends Controller
 
     public function destroy(AthleteDestroyRequest $request, Athlete $athlete): JsonResponse
     {
-        $athlete->delete();
+        $athlete->deleteOrFail();
 
         return response()->json([], 204);
     }

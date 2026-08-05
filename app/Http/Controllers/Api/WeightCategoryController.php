@@ -65,7 +65,7 @@ class WeightCategoryController extends Controller
 
     public function destroy(WeightCategoryDestroyRequest $request, WeightCategory $weightCategory): JsonResponse
     {
-        $weightCategory->delete();
+        $weightCategory->deleteOrFail();
 
         return response()->json([], 204);
     }

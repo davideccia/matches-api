@@ -86,7 +86,7 @@ class RegistrationController extends Controller
 
     public function destroy(RegistrationDestroyRequest $request, Registration $registration): JsonResponse
     {
-        $registration->delete();
+        $registration->deleteOrFail();
 
         return response()->json([], 204);
     }

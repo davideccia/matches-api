@@ -16,7 +16,7 @@ class MediaController extends Controller
 
     public function destroy(MediaDestroyRequest $request, Media $media): JsonResponse
     {
-        $media->delete();
+        $media->deleteOrFail();
 
         return response()->json([], 204);
     }

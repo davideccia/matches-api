@@ -69,7 +69,7 @@ class MatchRecordController extends Controller
 
     public function destroy(MatchRecordDestroyRequest $request, MatchRecord $matchRecord): JsonResponse
     {
-        $matchRecord->delete();
+        $matchRecord->deleteOrFail();
 
         return response()->json([], 204);
     }

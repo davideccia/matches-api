@@ -82,7 +82,7 @@ class TournamentController extends Controller
 
     public function destroy(TournamentDestroyRequest $request, Tournament $tournament): JsonResponse
     {
-        $tournament->delete();
+        $tournament->deleteOrFail();
 
         return response()->json([], 204);
     }

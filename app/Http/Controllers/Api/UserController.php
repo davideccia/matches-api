@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -71,10 +72,18 @@ class UserController extends Controller
 
     public function bulkDestroy(UserBulkDestroyRequest $request): JsonResponse
     {
-        DB::transaction(function () use ($request): void {
-            User::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (User $user) => $user->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            User::whereIn('id', $request->validated('ids'))
+                ->each(static fn (User $user) => $user->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

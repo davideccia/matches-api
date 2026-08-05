@@ -14,6 +14,7 @@ use App\Models\Athlete;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class AthleteController extends Controller
 {
@@ -113,10 +114,18 @@ class AthleteController extends Controller
 
     public function bulkDestroy(AthleteBulkDestroyRequest $request): JsonResponse
     {
-        DB::transaction(function () use ($request): void {
-            Athlete::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (Athlete $athlete) => $athlete->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            Athlete::whereIn('id', $request->validated('ids'))
+                ->each(static fn (Athlete $athlete) => $athlete->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

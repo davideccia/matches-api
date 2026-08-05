@@ -14,6 +14,7 @@ use App\Models\WeightCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class WeightCategoryController extends Controller
 {
@@ -71,10 +72,18 @@ class WeightCategoryController extends Controller
 
     public function bulkDestroy(WeightCategoryBulkDestroyRequest $request): JsonResponse
     {
-        DB::transaction(function () use ($request): void {
-            WeightCategory::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (WeightCategory $weightCategory) => $weightCategory->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            WeightCategory::whereIn('id', $request->validated('ids'))
+                ->each(static fn (WeightCategory $weightCategory) => $weightCategory->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

@@ -13,6 +13,8 @@ use App\Http\Resources\TournamentResource;
 use App\Models\Tournament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class TournamentController extends Controller
 {
@@ -87,10 +89,18 @@ class TournamentController extends Controller
 
     public function bulkDestroy(TournamentBulkDestroyRequest $request): JsonResponse
     {
-        \DB::transaction(function () use ($request): void {
-            Tournament::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (Tournament $tournament) => $tournament->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            Tournament::whereIn('id', $request->validated('ids'))
+                ->each(static fn (Tournament $tournament) => $tournament->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

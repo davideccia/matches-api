@@ -14,6 +14,7 @@ use App\Models\ExperienceTier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class ExperienceTierController extends Controller
 {
@@ -83,10 +84,18 @@ class ExperienceTierController extends Controller
 
     public function bulkDestroy(ExperienceTierBulkDestroyRequest $request): JsonResponse
     {
-        DB::transaction(function () use ($request): void {
-            ExperienceTier::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (ExperienceTier $experienceTier) => $experienceTier->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            ExperienceTier::whereIn('id', $request->validated('ids'))
+                ->each(static fn (ExperienceTier $experienceTier) => $experienceTier->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

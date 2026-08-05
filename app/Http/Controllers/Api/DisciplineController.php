@@ -14,6 +14,7 @@ use App\Models\Discipline;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class DisciplineController extends Controller
 {
@@ -71,10 +72,18 @@ class DisciplineController extends Controller
 
     public function bulkDestroy(DisciplineBulkDestroyRequest $request): JsonResponse
     {
-        DB::transaction(function () use ($request): void {
-            Discipline::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (Discipline $discipline) => $discipline->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            Discipline::whereIn('id', $request->validated('ids'))
+                ->each(static fn (Discipline $discipline) => $discipline->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

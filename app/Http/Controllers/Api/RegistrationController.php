@@ -17,6 +17,7 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\PdfBuilder;
+use Throwable;
 
 use function Spatie\LaravelPdf\Support\pdf;
 
@@ -92,10 +93,18 @@ class RegistrationController extends Controller
 
     public function bulkDestroy(RegistrationBulkDestroyRequest $request): JsonResponse
     {
-        DB::transaction(function () use ($request): void {
-            Registration::whereIn('id', $request->validated('ids'))->get()
-                ->each(fn (Registration $registration) => $registration->delete());
-        });
+        DB::beginTransaction();
+
+        try {
+            Registration::whereIn('id', $request->validated('ids'))
+                ->each(static fn (Registration $registration) => $registration->deleteOrFail());
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        DB::commit();
 
         return response()->json([], 204);
     }

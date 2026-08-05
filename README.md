@@ -14,7 +14,7 @@ and [Reverb](https://laravel.com/docs/reverb) for real-time WebSocket broadcasti
 ![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-PHPUnit_12-3776AB)
 
-[Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Real-time events](#real-time-events) • [Development](#development) • [Docs](#documentation)
+[Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Matchmaking](#matchmaking) • [Real-time events](#real-time-events) • [Development](#development) • [Docs](#documentation)
 
 </div>
 
@@ -31,7 +31,7 @@ as bouts change.
 
 - **Tournament lifecycle** — drive tournaments through
   `scheduled → registrations_opened → registrations_closed → in_progress → completed / cancelled`.
-- **Athlete registry** — profiles with gender, team, and default discipline/weight category; publicly searchable by tax
+- **Athlete registry** — profiles with gender, team, birth date, and a running fight count; publicly searchable by tax
   number.
 - **Registrations** — link athletes to tournaments per discipline and weight category, tracking payment, arrival, and
   weigh-in.
@@ -40,7 +40,9 @@ as bouts change.
 - **Automatic card ordering** — match records keep a contiguous `sort` index per tournament; insert/move/delete reorders
   the card transactionally.
 - **Matchmaking** — generate a whole fight card from a tournament's registrations, pairing by discipline, weight
-  category, and gender, and surfacing unpairable registrations as `matchmaking_issues`.
+  category, gender, age bracket, and experience tier, and surfacing unpairable registrations as `matchmaking_issues`.
+- **Experience tiers** — configurable fight-count bands (rookie / intermediate / expert, or whatever you name them) so
+  a debutant is never matched against a veteran. Define them globally or override them per tournament.
 - **Real-time broadcasting** — every match-record change broadcasts over a public WebSocket channel, ready for live
   scoreboards.
 - **Public registration form API** — unauthenticated endpoints for athlete self-lookup, self-registration, and PDF
@@ -95,8 +97,8 @@ The API is then served at **`http://localhost`** under two prefixes:
 - `http://localhost/api/public/*` — unauthenticated, rate-limited public routes
 
 > [!NOTE]
-> The dev seed loads athletes, disciplines, weight categories, tournaments, registrations, and match records across
-> various statuses. See [`DB_SEED.md`](DB_SEED.md) for the full reference. In production, only the admin user is seeded.
+> The dev seed loads athletes, disciplines, weight categories, experience tiers, tournaments, registrations, and match
+> records across various statuses. See [`DB_SEED.md`](DB_SEED.md) for the full reference. In production, only the admin user is seeded.
 
 ### Default credentials
 
@@ -139,25 +141,27 @@ Authorization: Bearer <token>
 
 Standard CRUD unless noted.
 
-| Resource                   | Base path                                       | Notes                                                      |
-|----------------------------|-------------------------------------------------|------------------------------------------------------------|
-| Dashboard                  | `/api/admin/dashboard`                          | Aggregate counts for active tournaments                    |
-| Users                      | `/api/admin/users`                              |                                                            |
-| Athletes                   | `/api/admin/athletes`                           | Searchable via `?search=`                                  |
-| Disciplines                | `/api/admin/disciplines`                        |                                                            |
-| Weight categories          | `/api/admin/weight_categories`                  |                                                            |
-| Tournaments                | `/api/admin/tournaments`                        |                                                            |
-| Registrations              | `/api/admin/registrations`                      | Filters: `?unpaid=`, `?unarrived=`, `?weight_in_exceeded=` |
-| Match records              | `/api/admin/match_records`                      |                                                            |
-| Tournament → registrations | `/api/admin/tournaments/{id}/registrations`     | `index`, `store`                                           |
-| Tournament → match records | `/api/admin/tournaments/{id}/match_records`     | `index`, `store`                                           |
-| Generate fight card        | `/api/admin/tournaments/{id}/match_records/generate` | `POST` — run matchmaking over the registrations        |
-| Registration PDF           | `/api/admin/registrations/{id}/pdf`             | Download                                                   |
-| Fight card PDF             | `/api/admin/tournaments/{id}/match_records/pdf` | `?type=simple\|detailed`                                   |
-| Temporary uploads          | `/api/admin/temporary_uploads`                  | `POST` — stage a file for later attachment                 |
+| Resource                     | Base path                                            | Notes                                                                                                |
+|------------------------------|------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| Dashboard                    | `/api/admin/dashboard`                               | Registration and match counts, per active tournament                                                 |
+| Users                        | `/api/admin/users`                                   | Superadmin-only writes                                                                               |
+| Athletes                     | `/api/admin/athletes`                                | Filters: `?search=`, `?tournament_id=`, `?gender=`, `?is_adult=`, `?min_match_records_count=`, `?max_…` |
+| Disciplines                  | `/api/admin/disciplines`                             |                                                                                                      |
+| Weight categories            | `/api/admin/weight_categories`                       |                                                                                                      |
+| Experience tiers             | `/api/admin/experience_tiers`                        | Filters: `?tournament_id=`, `?only_global=`, `?enabled=`                                             |
+| Tournaments                  | `/api/admin/tournaments`                             |                                                                                                      |
+| Registrations                | `/api/admin/registrations`                           | Filters: `?unpaid=`, `?unarrived=`, `?weight_in_exceeded=`                                           |
+| Match records                | `/api/admin/match_records`                           |                                                                                                      |
+| Tournament → registrations   | `/api/admin/tournaments/{id}/registrations`          | `index`, `store`                                                                                     |
+| Tournament → match records   | `/api/admin/tournaments/{id}/match_records`          | `index`, `store`                                                                                     |
+| Tournament → experience tiers | `/api/admin/tournaments/{id}/experience_tiers`      | `index`, `store`                                                                                     |
+| Generate fight card          | `/api/admin/tournaments/{id}/match_records/generate` | `POST` — run matchmaking over the registrations                                                      |
+| Registration PDF             | `/api/admin/registrations/{id}/pdf`                  | Download                                                                                             |
+| Fight card PDF               | `/api/admin/tournaments/{id}/match_records/pdf`      | `?type=simple\|detailed` (required)                                                                  |
+| Temporary uploads            | `/api/admin/temporary_uploads`                       | `POST` — stage a file for later attachment                                                           |
 
-Each CRUD resource (users, athletes, disciplines, weight categories, tournaments, registrations, match records) also
-exposes a bulk delete:
+Each CRUD resource (users, athletes, disciplines, weight categories, experience tiers, tournaments, registrations, match
+records) also exposes a bulk delete:
 
 ```
 DELETE /api/admin/{resource}/bulk    {"ids": ["<uuid>", "<uuid>"]}
@@ -203,10 +207,15 @@ See [`DB.md`](DB.md) for the full DBML schema.
 ```
 Tournament ──< Registration >── Athlete
 Tournament ──< MatchRecord ──── red_corner / blue_corner / winner → Athlete
+Tournament ──< ExperienceTier   (tournament_id nullable — null rows are global defaults)
 Discipline, WeightCategory ──< Registration, MatchRecord  (shared reference data)
 ```
 
 `MatchRecord.judges_points` is a JSON array of per-round, per-judge scores.
+
+An athlete's experience is `generic_match_records_count` (bouts fought before joining this system, entered by hand) plus
+`registered_match_records_count` (completed bouts tracked here, kept in sync automatically). The sum is exposed as the
+computed `match_records_count` field and is what experience tiers are matched against.
 
 **Enums** (stored as strings, cast to PHP-backed enums in models):
 
@@ -220,6 +229,42 @@ Discipline, WeightCategory ──< Registration, MatchRecord  (shared reference 
 > [!IMPORTANT]
 > Deleting a tournament that still has registrations or match records is blocked at the application level and returns
 `409 Conflict`.
+
+## Matchmaking
+
+`POST /api/admin/tournaments/{id}/match_records/generate` builds a fight card from the tournament's registrations.
+Athletes already paired in that tournament are skipped; everyone else is grouped, and each group is paired off two at a
+time. Two athletes are matched only when **all five** of these agree:
+
+```
+discipline · weight category · gender · adult or minor · experience tier
+```
+
+### Experience tiers
+
+A tier is a named `min_match_count … max_match_count` band (leave the max empty for an open-ended top tier). Only
+`enabled` tiers count, and overlapping enabled ranges are rejected with `400`.
+
+Tiers with a null `tournament_id` are the **global defaults**. If a tournament defines any enabled tiers of its own,
+they **replace** the globals for that tournament entirely — they are not merged.
+
+```bash
+# A global "rookie" tier: 0-2 fights
+curl -X POST http://localhost/api/admin/experience_tiers \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"label":"rookie","min_match_count":0,"max_match_count":2,"enabled":true}'
+```
+
+### Matchmaking issues
+
+Registrations that could not be paired are stored on the tournament as `matchmaking_issues`, each with a reason:
+
+| Reason     | Meaning                                                       |
+|------------|---------------------------------------------------------------|
+| `no_tier`  | The athlete's fight count falls outside every enabled tier     |
+| `unpaired` | The athlete was the odd one out in an otherwise valid group    |
+
+The list is kept current automatically as match records are created, edited, or deleted.
 
 ## Real-time events
 

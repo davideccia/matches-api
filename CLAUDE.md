@@ -16,11 +16,14 @@ Local development runs via Laravel Sail: **PostgreSQL** for the database, **Redi
 
 Combat sports tournament management. Core entities and their relationships:
 
-- **Tournament** → has many Registrations, MatchRecords; status flows through `TournamentStatusEnum`
+- **Tournament** → has many Registrations, MatchRecords, ExperienceTiers; status flows through `TournamentStatusEnum`; carries a denormalized `matchmaking_issues` JSON column
 - **Athlete** → has many Registrations, MatchRecords (as red/blue corner or winner); looked up publicly by `tax_number`; gender via `AthleteGenderEnum`
 - **Registration** — join of Athlete + Tournament + Discipline + WeightCategory; tracks `paid_at`, `arrived`, `weight_in`
 - **MatchRecord** — a bout between two athletes; has `sort` (ordered within tournament), `status` (`MatchRecordStatusEnum`), `end_method` (`MatchRecordEndMethodEnum`), `judges_points` (JSON array)
+- **ExperienceTier** — a named `[min_match_count, max_match_count]` band (`max` nullable = open-ended) used to bucket athletes during matchmaking. `tournament_id` is **nullable**: a null row is a *global* tier, a non-null row is a tournament override. Only `enabled` tiers participate.
 - **Discipline** and **WeightCategory** are reference data shared across tournaments
+
+**Athlete computed attributes** (`$appends`): `age`, `is_adult` (birth_date-derived, 18+), and `match_records_count` = `generic_match_records_count` (manually entered prior-fight history) + `registered_match_records_count` (completed bouts in this system, recomputed by `Athlete::syncMatchRecordsCount()`). `match_records_count` is what feeds experience-tier resolution, so DB-level filtering uses the `minMatchRecordsCount`/`maxMatchRecordsCount` scopes (raw SQL over both columns), not the appended attribute.
 
 Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEnum`).
 
@@ -30,18 +33,21 @@ Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEn
 - **PHP Enum columns are stored as strings in the database** — cast to a PHP-backed Enum in the model. Never use a DB-level ENUM type.
 - **Routes are split by audience, not version** — `bootstrap/app.php` mounts `routes/api.admin.php` under the `/api/admin/` prefix and `routes/api.public.php` under `/api/public/` (the latter with a global `throttle:10,1`). A `SetLocale` middleware is prepended to the `api` group. There is no `/api/v1/` prefix.
 - **Eloquent API Resources are mandatory** for all API responses. Public (unauthenticated) endpoints use a separate namespace: `app/Http/Resources/Public/Public{Model}Resource.php`.
-- **Model Scopes** live in `app/Models/Scopes/` as dedicated scope classes (e.g., `AthleteScope`), applied to the model's `booted()` method — not inline query builder calls.
+- **Two distinct scope mechanisms.** *Global* scopes are dedicated classes in `app/Models/Scopes/` (e.g. `AthleteScope`) attached with the `#[ScopedBy([...])]` attribute — every model has one, but they are currently **no-op placeholders** (they early-return when there is no authed user and add no constraints). *Local* scopes are methods on the model annotated with `#[Scope]` (e.g. `Athlete::search()`, `Athlete::adult()`, `ExperienceTier::enabled()`) — put reusable query filters there rather than inline in controllers. Queries that must bypass global scopes use `withoutGlobalScopes()` (see `MatchmakingService`).
 - Use `.claude/skills/laravel-scaffold/` to generate a full artifact set (migration, model, observer, scopes, resource, controller, form requests, seeder) from a DBML schema.
 
 ## Route Files
 
 `routes/api.php` is empty; the prefixes/groups are wired in `bootstrap/app.php` (see above). Routes live in:
-- `routes/api.admin.php` (`/api/admin/`) — `auth/*` (login/logout/forgot/reset/user), `dashboard`, all `apiResource`s (users, weight_categories, disciplines, athletes, tournaments, registrations, match_records), nested `tournaments.{registrations,match_records}` (index/store only), `temporary_uploads`, PDF endpoints, and `DELETE {resource}/bulk` routes (preceding each `apiResource` so they aren't shadowed). Everything except the `auth/*` entry points is behind `auth:sanctum`. Auth endpoints are rate-limited at `throttle:5,1`.
-- `routes/api.public.php` (`/api/public/`) — unauthenticated. `registration_form/*` (public athlete lookup by tax_number, athlete/registration create, disciplines & weight_categories index, registration PDF) and `tournaments/*` (public tournament list + match records).
+- `routes/api.admin.php` (`/api/admin/`) — `auth/*` (login/logout/forgot/reset/user), `dashboard`, all `apiResource`s (users, weight_categories, disciplines, experience_tiers, athletes, tournaments, registrations, match_records), nested `tournaments.{registrations,match_records,experience_tiers}` (index/store only), `temporary_uploads`, PDF endpoints, and `DELETE {resource}/bulk` routes (preceding each `apiResource` so they aren't shadowed). Everything except the `auth/*` entry points is behind `auth:sanctum`. Auth endpoints are rate-limited at `throttle:5,1`; `auth/user` at `throttle:10,1`.
+- `routes/api.public.php` (`/api/public/`) — unauthenticated. `registration_form/*` (public athlete lookup by tax_number, athlete/registration create, tournaments/disciplines/weight_categories index, registration PDF) and `tournaments/*` (public tournament list + match records).
 
-**Custom tournament actions** (not part of the standard CRUD resource) live before the `apiResource` declaration:
+**Custom actions** (not part of the standard CRUD resource) must be declared *before* the matching `apiResource` so the resource's `{id}` wildcard doesn't shadow them:
 - `GET tournaments/{tournament}/match_records/pdf` — `TournamentMatchRecordController::matchRecordsPdf`
 - `POST tournaments/{tournament}/match_records/generate` — `TournamentMatchRecordController::generateMatchRecords` (triggers `Tournament::runMatchmaking()`)
+- `GET registrations/{registration}/pdf` — `RegistrationController::pdf`
+
+Nested-route controllers are separate classes named `Tournament{Child}Controller` (`TournamentRegistrationController`, `TournamentMatchRecordController`, `TournamentExperienceTierController`), not extra methods on the child's own controller.
 
 ## Request / Controller Patterns
 
@@ -59,6 +65,8 @@ Each model has an observer (`app/Observers/`) wired via `#[ObservedBy]` attribut
 - **Delete guards**: `TournamentObserver::deleting` aborts with 409 if related registrations or match_records exist
 - **Sort management**: `MatchRecordObserver` delegates creating/updating/deleting to `ReorderMatchRecordsAction` to maintain contiguous `sort` ordering per tournament
 - **WebSocket broadcast**: `MatchRecordObserver` fires `MatchRecordChanged` event on every CRUD operation
+- **Denormalized counters**: `MatchRecordObserver::saved`/`deleted` re-sync `Tournament::syncMatchmakingIssues()` and `Athlete::syncMatchRecordsCount()` for both corners. These use `saveQuietly()` to avoid observer recursion — keep it that way when adding similar sync logic.
+- **Validation guards**: `ExperienceTierObserver::creating`/`updating` abort with 400 (`errors.experience_tier_overlapping_range`) when `ExperienceTier::overlapsAnotherTier()` finds an enabled tier whose range intersects, scoped to the same `tournament_id` (globals only collide with globals).
 
 ## Events & Broadcasting
 
@@ -72,11 +80,15 @@ Each model has an observer (`app/Observers/`) wired via `#[ObservedBy]` attribut
 
 ## Matchmaking
 
-`app/Services/MatchmakingService.php` is the only service class; it is constructed with a `Tournament` and drives two `Tournament` methods:
-- `runMatchmaking()` — builds the fight card from the tournament's registrations (pairing by discipline/weight category/gender).
-- `matchmaking_issues` — populated from `getMatchmakingIssues()` as a computed attribute, surfacing unpairable registrations.
+`app/Services/MatchmakingService.php` is the only service class. It is constructed with a `Tournament` and backs two `Tournament` methods:
+- `runMatchmaking()` — builds the fight card from the tournament's registrations inside a DB transaction, then stores the leftovers into `matchmaking_issues`. Exposed over HTTP by `POST tournaments/{tournament}/match_records/generate`.
+- `syncMatchmakingIssues()` — recomputes `matchmaking_issues` alone (called from `MatchRecordObserver` whenever the card changes).
 
-Exposed over HTTP by `POST tournaments/{tournament}/match_records/generate`.
+**Pairing key.** Registrations whose athlete is already paired in this tournament are excluded, then the rest are grouped by `discipline_id | weight_category_id | gender | adult-or-minor` and, within each group, sub-bucketed by **experience tier label**. Each bucket is chunked in twos; the first of a pair is the red corner. All five dimensions must match for two athletes to be paired.
+
+**Tier resolution** (`MatchmakingService::tiers()`): if the tournament has any `enabled` tiers of its own they **replace the global set entirely** (not merged); otherwise the enabled `tournament_id IS NULL` globals are used. An athlete whose `match_records_count` falls in no tier is never paired.
+
+**`matchmaking_issues`** is a JSON array of unpaired registrations, each with a `reason`: `no_tier` (no matching experience tier) or `unpaired` (odd one out in its bucket). It is computed two ways depending on entry point — from in-memory leftovers after a matchmaking run, or re-derived from existing match records via `resolveIssuesFromMatchRecords()`.
 
 ## Authorization
 
@@ -94,7 +106,13 @@ Use the `laravel-pdf` skill when touching this code.
 
 ## Media & File Uploads
 
-Uses `spatie/laravel-medialibrary` (S3-compatible storage via `league/flysystem-aws-s3-v3`). The `Media` model overrides the package default; the `InteractsWithMedia` trait (`app/Traits/`) is applied to models that own files. Temporary uploads flow through `TemporaryUploadController` → `StoreTemporaryUploadAction`, validated by `app/Rules/TemporaryFileRule`. Use the `medialibrary-development` skill here.
+Uses `spatie/laravel-medialibrary` (S3-compatible storage via `league/flysystem-aws-s3-v3`). The `Media` model overrides the package default; the `InteractsWithMedia` trait (`app/Traits/`) is applied to models that own files. Temporary uploads flow through `TemporaryUploadController` → `StoreTemporaryUploadAction`, validated by `app/Rules/TemporaryFileRule` and represented by the readonly `App\Support\TemporaryFile` DTO. Use the `medialibrary-development` skill here.
+
+Models owning files declare their collection name as a class constant and expose a `MorphOne` accessor for the single file — e.g. `Athlete::PHOTO_MEDIA_COLLECTION_NAME` + `photoMedia()`, `Tournament::COVER_MEDIA_COLLECTION_NAME` + `coverMedia()`, both registered as `singleFile()`. Follow that shape for new media-owning models.
+
+## Localization
+
+`SetLocale` (prepended to the `api` middleware group) resolves the locale from the `Accept-Language` header against a hardcoded `['en', 'it']` allowlist, falling back to `config('app.locale')`. Translations are flat JSON in `lang/en.json` / `lang/it.json`. User-facing error strings from observers/guards go through `__('errors.…')` — add the key to **both** files.
 
 ## Auth & Notifications
 
@@ -118,15 +136,28 @@ There is one feature test per controller in `tests/Feature/` (`{Controller}Test.
 
 Tests build state from factories (`database/factories/`), assert via `getJson`/`postJson` against the full `/api/admin/...` or `/api/public/...` path, and group cases with `// ---- index ----` style comment banners per controller action.
 
+Tests run against a **real PostgreSQL database** (`matches_api_test` on the Sail `pgsql` host, per `phpunit.xml`) — not SQLite — so Postgres-specific SQL (`whereRaw`, `whereLike`, `gen_random_uuid()`) is fair game. Broadcasting, queue, cache, and mail are all nulled/arrayed in `phpunit.xml`.
+
 ## Key Commands
 
 ```bash
 vendor/bin/sail up -d                                           # start dev stack
-vendor/bin/sail artisan test --compact                         # full test suite
-vendor/bin/sail artisan test --compact --filter=testName       # single test
-vendor/bin/sail bin pint --dirty --format agent                # format changed PHP files
-vendor/bin/sail artisan route:list --path=api --except-vendor  # inspect API routes
+vendor/bin/sail artisan test --compact                          # full test suite
+vendor/bin/sail artisan test --compact --filter=testName        # single test
+vendor/bin/sail artisan test --compact tests/Feature/UserControllerTest.php
+vendor/bin/sail bin pint --dirty --format agent                 # format changed PHP files
+vendor/bin/sail artisan route:list --path=api --except-vendor   # inspect API routes
+vendor/bin/sail artisan migrate:fresh --seed                    # reset + seed the dev DB
+make release V=1.2.3 [PUSH=1]                                   # bump composer.json version, commit, tag
 ```
+
+Laravel Boost is wired as an MCP server (`.mcp.json` → `sail artisan boost:mcp`). Prefer its `search-docs`, `database-schema`, and `database-query` tools over ad-hoc tinker/SQL.
+
+## Reference Docs
+
+- `README.md` — feature overview, setup, full endpoint table, WebSocket contract.
+- `DB.md` — the authoritative DBML ER schema; the input format the `laravel-scaffold` skill consumes.
+- `DB_SEED.md` — seeded reference data (disciplines, weight categories, experience tiers).
 
 <laravel-boost-guidelines>
 === foundation rules ===

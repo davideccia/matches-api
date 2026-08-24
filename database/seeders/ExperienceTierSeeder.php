@@ -14,9 +14,9 @@ class ExperienceTierSeeder extends Seeder
         }
 
         $experienceTiers = [
-            ['label' => 'beginner', 'min_match_count' => 0, 'max_match_count' => 4, 'enabled' => true],
-            ['label' => 'intermediate', 'min_match_count' => 5, 'max_match_count' => 15, 'enabled' => true],
-            ['label' => 'advanced', 'min_match_count' => 16, 'max_match_count' => null, 'enabled' => true],
+            ['label' => 'Principiante', 'min_match_count' => 0, 'max_match_count' => 4, 'enabled' => true],
+            ['label' => 'Intermedio', 'min_match_count' => 5, 'max_match_count' => 15, 'enabled' => true],
+            ['label' => 'Avanzato', 'min_match_count' => 16, 'max_match_count' => null, 'enabled' => true],
         ];
 
         foreach ($experienceTiers as $experienceTier) {

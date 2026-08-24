@@ -18,9 +18,15 @@ class ExperienceTierObserver
         abort_if($experienceTier->overlapsAnotherTier(), 400, __('errors.experience_tier_overlapping_range'));
     }
 
-    public function updated(ExperienceTier $experienceTier): void {}
+    public function updated(ExperienceTier $experienceTier): void
+    {
+        $experienceTier->tournament->syncMatchmakingIssues();
+    }
 
     public function deleting(ExperienceTier $experienceTier): void {}
 
-    public function deleted(ExperienceTier $experienceTier): void {}
+    public function deleted(ExperienceTier $experienceTier): void
+    {
+        $experienceTier->tournament->syncMatchmakingIssues();
+    }
 }

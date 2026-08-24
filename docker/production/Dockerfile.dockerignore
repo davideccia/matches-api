@@ -1,0 +1,68 @@
+# Build context filter for docker/production/Dockerfile.
+#
+# BuildKit resolves "<dockerfile-path>.dockerignore" before falling back to the
+# context-root .dockerignore, which is why this file lives next to the Dockerfile
+# instead of at the repo root. Requires BuildKit (default since Docker 23).
+
+# ─── VCS / tooling ────────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+.editorconfig
+.npmrc
+.idea
+.claude
+.codegraph
+.mcp.json
+boost.json
+*.md
+
+# ─── Dependencies: reinstalled inside the builder stage ───────────────────────
+vendor
+node_modules
+
+# ─── Secrets: NEVER copy an env file into the image ───────────────────────────
+# All configuration is injected as environment variables at runtime.
+.env
+.env.*
+
+# ─── Tests ────────────────────────────────────────────────────────────────────
+tests
+phpunit.xml
+.phpunit.result.cache
+
+# ─── Frontend build: this is an API, no Vite assets are compiled ──────────────
+vite.config.js
+package.json
+package-lock.json
+resources/js
+resources/css
+public/build
+
+# public/storage is a committed symlink pointing at the Sail path
+# (/var/www/html/...), which dangles in this image (/var/www).
+# entrypoint.sh recreates it with `artisan storage:link --force`.
+public/storage
+
+# ─── Runtime state: recreated by entrypoint.sh ────────────────────────────────
+storage/logs/*
+!storage/logs/.gitignore
+storage/framework/cache/*
+!storage/framework/cache/.gitignore
+storage/framework/sessions/*
+!storage/framework/sessions/.gitignore
+storage/framework/views/*
+!storage/framework/views/.gitignore
+
+# ─── Local / dev docker assets ────────────────────────────────────────────────
+docker/8.0
+docker/8.1
+docker/8.2
+docker/8.3
+docker/8.4
+docker/8.5
+docker/mariadb
+docker/mysql
+docker/pgsql
+compose.yaml
+data

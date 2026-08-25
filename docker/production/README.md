@@ -207,3 +207,112 @@ Nota su Reverb: il pub/sub Redis **ignora l'indice del database**. Oggi non è u
 - `entrypoint.sh` esegue `migrate --force` a ogni boot: il deploy ha downtime, per entrambi gli ambienti. Puoi
   disattivarlo con `RUN_MIGRATIONS=false` se preferisci migrare a mano.
 - Aggiorna prima staging, verifica, poi produzione. Sono la stessa immagine con tag diversi.
+
+---
+
+## 9. Accesso alle UI di amministrazione
+
+Horizon, log-viewer e Arcane **non sono raggiungibili da internet**. L'unico utente è l'operatore, e per un utente
+singolo configurare OAuth è complessità senza guadagno: si arrivano con un `LocalForward` SSH, quindi
+l'autenticazione è la chiave SSH — più forte della basic auth che protegge oggi quei path.
+
+### La porta admin del container
+
+`nginx.conf` definisce due server block sulla stessa applicazione:
+
+| Porta interna | Chi ci arriva              | `/horizon`, `/log-viewer` |
+|---------------|----------------------------|---------------------------|
+| `:80`         | il reverse proxy, pubblico | **404**                   |
+| `:8081`       | solo il tunnel SSH         | serviti                   |
+
+Le location comuni stanno in `nginx-app.conf`, incluso da entrambi: una divergenza fra due copie duplicate sarebbe un
+buco di sicurezza silenzioso.
+
+**Il filtro non può stare in PHP.** `bootstrap/app.php` ha `trustProxies(at: '*')`, quindi `$request->ip()` viene letto
+da `X-Forwarded-For` ed è falsificabile con un header; e comunque nginx nel container vede sempre l'IP del reverse
+proxy, identico per traffico pubblico e tunnelato. **L'IP non discrimina, la porta di ingresso sì.**
+`HorizonBasicAuth` e `LogViewerBasicAuth` restano al loro posto come seconda cintura.
+
+### Pubblicazione: solo su loopback
+
+La porta interna è `:8081` per entrambi gli ambienti (sono container distinti, non collidono — vedi §5). Cambia solo la
+porta sull'host:
+
+```yaml
+# produzione
+ports:
+  - '127.0.0.1:8081:8081'
+# staging
+ports:
+  - '127.0.0.1:8082:8081'
+```
+
+**Il `127.0.0.1` non è cosmetico.** `- '8081:8081'` pubblica su `0.0.0.0`, e Docker scrive le sue regole in
+`DOCKER-USER`/nat **scavalcando le INPUT di ufw**: la porta sarebbe raggiungibile da internet con il firewall
+apparentemente chiuso. `EXPOSE` nel Dockerfile è solo documentazione e non pubblica nulla: il binding è l'unico
+controllo reale.
+
+### Arcane
+
+Stesso schema. `docker.sock` montato significa root-equivalente sul VPS, quindi non esiste una configurazione in cui
+valga la pena esporlo:
+
+```yaml
+services:
+  arcane:
+    image: ghcr.io/getarcaneapp/manager:latest
+    ports:
+      - '127.0.0.1:3552:3552'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - arcane-data:/app/data
+    environment:
+      - APP_URL=http://localhost:3552
+      - ENCRYPTION_KEY=<32 byte random>
+      - JWT_SECRET=<32 byte random>
+    cgroup: host
+    mem_limit: 256m
+    restart: unless-stopped
+```
+
+- `APP_URL` deve essere l'URL con cui lo raggiungi davvero, altrimenti redirect e cookie di sessione si rompono.
+- `ENCRYPTION_KEY` e `JWT_SECRET` servono comunque, anche in tunnel: cifrano a riposo le credenziali che Arcane salva
+  nel suo SQLite (env var dei progetti, credenziali registry). Generali random, non lasciare i placeholder della doc.
+- `mem_limit`: §2.2 di `docs/vps_costs/README.md` nota che Redis è l'unico processo dello stack senza tetto. Arcane non
+  deve diventare il secondo.
+- Niente TLS: SSH cifra già, e su `http://` esplicito non servono cookie `secure`.
+
+### Il tunnel
+
+```sshconfig
+# ~/.ssh/config
+Host matches-vps
+  HostName <ip-vps>
+  User deploy
+  LocalForward 8081 127.0.0.1:8081   # horizon + log-viewer, produzione
+  LocalForward 8082 127.0.0.1:8082   # horizon + log-viewer, staging
+  LocalForward 3552 127.0.0.1:3552   # arcane
+```
+
+`ssh -N matches-vps`, poi `http://localhost:8081/horizon`, `http://localhost:8081/log-viewer`,
+`http://localhost:3552`.
+
+**Perché la porta locale del `LocalForward` è libera.** Horizon inlinea CSS e JS nel layout, ma log-viewer li serve da
+`public/vendor/log-viewer/` con `asset()`, e `trustProxies(at: '*')` fa ignorare a Symfony la porta dell'header `Host`
+in favore di `X-Forwarded-Host`/`X-Forwarded-Port`. Sulla porta admin non c'è nessun proxy che li mandi, quindi
+`asset()` genererebbe URL **senza porta** e la pagina resterebbe senza CSS. Per questo il server block `:8081` fa
+`set $forwarded_host $http_host;` e `nginx-app.conf` lo passa a php-fpm con `if_not_empty`: sulla `:80` la variabile è
+vuota, il parametro viene saltato e gli `X-Forwarded-*` del reverse proxy passano intatti.
+
+Gli asset di log-viewer sono generati al build (`vendor:publish --tag=log-viewer-assets` nel Dockerfile): non sono nel
+repo e `composer.json` non li pubblica, quindi in locale con Sail `/log-viewer` è senza CSS finché non lanci
+`vendor/bin/sail artisan log-viewer:publish`.
+
+### Il ruolo di Arcane, e cosa non deve diventare
+
+**Compose in git, build in CI, Arcane fa solo log, restart, stats ed exec.** Arcane sa tenere i progetti Compose nel
+suo volume dati, ma quel file non è versionato: se diventa lui la fonte di verità della configurazione, il primo drift
+lo scopri durante un torneo. E non usare il suo volume `/builds`: buildare sul VPS contraddice §8.
+
+Arcane non risolve nessuno dei limiti di `docs/vps_costs/README.md` §7 — l'alta disponibilità resta zero, il deploy ha
+ancora downtime, il restore resta non testato.

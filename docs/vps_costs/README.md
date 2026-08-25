@@ -24,6 +24,7 @@ sotto è ricostruita dai Dockerfile,
 | `matches-dashboard` | build da `../matches_dashboard/docker/production/Dockerfile` (`nginx:1.27-alpine-slim`) | nginx                                                                | SPA statica pre-generata (`nuxt generate`, `ssr:false`), ~15 MB, `:8080` non privilegiata                                                                         |
 | `postgres`          | `postgres:17-alpine` **[stima]**                                                        | postgres                                                             | Il client nell'immagine API è `postgresql-client-18`, quindi il server può essere ≤18                                                                             |
 | `redis`             | `redis:7-alpine` **[stima]**                                                            | redis-server                                                         | cache + sessioni + code (Horizon)                                                                                                                                 |
+| `arcane`            | `ghcr.io/getarcaneapp/manager` **[stima]**                                              | server Go (SQLite)                                                   | UI Docker: `docker.sock` montato, SQLite nel volume dati. Pubblicata **solo** su `127.0.0.1:3552`, mai sul proxy                                                  |
 | reverse proxy       | Caddy o nginx + Let's Encrypt **[stima]**                                               | 1 processo                                                           | Termina il TLS: entrambe le immagini app sono esplicitamente progettate per stare *dietro* un proxy (nessun `server_name`, nessun certificato dentro le immagini) |
 
 **Nessun container di storage.** L'Object Storage è un servizio OVH esterno: il VPS ci parla via HTTPS con le
@@ -36,6 +37,10 @@ api.<domain>       -> matches-api:80
 reverb.<domain>    -> matches-api:8080
 dashboard.<domain> -> matches-dashboard:8080
 ```
+
+Le UI di amministrazione **non compaiono qui**: `/horizon` e `/log-viewer` rispondono 404 sulla porta pubblica e sono
+serviti solo dalla porta admin `:8081` del container, Arcane solo su `:3552`. Entrambe pubblicate su loopback e
+raggiunte con un `LocalForward` SSH — vedi `docker/production/README.md` §9.
 
 ---
 
@@ -72,6 +77,7 @@ un OOM del pool PHP uccide anche nginx, Horizon e Reverb — stanno tutti nello 
 | postgres:17-alpine          | ~120 MB  | 250–400 MB | `shared_buffers` default 128 MB; DB piccolo (vedi §4)                                                       |
 | redis:7-alpine              | ~15 MB   | 80–150 MB  | dataset minuscolo; **imposta `maxmemory` + `allkeys-lru`**, altrimenti Redis è l'unico processo senza tetto |
 | matches-dashboard           | ~8 MB    | ~15 MB     | solo file statici + `gzip_static` (nessuna compressione a runtime)                                          |
+| arcane                      | ~80 MB   | ~150 MB    | binario Go, 60–100 MB idle; `mem_limit: 256m` per non essere il secondo processo senza tetto                |
 | reverse proxy               | ~25 MB   | ~50 MB     | Caddy                                                                                                       |
 | dockerd + containerd        | ~120 MB  | ~150 MB    |                                                                                                             |
 | OS (Debian/Ubuntu minimale) | ~200 MB  | ~250 MB    |                                                                                                             |
@@ -80,7 +86,7 @@ un OOM del pool PHP uccide anche nginx, Horizon e Reverb — stanno tutti nello 
 
 | Scenario                                                       | RAM             |
 |----------------------------------------------------------------|-----------------|
-| Idle (nessun torneo in corso)                                  | **~1.1 GB**     |
+| Idle (nessun torneo in corso)                                  | **~1.25 GB**    |
 | Carico normale (un torneo live, websocket aperti, qualche PDF) | **~2.0–2.5 GB** |
 | Picco (burst di code + generazione PDF + backup notturno)      | **~2.9–3.5 GB** |
 
@@ -97,6 +103,9 @@ potenzialmente runnable**. In pratica il carico è a raffiche e legato agli even
 - **Matchmaking** (`MatchmakingService`, transazione DB): breve ma bloccante.
 - **Backup notturno** 01:30 (`routes/console.php`): `pg_dump` + zip, un core saturo per la durata del dump. Con
   destinazione S3 si aggiunge l'upload, che è I/O e non CPU.
+- **Arcane**: i grafici CPU/mem/network fanno polling continuo di `docker stats` su ogni container, ~1–3% di un vCore
+  **in permanenza**. Irrilevante su VPS-2; su VPS-1 mangia esattamente il margine che la §6 si compra abbassando i
+  limiti.
 - **Build immagini**: `pnpm generate` della dashboard richiede `NODE_OPTIONS=--max-old-space-size=4096`. **Non buildare
   sul VPS di produzione** — 4 GB di heap Node più il resto dello stack fa fuori qualunque taglia sensata. Buildare in CI
   e fare `docker pull`.
@@ -116,6 +125,7 @@ la scelta sensata.**
 | `matches-dashboard`                                                                 | ~15 MB (dichiarato nel suo README)                                               |
 | postgres:17-alpine                                                                  | ~250 MB                                                                          |
 | redis:7-alpine                                                                      | ~40 MB                                                                           |
+| arcane **[stima]**                                                                  | ~80–120 MB                                                                       |
 | Caddy                                                                               | ~50 MB                                                                           |
 | **Totale immagini**                                                                 | **~1.3–1.6 GB** (×2 se tieni la versione precedente per il rollback → **~3 GB**) |
 
@@ -261,6 +271,7 @@ live in parallelo con molti websocket aperti.
 | Snapshot pre-deploy — *opzionale*                                                   | 0,30          | 3,60                |
 | Object Storage — backup DB (1 GiB)                                                  | ~0,01         | ~0,10               |
 | Object Storage — media (2–3 GiB) **[stima]**                                        | ~0,02         | ~0,25               |
+| Arcane (BSD-3, self-hosted)                                                         | 0,00          | 0,00                |
 | TLS (Let's Encrypt via Caddy)                                                       | 0,00          | 0,00                |
 | Dominio `.it` **[stima, non OVH-specifico]**                                        | —             | 10–15               |
 | **Totale**                                                                          | **~8,6**      | **~114–119 ex IVA** |
@@ -295,6 +306,9 @@ sotto burst — accettabile per il traffico atteso.
   dopo il primo torneo in produzione. La stima serve a scegliere la taglia, non a sostituire il monitoring.
 - **Il restore non è testato.** Un backup su Object Storage vale quanto l'ultimo `backup:restore` che hai provato. Va
   fatto almeno una volta, verso un DB di staging.
+- **Arcane non risolve niente di questa lista.** È una console operativa (log, restart, stats, exec), non un
+  orchestratore: il compose resta in git e il build resta in CI. Non usare il suo volume `/builds` — buildare sul VPS
+  contraddice §3. Se diventa lui la fonte di verità della configurazione, il primo drift lo scopri durante un torneo.
 - **Alta disponibilità: zero.** Un VPS, un Postgres, un Redis. Il deploy ha downtime (`entrypoint.sh` fa
   `artisan migrate --force` al boot). Per un gestionale tornei è probabilmente accettabile; va detto, non scoperto
   durante l'evento.

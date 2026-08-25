@@ -6,10 +6,17 @@
 #
 # The build context is filtered by docker/production/Dockerfile.dockerignore.
 #
-# TLS is terminated by a reverse proxy in FRONT of this container. Two ports are
-# published and the proxy maps hostnames onto them:
-#   api.<domain>     -> :80    nginx -> php-fpm  (API, /horizon, /log-viewer)
+# TLS is terminated by a reverse proxy in FRONT of this container, which maps
+# hostnames onto the two PUBLIC ports:
+#   api.<domain>     -> :80    nginx -> php-fpm  (API; /horizon e /log-viewer
+#                              qui rispondono 404)
 #   reverb.<domain>  -> :8080  Reverb websockets
+#
+# La terza porta NON e' pubblica:
+#   -                -> :8081  ADMIN. Stessa app senza i 404, cioe' Horizon e
+#                              log-viewer. Va pubblicata solo su loopback e
+#                              raggiunta con un LocalForward SSH: vedi
+#                              docker/production/README.md §9.
 
 # ─── Stage 1: Builder ─────────────────────────────────────────────────────────
 FROM php:8.5-fpm-bookworm AS builder
@@ -79,6 +86,16 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
     COMPOSER_CACHE_DIR=/tmp/composer-cache \
     composer dump-autoload --optimize --no-dev --classmap-authoritative
 
+# log-viewer serve i suoi asset come file statici da public/vendor/log-viewer/
+# (`assets_path` in config/log-viewer.php), ma quella cartella NON e' nel repo e
+# non la crea nessuno: il tag `log-viewer-assets` e' l'unico modo di popolarla, e
+# composer.json non lo invoca (qui sopra girano `composer install --no-scripts` e
+# `dump-autoload`). Senza questa riga /log-viewer si apre senza CSS ne' JS.
+#
+# Horizon NON serve: dalla 5.x inlinea CSS e JS nel layout leggendoli da
+# vendor/laravel/horizon/dist/, che composer install ha gia' messo nell'immagine.
+RUN php artisan vendor:publish --tag=log-viewer-assets --no-interaction --force
+
 # ─── Stage 2: Production ──────────────────────────────────────────────────────
 FROM php:8.5-fpm-bookworm AS production
 
@@ -122,6 +139,7 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/production/php.ini "$PHP_INI_DIR/conf.d/zz-app.ini"
 
 COPY docker/production/nginx.conf /etc/nginx/nginx.conf
+COPY docker/production/nginx-app.conf /etc/nginx/app.conf
 COPY docker/production/php-fpm.conf /usr/local/etc/php-fpm.d/zz-app.conf
 COPY docker/production/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/production/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -141,7 +159,11 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
 # %(ENV_REVERB_SERVER_PORT)s even when the deploy does not inject it.
 ENV REVERB_SERVER_PORT=8080
 
-EXPOSE 80 8080
+# Documentazione, non un vincolo: EXPOSE non pubblica nulla. :8081 va
+# pubblicata SOLO su loopback (`127.0.0.1:8081:8081`), altrimenti Docker
+# scrive in DOCKER-USER/nat e la porta e' raggiungibile da internet
+# scavalcando le regole INPUT di ufw.
+EXPOSE 80 8080 8081
 
 # Deliberately goes through nginx AND php-fpm, so a dead PHP pool fails the
 # check instead of being masked by a static response.

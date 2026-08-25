@@ -11,7 +11,7 @@ Built with [Laravel 13](https://laravel.com), [Sanctum](https://laravel.com/docs
 and [Reverb](https://laravel.com/docs/reverb) for real-time WebSocket broadcasting.
 
 ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
-![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?logo=php&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.5+-777BB4?logo=php&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-PHPUnit_12-3776AB)
 
 [Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Matchmaking](#matchmaking) • [Real-time events](#real-time-events) • [Development](#development) • [Docs](#documentation)
@@ -55,13 +55,14 @@ as bouts change.
 
 | Layer           | Technology                                    |
 |-----------------|-----------------------------------------------|
-| Framework       | Laravel 13 (PHP 8.3+)                         |
+| Framework       | Laravel 13 (PHP 8.5+)                         |
 | Auth            | Laravel Sanctum 4 (API tokens)                |
 | WebSockets      | Laravel Reverb                                |
 | Queues / jobs   | Laravel Horizon on Redis                      |
 | Database        | PostgreSQL 17                                 |
 | Cache           | Redis                                         |
 | Files           | spatie/laravel-medialibrary (+ S3)            |
+| Backups         | spatie/laravel-backup (nightly, to S3)        |
 | PDF             | spatie/laravel-pdf (+ dompdf)                 |
 | Mail            | Mailpit (local), SMTP (production)            |
 | Dev environment | Laravel Sail (Docker)                         |
@@ -182,6 +183,20 @@ No authentication required (rate-limited).
 | `GET`  | `/api/public/registration_form/registrations/{id}/pdf` | Download registration PDF              |
 | `GET`  | `/api/public/tournaments`                              | Public tournament list                 |
 | `GET`  | `/api/public/tournaments/{id}/match_records`           | Live fight card for a tournament       |
+
+### Operational dashboards
+
+Two web UIs ship with the API, both served from the same host and both behind HTTP basic auth
+(`HorizonBasicAuth` / `LogViewerBasicAuth` — set their credentials via env, they are not part of Sanctum):
+
+| Path          | What it is                                                        |
+|---------------|-------------------------------------------------------------------|
+| `/horizon`    | Queue dashboard — job throughput, failures, retries               |
+| `/log-viewer` | Application log browser, reading the `daily` channel from `storage/logs` |
+
+> [!NOTE]
+> `/log-viewer` needs `LOG_CHANNEL=daily` to have files to read. In production `storage/logs` should be a persistent
+> volume, otherwise the log history dies with the container.
 
 ### Relation sideloading
 
@@ -325,20 +340,73 @@ vendor/bin/sail composer run queue-ws
 
 ## Deployment
 
-Production runs from `compose.production.yml`: one application image built from `docker/production/Dockerfile`, plus
-PostgreSQL 17 and Redis 7. Inside the app container, supervisord keeps Caddy, php-fpm, Horizon, Reverb, and the
-scheduler alive; the entrypoint fixes storage permissions, runs `artisan optimize`, and applies migrations on boot.
+Production is a **single application image** (`docker/production/Dockerfile`, a two-stage build on
+`php:8.5-fpm-bookworm`) running alongside PostgreSQL and Redis. Inside the container, supervisord
+(`docker/production/supervisord.conf`) keeps five processes alive:
 
-```bash
-cp .env.production.example .env.production   # then fill in the secrets
-docker compose -f compose.production.yml up -d --build
+```
+nginx · php-fpm · Horizon · Reverb · scheduler
 ```
 
+`entrypoint.sh` recreates the `storage/` tree, fixes ownership, runs `artisan optimize`, and applies migrations before
+handing off to supervisord.
+
+```bash
+DOCKER_BUILDKIT=1 docker build -f docker/production/Dockerfile -t matches-api .
+```
+
+> [!IMPORTANT]
+> **This repo does not ship a `compose.production.yml` or a `.env.production.example`.** Orchestration and secret
+> delivery are up to your deploy target. No `.env` is baked into the image: every setting (`APP_KEY`, `DB_*`, `REDIS_*`,
+> `LOG_CHANNEL=daily`, `LARAVEL_PDF_DRIVER=dompdf`, `HORIZON_*` / `LOG_VIEWER_*` credentials) must be injected as an
+> environment variable at runtime.
+
+### TLS and hostnames
+
+TLS is terminated by a reverse proxy **in front of** the container, which maps hostnames onto the two published ports.
+This is why `docker/production/nginx.conf` has no `server_name`:
+
+| Hostname          | Port    | Serves                                |
+|-------------------|---------|---------------------------------------|
+| `api.<domain>`    | `:80`   | The API, plus `/horizon`, `/log-viewer` |
+| `reverb.<domain>` | `:8080` | Reverb WebSockets                     |
+
+> [!WARNING]
+> In `supervisord.conf`, `REVERB_SERVER_PORT` is the port Reverb **listens** on. `REVERB_HOST` / `REVERB_PORT` /
+> `REVERB_SCHEME` are what clients are told to connect to (`reverb.<domain>:443` over `https`) — do not reuse them for
+> the listener.
+
+### Sizing
+
+Worst-case container memory is bounded by two settings that must be tuned **together**, because both pools share the
+container with nginx and Reverb — an OOM in either takes down all five processes:
+
+| Setting                                              | Worst case |
+|------------------------------------------------------|------------|
+| `pm.max_children=8` × `memory_limit=256M` (php-fpm)  | ~2 GB      |
+| `maxProcesses=10` × `memory=128` (Horizon, prod)     | ~1.3 GB    |
+
+See [`docs/vps_costs/README.md`](docs/vps_costs/README.md) for the measured footprint, VPS sizing, and a worked cost
+estimate.
+
 > [!TIP]
-> Set `RUN_MIGRATIONS=false` to skip automatic migrations when you'd rather run them as a separate deploy step.
+> Build in CI, not on the production host — generating the companion dashboard needs 4 GB of Node heap. Set
+> `RUN_MIGRATIONS=false` to skip automatic migrations when you would rather run them as a separate deploy step.
+
+### Storage and backups
+
+Both storage concerns are S3-compatible disks, and neither has a safe default:
+
+- **Backups** (`BACKUP_DISK`, default `s3`) — `spatie/laravel-backup` dumps the database nightly at 01:30. The schedule
+  in `routes/console.php` is **skipped entirely** when the destination bucket is unconfigured, so a missing `AWS_BUCKET`
+  means silently no backups.
+- **Media** (`MEDIA_DISK`, falling back to `FILESYSTEM_DISK`, then to the **local** `public` disk) — athlete photos and
+  tournament covers. `config/backup.php` backs up the database only (`source.files.include` is empty), so media left on
+  local disk is **not** in any backup.
 
 ## Documentation
 
 - [`DB.md`](DB.md) — DBML schema
 - [`DB_SEED.md`](DB_SEED.md) — development seed reference
 - [`CLAUDE.md`](CLAUDE.md) — architecture invariants and conventions
+- [`docs/vps_costs/README.md`](docs/vps_costs/README.md) — production resource footprint, VPS sizing, hosting cost estimate

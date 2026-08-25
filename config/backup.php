@@ -166,7 +166,7 @@ return [
              * The disk names on which the backups will be stored.
              */
             'disks' => [
-                env('BACKUP_DISK', 's3'),
+                env('BACKUP_DISK', 's3-backup'),
             ],
 
             /*

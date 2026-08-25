@@ -99,6 +99,9 @@ RUN php artisan vendor:publish --tag=log-viewer-assets --no-interaction --force
 # ─── Stage 2: Production ──────────────────────────────────────────────────────
 FROM php:8.5-fpm-bookworm AS production
 
+LABEL org.opencontainers.image.title="matches-api" \
+    org.opencontainers.image.description="Matches - Laravel REST API server"
+
 # Runtime counterparts of the builder's -dev packages, plus the process
 # supervisor, web server and the privilege-dropping helper.
 #

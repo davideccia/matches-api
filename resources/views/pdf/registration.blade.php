@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4;
-            margin: 20pt;
+            margin: 0;
         }
 
         html {
@@ -16,7 +16,8 @@
         body {
             font-family: Helvetica, Arial, sans-serif;
             font-size: 11pt;
-            color: #2d3a4e;
+            color: #201e1d;
+            background-color: #ffffff;
             margin: 0;
             padding: 0;
         }
@@ -33,259 +34,166 @@
 
         /* ── PAGE ── */
         .page {
-            padding: 20pt;
+            padding: 44pt 48pt;
         }
 
-        /* ── HEADER WRAP ── */
-        .header-wrap {
-            border-radius: 10pt;
-            overflow: hidden;
-            border: 1pt solid #dce4ed;
-        }
-
-        /* ── HEADER ── */
-        .header-table {
-            width: 100%;
-        }
-
-        .header-accent {
-            width: 7pt;
-            background-color: #5b7fa8;
-        }
-
-        .header-content {
-            padding: 26pt 32pt 26pt 22pt;
-        }
-
-        .header-event {
-            font-size: 8pt;
-            color: #5b7fa8;
-            text-transform: uppercase;
-            letter-spacing: 1.5pt;
+        /* ── TITLE ── */
+        .title {
+            font-size: 34pt;
             font-weight: bold;
+            line-height: 1.08;
         }
 
-        .header-title {
-            font-size: 20pt;
-            font-weight: bold;
-            color: #2d3a4e;
-            margin-top: 5pt;
+        .subtitle {
+            font-size: 10pt;
+            color: #5f5c5a;
+            margin-top: 10pt;
+            width: 340pt;
         }
 
-        .header-subtitle {
-            font-size: 8.5pt;
-            color: #8fa0b5;
-            margin-top: 4pt;
-            letter-spacing: 0.3pt;
-        }
-
-        /* ── BODY ── */
-        .body-wrap {
-            padding: 28pt 0;
-        }
-
-        /* ── DETAIL WRAP ── */
-        .detail-wrap {
-            border-radius: 8pt;
-            overflow: hidden;
-            border: 1pt solid #dce4ed;
-        }
-
-        /* ── DETAIL TABLE ── */
-        .detail-table {
-            width: 100%;
-        }
-
-        .detail-label {
-            width: 34%;
-            border-bottom: 1pt solid #dce4ed;
-            border-right: 1pt solid #dce4ed;
-            padding: 10pt 14pt;
-            font-size: 8pt;
-            font-weight: bold;
-            color: #8fa0b5;
-            text-transform: uppercase;
-            letter-spacing: 0.8pt;
-        }
-
-        .detail-value {
-            border-bottom: 1pt solid #dce4ed;
-            padding: 10pt 14pt;
-            font-size: 11pt;
-            color: #2d3a4e;
-            font-weight: bold;
-        }
-
-        .detail-label-last {
-            width: 34%;
-            border-right: 1pt solid #dce4ed;
-            padding: 10pt 14pt;
-            font-size: 8pt;
-            font-weight: bold;
-            color: #8fa0b5;
-            text-transform: uppercase;
-            letter-spacing: 0.8pt;
-        }
-
-        .detail-value-last {
-            padding: 10pt 14pt;
-            font-size: 11pt;
-            font-weight: bold;
-            color: #2d3a4e;
-        }
-
-        /* ── DIVIDER ── */
-        .divider-table {
-            width: 100%;
-            margin-top: 26pt;
-            margin-bottom: 26pt;
-        }
-
-        .divider-line {
-            border-top: 1pt solid #dce4ed;
-            height: 0;
+        .rule-strong {
+            height: 2pt;
             font-size: 0;
             line-height: 0;
+            background-color: #201e1d;
+            margin-top: 26pt;
         }
 
-        /* ── CREDENTIAL BLOCK ── */
-        .credential-outer {
-            width: 100%;
+        /* ── DETAILS ── */
+        .detail-label,
+        .detail-label-last {
+            width: 34%;
+            padding: 16pt 0 14pt;
+            font-size: 7.5pt;
+            font-weight: bold;
+            letter-spacing: 1.4pt;
+            text-transform: uppercase;
+            color: #8a8785;
         }
 
-        .credential-cell {
-            padding: 0;
-            text-align: center;
+        .detail-value,
+        .detail-value-last {
+            padding: 16pt 0 14pt;
+            font-size: 15pt;
+            font-weight: bold;
         }
 
-        .credential-box {
-            border: 1.5pt solid #dce4ed;
-            border-left: 4pt solid #d4a96a;
-            border-radius: 8pt;
-            padding: 18pt 28pt;
-            text-align: center;
+        .detail-label,
+        .detail-value {
+            border-bottom: 1pt solid #d8d6d5;
+        }
+
+        .detail-label-last,
+        .detail-value-last {
+            border-bottom: 2pt solid #201e1d;
+        }
+
+        /* ── CREDENTIAL ── */
+        .credential {
+            margin-top: 34pt;
+            background-color: #0084d1;
+            padding: 24pt 28pt;
+            color: #ffffff;
         }
 
         .credential-label {
-            font-size: 7pt;
+            font-size: 7.5pt;
             font-weight: bold;
-            color: #d4a96a;
+            letter-spacing: 2.4pt;
             text-transform: uppercase;
-            letter-spacing: 2.5pt;
-        }
-
-        .credential-rule {
-            border-top: 1pt solid #dce4ed;
-            margin-top: 10pt;
-            margin-bottom: 10pt;
-            height: 0;
-            font-size: 0;
-            line-height: 0;
         }
 
         .credential-code {
             font-family: "Courier New", Courier, monospace;
-            font-size: 12pt;
+            font-size: 13pt;
             font-weight: bold;
-            color: #2d3a4e;
-            letter-spacing: 1pt;
+            letter-spacing: 0.5pt;
+            padding-top: 12pt;
+            word-wrap: break-word;
         }
 
         .credential-note {
-            font-size: 7pt;
-            color: #8fa0b5;
-            margin-top: 10pt;
-            letter-spacing: 0.3pt;
+            font-size: 8pt;
+            padding-top: 12pt;
+            width: 300pt;
         }
 
         /* ── FOOTER ── */
-        .footer-table {
-            width: 100%;
-            border-top: 1pt solid #dce4ed;
+        .footer {
+            position: fixed;
+            left: 48pt;
+            bottom: 44pt;
+            width: 499pt;
+            border-top: 2pt solid #201e1d;
+        }
+
+        .footer-left,
+        .footer-right {
+            padding: 10pt 0 0;
+            font-size: 7.5pt;
+            font-weight: bold;
+            letter-spacing: 1.2pt;
+            text-transform: uppercase;
+            color: #8a8785;
+        }
+
+        .footer-left {
+            text-align: left;
         }
 
         .footer-right {
-            padding: 9pt 0pt;
-            font-size: 7pt;
-            color: #8fa0b5;
             text-align: right;
-            letter-spacing: 0.3pt;
         }
     </style>
 </head>
 <body>
+
 <div class="page">
 
-    {{-- Header --}}
-    <div class="header-wrap">
-        <table class="header-table">
-            <tr>
-                <td class="header-accent"></td>
-                <td class="header-content">
-                    <div class="header-event">{{ $registration->tournament->name }}</div>
-                    <div class="header-title">{{ __('pdf.registration.title') }}</div>
-                    <div class="header-subtitle">{{ __('pdf.registration.subtitle') }}</div>
-                </td>
-            </tr>
-        </table>
-    </div>
+    {{-- Title --}}
+    <div class="title">{{ __('pdf.registration.title') }}</div>
+    <div class="subtitle">{{ __('pdf.registration.subtitle') }}</div>
 
-    {{-- Body --}}
-    <div class="body-wrap">
+    <div class="rule-strong"></div>
 
-        <div class="detail-wrap">
-            <table class="detail-table">
-                <tr>
-                    <td class="detail-label">{{ __('pdf.registration.label_athlete') }}</td>
-                    <td class="detail-value">{{ $registration->athlete->full_name }}</td>
-                </tr>
-                <tr>
-                    <td class="detail-label">{{ __('pdf.registration.label_tournament') }}</td>
-                    <td class="detail-value">{{ $registration->tournament->name }}</td>
-                </tr>
-                <tr>
-                    <td class="detail-label">{{ __('pdf.registration.label_discipline') }}</td>
-                    <td class="detail-value">{{ $registration->discipline->label }}</td>
-                </tr>
-                <tr>
-                    <td class="detail-label-last">{{ __('pdf.registration.label_category') }}</td>
-                    <td class="detail-value-last">{{ $registration->weightCategory->label }}</td>
-                </tr>
-            </table>
-        </div>
-
-        {{-- Divider --}}
-        <table class="divider-table">
-            <tr>
-                <td class="divider-line"></td>
-            </tr>
-        </table>
-
-        {{-- Credential block --}}
-        <table class="credential-outer">
-            <tr>
-                <td class="credential-cell">
-                    <div class="credential-box">
-                        <div class="credential-label">{{ __('pdf.registration.credential_label') }}</div>
-                        <div class="credential-rule"></div>
-                        <div class="credential-code">{{ $registration->id }}</div>
-                        <div class="credential-note">{{ __('pdf.registration.credential_note') }}</div>
-                    </div>
-                </td>
-            </tr>
-        </table>
-
-    </div>
-
-    {{-- Footer --}}
-    <table class="footer-table">
+    {{-- Details --}}
+    <table>
         <tr>
-            <td class="footer-right">
-                {{ __('pdf.registration.exported_at', ['date' => now()->format('d/m/Y H:i')]) }}
-            </td>
+            <td class="detail-label">{{ __('pdf.registration.label_athlete') }}</td>
+            <td class="detail-value">{{ $registration->athlete->full_name }}</td>
+        </tr>
+        <tr>
+            <td class="detail-label">{{ __('pdf.registration.label_tournament') }}</td>
+            <td class="detail-value">{{ $registration->tournament->name }}</td>
+        </tr>
+        <tr>
+            <td class="detail-label">{{ __('pdf.registration.label_discipline') }}</td>
+            <td class="detail-value">{{ $registration->discipline->label }}</td>
+        </tr>
+        <tr>
+            <td class="detail-label-last">{{ __('pdf.registration.label_category') }}</td>
+            <td class="detail-value-last">{{ $registration->weightCategory->label }}</td>
         </tr>
     </table>
 
+    {{-- Credential --}}
+    <div class="credential">
+        <div class="credential-label">{{ __('pdf.registration.credential_label') }}</div>
+        <div class="credential-code">{{ $registration->id }}</div>
+        <div class="credential-note">{{ __('pdf.registration.credential_note') }}</div>
+    </div>
+
 </div>
+
+{{-- Footer --}}
+<table class="footer">
+    <tr>
+        <td class="footer-left">{{ __('pdf.registration.title') }}</td>
+        <td class="footer-right">
+            {{ __('pdf.registration.exported_at', ['date' => now()->format('d/m/Y H:i')]) }}
+        </td>
+    </tr>
+</table>
+
 </body>
 </html>

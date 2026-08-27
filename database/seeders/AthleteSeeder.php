@@ -23,6 +23,7 @@ class AthleteSeeder extends Seeder
                 'birth_date' => '1995-01-01',
                 'gender' => AthleteGenderEnum::MALE,
                 'tax_number' => "ATLTM{$n}00000000",
+                'email' => "atleta.m{$n}@example.test",
                 'team_name' => "Team M{$n}",
             ]);
         }
@@ -36,6 +37,7 @@ class AthleteSeeder extends Seeder
                 'birth_date' => '1995-01-01',
                 'gender' => AthleteGenderEnum::FEMALE,
                 'tax_number' => "ATLTF{$n}00000000",
+                'email' => "atleta.f{$n}@example.test",
                 'team_name' => "Team F{$n}",
             ]);
         }

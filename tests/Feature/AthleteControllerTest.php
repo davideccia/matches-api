@@ -197,6 +197,7 @@ class AthleteControllerTest extends TestCase
             'birth_date' => '1990-01-01',
             'gender' => AthleteGenderEnum::MALE->value,
             'tax_number' => 'ABCDEF12G34H567I',
+            'email' => 'atleta@example.test',
         ];
 
         $response = $this->postJson('/api/admin/athletes', $payload);
@@ -223,6 +224,7 @@ class AthleteControllerTest extends TestCase
             'birth_date' => '1990-01-01',
             'gender' => AthleteGenderEnum::MALE->value,
             'tax_number' => '  abcdef12g34h567i  ',
+            'email' => 'atleta@example.test',
         ];
 
         $response = $this->postJson('/api/admin/athletes', $payload);
@@ -238,7 +240,7 @@ class AthleteControllerTest extends TestCase
         $this->authenticate();
 
         $this->postJson('/api/admin/athletes', [])
-            ->assertJsonValidationErrors(['first_name', 'last_name', 'birth_date', 'gender', 'tax_number']);
+            ->assertJsonValidationErrors(['first_name', 'last_name', 'birth_date', 'gender', 'tax_number', 'email']);
     }
 
     public function test_store_validates_gender_enum(): void
@@ -251,6 +253,7 @@ class AthleteControllerTest extends TestCase
             'birth_date' => '1990-01-01',
             'gender' => 'invalid',
             'tax_number' => 'ABCDEF12G34H567I',
+            'email' => 'atleta@example.test',
         ];
 
         $this->postJson('/api/admin/athletes', $payload)
@@ -273,6 +276,7 @@ class AthleteControllerTest extends TestCase
             'birth_date' => '1990-01-01',
             'gender' => AthleteGenderEnum::MALE->value,
             'tax_number' => 'abcdef12g34h567i',
+            'email' => 'atleta@example.test',
         ]);
     }
 
@@ -331,6 +335,7 @@ class AthleteControllerTest extends TestCase
             'birth_date' => '1992-05-05',
             'gender' => AthleteGenderEnum::FEMALE->value,
             'tax_number' => '  zzzzzz99z99z999z  ',
+            'email' => 'atleta@example.test',
         ];
 
         $this->putJson("/api/admin/athletes/{$athlete->id}", $payload)
@@ -342,6 +347,7 @@ class AthleteControllerTest extends TestCase
             'id' => $athlete->id,
             'full_name' => 'Luca Neri',
             'tax_number' => 'ZZZZZZ99Z99Z999Z',
+            'email' => 'atleta@example.test',
         ]);
     }
 

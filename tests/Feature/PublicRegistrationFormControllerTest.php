@@ -8,11 +8,56 @@ use App\Models\Discipline;
 use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
+use App\Notifications\RegistrationVerificationCodeNotification;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class PublicRegistrationFormControllerTest extends TestCase
 {
+    // ---------------------------------------------------------------------
+    // helpers
+    // ---------------------------------------------------------------------
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function registrationPayload(): array
+    {
+        return [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+            'first_name' => 'Mario',
+            'last_name' => 'Rossi',
+            'birth_date' => '1990-01-01',
+            'gender' => 'male',
+            'tournament_id' => Tournament::factory()->registrationsOpened()->create()->id,
+            'discipline_id' => Discipline::factory()->create()->id,
+            'weight_category_id' => WeightCategory::factory()->create()->id,
+        ];
+    }
+
+    private function issueVerificationCode(string $taxNumber, string $email): string
+    {
+        $this->postJson('/api/public/registration_form/verification_code', [
+            'tax_number' => $taxNumber,
+            'email' => $email,
+        ])->assertNoContent();
+
+        $code = null;
+
+        Notification::assertSentOnDemand(
+            RegistrationVerificationCodeNotification::class,
+            function (RegistrationVerificationCodeNotification $notification) use (&$code): bool {
+                $code = $notification->code;
+
+                return true;
+            }
+        );
+
+        return $code;
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -20,134 +65,217 @@ class PublicRegistrationFormControllerTest extends TestCase
         // Public routes carry throttle:10,1; disable it so multiple requests
         // per test (and across tests) do not trip a 429.
         $this->withoutMiddleware(ThrottleRequests::class);
+
+        Notification::fake();
     }
 
     // ---------------------------------------------------------------------
-    // storeAthlete
+    // lookupAthlete
     // ---------------------------------------------------------------------
 
-    public function test_store_athlete_creates_a_new_athlete(): void
+    public function test_lookup_athlete_returns_athlete_for_matching_tax_number_and_email(): void
     {
-        $payload = [
-            'first_name' => 'Mario',
-            'last_name' => 'Rossi',
-            'birth_date' => '1990-01-01',
-            'gender' => 'male',
+        $athlete = Athlete::factory()->adult()->create([
             'tax_number' => 'RSSMRA90A01H501A',
-        ];
-
-        $response = $this->postJson('/api/public/registration_form/athletes', $payload);
-
-        // Newly created models yield 201 (Laravel sets it for recently-created resources).
-        $response->assertCreated()
-            ->assertJsonPath('data.first_name', 'Mario')
-            ->assertJsonPath('data.last_name', 'Rossi')
-            ->assertJsonPath('data.full_name', 'Mario Rossi');
-
-        $this->assertDatabaseHas('athletes', [
-            'tax_number' => 'RSSMRA90A01H501A',
-            'first_name' => 'Mario',
-        ]);
-    }
-
-    public function test_store_athlete_normalizes_tax_number_to_uppercase_and_trimmed(): void
-    {
-        $payload = [
-            'first_name' => 'Mario',
-            'last_name' => 'Rossi',
-            'birth_date' => '1990-01-01',
-            'gender' => 'male',
-            'tax_number' => '  rssmra90a01h501a  ',
-        ];
-
-        $response = $this->postJson('/api/public/registration_form/athletes', $payload);
-
-        $response->assertCreated()
-            ->assertJsonPath('data.full_name', 'Mario Rossi');
-
-        // Normalization verified via DB — tax_number is intentionally not exposed in the public resource.
-        $this->assertDatabaseHas('athletes', ['tax_number' => 'RSSMRA90A01H501A']);
-        $this->assertDatabaseMissing('athletes', ['tax_number' => '  rssmra90a01h501a  ']);
-    }
-
-    public function test_store_athlete_returns_existing_athlete_without_overwriting(): void
-    {
-        $existing = Athlete::factory()->create([
-            'first_name' => 'Old',
-            'last_name' => 'Name',
-            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
         ]);
 
-        $payload = [
-            'first_name' => 'New',
-            'last_name' => 'Name',
-            'birth_date' => '1990-01-01',
-            'gender' => 'male',
+        $response = $this->postJson('/api/public/registration_form/athletes/lookup', [
             'tax_number' => 'RSSMRA90A01H501A',
-        ];
-
-        $response = $this->postJson('/api/public/registration_form/athletes', $payload);
-
-        // firstOrCreate semantics: existing record returned unchanged, no data overwritten.
-        $response->assertOk()
-            ->assertJsonPath('data.id', $existing->id)
-            ->assertJsonPath('data.first_name', 'Old');
-
-        $this->assertSame(1, Athlete::count());
-        $this->assertDatabaseHas('athletes', [
-            'id' => $existing->id,
-            'first_name' => 'Old',
+            'email' => 'mario@example.test',
         ]);
-    }
-
-    public function test_store_athlete_validates_required_fields(): void
-    {
-        $response = $this->postJson('/api/public/registration_form/athletes', []);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['first_name', 'last_name', 'birth_date', 'gender', 'tax_number']);
-    }
-
-    public function test_store_athlete_validates_invalid_gender(): void
-    {
-        $payload = [
-            'first_name' => 'Mario',
-            'last_name' => 'Rossi',
-            'birth_date' => '1990-01-01',
-            'gender' => 'not-a-gender',
-            'tax_number' => 'RSSMRA90A01H501A',
-        ];
-
-        $response = $this->postJson('/api/public/registration_form/athletes', $payload);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['gender']);
-    }
-
-    // ---------------------------------------------------------------------
-    // showAthlete
-    // ---------------------------------------------------------------------
-
-    public function test_show_athlete_returns_athlete_by_tax_number(): void
-    {
-        $athlete = Athlete::factory()->adult()->create(['tax_number' => 'RSSMRA90A01H501A']);
-
-        $response = $this->getJson('/api/public/registration_form/athletes/RSSMRA90A01H501A');
 
         $response->assertOk()
             ->assertJsonPath('data.id', $athlete->id)
             ->assertJsonPath('data.full_name', $athlete->full_name);
 
-        // tax_number and is_adult are intentionally omitted from the public resource.
+        // tax_number, email and is_adult are intentionally omitted from the public resource.
         $response->assertJsonMissingPath('data.tax_number');
+        $response->assertJsonMissingPath('data.email');
         $response->assertJsonMissingPath('data.is_adult');
     }
 
-    public function test_show_athlete_returns404_for_unknown_tax_number(): void
+    public function test_lookup_athlete_normalizes_tax_number_and_email(): void
     {
-        $response = $this->getJson('/api/public/registration_form/athletes/UNKNOWN0000000000');
+        $athlete = Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
 
-        $response->assertNotFound();
+        $this->postJson('/api/public/registration_form/athletes/lookup', [
+            'tax_number' => '  rssmra90a01h501a  ',
+            'email' => '  MARIO@Example.TEST  ',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.id', $athlete->id);
+    }
+
+    public function test_lookup_athlete_rejects_wrong_email_with_a_generic400(): void
+    {
+        Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
+
+        $this->postJson('/api/public/registration_form/athletes/lookup', [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'attacker@evil.test',
+        ])->assertStatus(400);
+    }
+
+    public function test_lookup_athlete_rejects_unknown_tax_number_with_a_generic400(): void
+    {
+        $this->postJson('/api/public/registration_form/athletes/lookup', [
+            'tax_number' => 'UNKNOWN0000000000',
+            'email' => 'attacker@evil.test',
+        ])->assertStatus(400);
+    }
+
+    /**
+     * The whole point of the fix: a caller must not be able to tell "this tax
+     * number is unknown" from "this tax number exists but the email is wrong".
+     */
+    public function test_lookup_athlete_failures_are_indistinguishable(): void
+    {
+        Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
+
+        $wrongEmail = $this->postJson('/api/public/registration_form/athletes/lookup', [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'attacker@evil.test',
+        ]);
+
+        $unknownTaxNumber = $this->postJson('/api/public/registration_form/athletes/lookup', [
+            'tax_number' => 'UNKNOWN0000000000',
+            'email' => 'attacker@evil.test',
+        ]);
+
+        // Compare status and message rather than the raw body: with APP_DEBUG on
+        // the payload also carries a stack trace naming the calling line, which
+        // differs between the two requests for reasons unrelated to the fix.
+        $this->assertSame($wrongEmail->getStatusCode(), $unknownTaxNumber->getStatusCode());
+        $this->assertSame($wrongEmail->json('message'), $unknownTaxNumber->json('message'));
+        $this->assertSame(__('errors.athlete_lookup_failed'), $wrongEmail->json('message'));
+    }
+
+    public function test_lookup_athlete_validates_required_fields(): void
+    {
+        $this->postJson('/api/public/registration_form/athletes/lookup', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['tax_number', 'email']);
+    }
+
+    public function test_removed_athlete_routes_no_longer_exist(): void
+    {
+        $this->getJson('/api/public/registration_form/athletes/RSSMRA90A01H501A')->assertNotFound();
+        $this->postJson('/api/public/registration_form/athletes', [])->assertNotFound();
+    }
+
+    // ---------------------------------------------------------------------
+    // requestVerificationCode
+    // ---------------------------------------------------------------------
+
+    /**
+     * The invariant the whole design rests on: for an athlete already on file the
+     * code goes to the stored address, never to the one supplied by the caller.
+     * Otherwise anyone knowing a tax number could have it mailed to themselves.
+     */
+    public function test_verification_code_for_existing_athlete_goes_to_the_stored_email(): void
+    {
+        Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
+
+        $this->postJson('/api/public/registration_form/verification_code', [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'attacker@evil.test',
+        ])->assertNoContent();
+
+        Notification::assertSentOnDemand(
+            RegistrationVerificationCodeNotification::class,
+            fn ($notification, $channels, $notifiable): bool => $notifiable->routeNotificationFor('mail') === 'mario@example.test'
+        );
+    }
+
+    public function test_verification_code_for_unknown_athlete_goes_to_the_submitted_email(): void
+    {
+        $this->postJson('/api/public/registration_form/verification_code', [
+            'tax_number' => 'NEWCF00000000000',
+            'email' => 'newcomer@example.test',
+        ])->assertNoContent();
+
+        Notification::assertSentOnDemand(
+            RegistrationVerificationCodeNotification::class,
+            fn ($notification, $channels, $notifiable): bool => $notifiable->routeNotificationFor('mail') === 'newcomer@example.test'
+        );
+    }
+
+    public function test_verification_code_response_is_identical_whether_the_athlete_exists_or_not(): void
+    {
+        Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
+
+        $existing = $this->postJson('/api/public/registration_form/verification_code', [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'attacker@evil.test',
+        ]);
+
+        $unknown = $this->postJson('/api/public/registration_form/verification_code', [
+            'tax_number' => 'UNKNOWN0000000000',
+            'email' => 'attacker@evil.test',
+        ]);
+
+        $existing->assertNoContent();
+        $unknown->assertNoContent();
+        $this->assertSame($existing->getContent(), $unknown->getContent());
+    }
+
+    public function test_verification_code_requests_are_capped_per_tax_number(): void
+    {
+        $payload = ['tax_number' => 'RSSMRA90A01H501A', 'email' => 'mario@example.test'];
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/public/registration_form/verification_code', $payload)->assertNoContent();
+        }
+
+        // Rate limiting must not become an oracle: the response stays 204 while
+        // the mail simply stops going out.
+        Notification::assertSentOnDemandTimes(RegistrationVerificationCodeNotification::class, 3);
+    }
+
+    /**
+     * Regression: an unnamed `throttle:5,1` keys on domain+IP, so it shared and
+     * double-hit the group-level counter. Normal form traffic (loading step 3)
+     * was enough to make the very first code request 429.
+     */
+    public function test_verification_code_is_not_throttled_by_unrelated_public_traffic(): void
+    {
+        $this->app->forgetInstance(ThrottleRequests::class);
+
+        $this->getJson('/api/public/registration_form/tournaments')->assertOk();
+        $this->getJson('/api/public/registration_form/disciplines')->assertOk();
+        $this->getJson('/api/public/registration_form/weight_categories')->assertOk();
+        $this->postJson('/api/public/registration_form/athletes/lookup', [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ])->assertStatus(400);
+
+        $this->postJson('/api/public/registration_form/verification_code', [
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ])->assertNoContent();
+    }
+
+    public function test_verification_code_validates_required_fields(): void
+    {
+        $this->postJson('/api/public/registration_form/verification_code', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['tax_number', 'email']);
     }
 
     // ---------------------------------------------------------------------
@@ -256,77 +384,155 @@ class PublicRegistrationFormControllerTest extends TestCase
     // storeRegistration
     // ---------------------------------------------------------------------
 
-    public function test_store_registration_creates_a_registration(): void
+    public function test_store_registration_creates_athlete_and_registration_with_a_valid_code(): void
     {
-        $athlete = Athlete::factory()->create();
-        $tournament = Tournament::factory()->registrationsOpened()->create();
-        $discipline = Discipline::factory()->create();
-        $weightCategory = WeightCategory::factory()->create();
-
-        $payload = [
-            'athlete_id' => $athlete->id,
-            'tournament_id' => $tournament->id,
-            'discipline_id' => $discipline->id,
-            'weight_category_id' => $weightCategory->id,
-            'notes' => 'Public sign-up',
-        ];
+        $payload = $this->registrationPayload();
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
 
         $response = $this->postJson('/api/public/registration_form/registrations', $payload);
 
-        $response->assertCreated()
-            ->assertJsonPath('data.athlete_id', $athlete->id)
-            ->assertJsonPath('data.tournament_id', $tournament->id);
+        $response->assertCreated();
 
-        $this->assertDatabaseHas('registrations', [
-            'athlete_id' => $athlete->id,
-            'tournament_id' => $tournament->id,
-            'discipline_id' => $discipline->id,
-            'weight_category_id' => $weightCategory->id,
+        $this->assertDatabaseHas('athletes', [
+            'tax_number' => $payload['tax_number'],
+            'email' => $payload['email'],
+            'full_name' => 'Mario Rossi',
         ]);
+        $this->assertDatabaseHas('registrations', [
+            'tournament_id' => $payload['tournament_id'],
+            'discipline_id' => $payload['discipline_id'],
+        ]);
+    }
+
+    public function test_store_registration_reuses_an_existing_athlete_without_overwriting_it(): void
+    {
+        $existing = Athlete::factory()->create([
+            'first_name' => 'Old',
+            'last_name' => 'Name',
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
+
+        $payload = $this->registrationPayload();
+        $payload['first_name'] = 'New';
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertCreated();
+
+        $this->assertSame(1, Athlete::count());
+        $this->assertDatabaseHas('athletes', ['id' => $existing->id, 'first_name' => 'Old']);
+        $this->assertDatabaseHas('registrations', ['athlete_id' => $existing->id]);
+    }
+
+    public function test_store_registration_rejects_a_wrong_code(): void
+    {
+        $payload = $this->registrationPayload();
+        $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+        $payload['code'] = '000000';
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertStatus(400);
+
+        $this->assertSame(0, Registration::count());
+        $this->assertSame(0, Athlete::count());
+    }
+
+    public function test_store_registration_rejects_a_missing_code(): void
+    {
+        $payload = $this->registrationPayload();
+        $payload['code'] = '123456';
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertStatus(400);
+    }
+
+    public function test_store_registration_consumes_the_code_so_it_cannot_be_replayed(): void
+    {
+        $payload = $this->registrationPayload();
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertCreated();
+
+        $payload['discipline_id'] = Discipline::factory()->create()->id;
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertStatus(400);
+    }
+
+    public function test_store_registration_invalidates_the_code_after_five_wrong_attempts(): void
+    {
+        $payload = $this->registrationPayload();
+        $realCode = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/public/registration_form/registrations', [...$payload, 'code' => '000000'])
+                ->assertStatus(400);
+        }
+
+        // 6 digits is brute-forceable within the TTL, so the code must be burned.
+        $this->postJson('/api/public/registration_form/registrations', [...$payload, 'code' => $realCode])
+            ->assertStatus(400);
+    }
+
+    public function test_store_registration_rejects_a_mismatched_email_for_an_existing_athlete(): void
+    {
+        Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+        ]);
+
+        $payload = $this->registrationPayload();
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+        $payload['email'] = 'attacker@evil.test';
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertStatus(400);
+
+        $this->assertSame(0, Registration::count());
+    }
+
+    public function test_store_registration_response_hides_internal_fields(): void
+    {
+        $payload = $this->registrationPayload();
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $response = $this->postJson('/api/public/registration_form/registrations', $payload);
+
+        $response->assertCreated();
+        $response->assertJsonMissingPath('data.paid_at');
+        $response->assertJsonMissingPath('data.arrived');
+        $response->assertJsonMissingPath('data.weight_in');
+        $response->assertJsonMissingPath('data.notes');
+        $response->assertJsonMissingPath('data.athlete_id');
     }
 
     public function test_store_registration_validates_required_fields(): void
     {
-        $response = $this->postJson('/api/public/registration_form/registrations', []);
-
-        $response->assertStatus(422)
+        $this->postJson('/api/public/registration_form/registrations', [])
+            ->assertStatus(422)
             ->assertJsonValidationErrors([
-                'athlete_id', 'tournament_id', 'discipline_id', 'weight_category_id',
-            ]);
-    }
-
-    public function test_store_registration_rejects_non_existent_foreign_keys(): void
-    {
-        $payload = [
-            'athlete_id' => '00000000-0000-0000-0000-000000000000',
-            'tournament_id' => '00000000-0000-0000-0000-000000000000',
-            'discipline_id' => '00000000-0000-0000-0000-000000000000',
-            'weight_category_id' => '00000000-0000-0000-0000-000000000000',
-        ];
-
-        $response = $this->postJson('/api/public/registration_form/registrations', $payload);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors([
-                'athlete_id', 'tournament_id', 'discipline_id', 'weight_category_id',
+                'tax_number', 'email', 'code',
+                'first_name', 'last_name', 'birth_date', 'gender',
+                'tournament_id', 'discipline_id', 'weight_category_id',
             ]);
     }
 
     public function test_store_registration_rejects_duplicate_registration(): void
     {
-        $tournament = Tournament::factory()->create(['status' => TournamentStatusEnum::REGISTRATIONS_OPENED]);
+        $tournament = Tournament::factory()->registrationsOpened()->create();
         $existing = Registration::factory()->create(['tournament_id' => $tournament->id]);
+        $athlete = $existing->athlete;
 
         $payload = [
-            'athlete_id' => $existing->athlete_id,
+            'tax_number' => $athlete->tax_number,
+            'email' => $athlete->email,
+            'first_name' => $athlete->first_name,
+            'last_name' => $athlete->last_name,
+            'birth_date' => $athlete->birth_date->toDateString(),
+            'gender' => $athlete->gender->value,
             'tournament_id' => $existing->tournament_id,
             'discipline_id' => $existing->discipline_id,
             'weight_category_id' => $existing->weight_category_id,
         ];
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
 
-        $response = $this->postJson('/api/public/registration_form/registrations', $payload);
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertStatus(409);
 
-        $response->assertStatus(409);
         $this->assertSame(1, Registration::count());
     }
 
@@ -334,11 +540,26 @@ class PublicRegistrationFormControllerTest extends TestCase
     // registrationPdf
     // ---------------------------------------------------------------------
 
-    public function test_registration_pdf_returns_pdf(): void
+    public function test_registration_pdf_requires_a_valid_signature(): void
     {
         $registration = Registration::factory()->create();
 
-        $response = $this->get("/api/public/registration_form/registrations/{$registration->id}/pdf");
+        $this->get("/api/public/registration_form/registrations/{$registration->id}/pdf")
+            ->assertForbidden();
+    }
+
+    public function test_registration_pdf_is_reachable_through_the_signed_url_returned_on_store(): void
+    {
+        $payload = $this->registrationPayload();
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $pdfUrl = $this->postJson('/api/public/registration_form/registrations', $payload)
+            ->assertCreated()
+            ->json('data.pdf_url');
+
+        $this->assertNotNull($pdfUrl);
+
+        $response = $this->get($pdfUrl);
 
         $response->assertOk();
         $this->assertSame('application/pdf', $response->headers->get('content-type'));

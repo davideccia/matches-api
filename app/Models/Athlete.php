@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 
 #[ObservedBy([AthleteObserver::class])]
@@ -34,6 +35,7 @@ class Athlete extends Model implements HasMedia
         'birth_date',
         'gender',
         'tax_number',
+        'email',
         'team_name',
         'generic_match_records_count',
         'registered_match_records_count',
@@ -44,6 +46,22 @@ class Athlete extends Model implements HasMedia
         'is_adult',
         'match_records_count',
     ];
+
+    /**
+     * Canonical form of a tax number. Every comparison must go through this:
+     * the stored value is normalized by AthleteObserver::saving, so lookups
+     * against raw user input would otherwise miss.
+     */
+    public static function normalizeTaxNumber(?string $taxNumber): string
+    {
+        return Str::of($taxNumber)->trim()->upper()->value();
+    }
+
+    /** Canonical form of an email address. See normalizeTaxNumber(). */
+    public static function normalizeEmail(?string $email): string
+    {
+        return Str::of($email)->trim()->lower()->value();
+    }
 
     protected function casts(): array
     {
@@ -74,6 +92,16 @@ class Athlete extends Model implements HasMedia
         return Attribute::make(
             get: fn () => (($this->generic_match_records_count ?? 0) + ($this->registered_match_records_count ?? 0)),
         );
+    }
+
+    /**
+     * Second factor for the public registration form: an Italian tax number is
+     * derivable from name, birth date and birthplace, so it cannot stand alone
+     * as proof of identity. Compared in constant time.
+     */
+    public function emailMatches(?string $email): bool
+    {
+        return hash_equals($this->email ?? '', self::normalizeEmail($email));
     }
 
     public function syncMatchRecordsCount(): void

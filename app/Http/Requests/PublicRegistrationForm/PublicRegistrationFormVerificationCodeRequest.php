@@ -4,7 +4,7 @@ namespace App\Http\Requests\PublicRegistrationForm;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class PublicRegistrationFormShowRequest extends FormRequest
+class PublicRegistrationFormVerificationCodeRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -13,6 +13,9 @@ class PublicRegistrationFormShowRequest extends FormRequest
 
     public function rules(): array
     {
-        return [];
+        return [
+            'tax_number' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+        ];
     }
 }

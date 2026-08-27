@@ -29,6 +29,7 @@ class AthleteFactory extends Factory
             'birth_date' => fake()->dateTimeBetween('-40 years', '-19 years'),
             'gender' => fake()->randomElement([AthleteGenderEnum::MALE, AthleteGenderEnum::FEMALE]),
             'tax_number' => Str::upper(Str::random(16)),
+            'email' => fake()->unique()->safeEmail(),
             'team_name' => fake()->company(),
         ];
     }

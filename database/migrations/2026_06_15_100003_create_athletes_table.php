@@ -16,6 +16,7 @@ return new class extends Migration
             $table->date('birth_date');
             $table->string('gender');
             $table->string('tax_number')->unique();
+            $table->string('email');
             $table->string('team_name')->nullable();
             $table->unsignedInteger('generic_match_records_count')->nullable()->default(null);
             $table->unsignedInteger('registered_match_records_count')->nullable()->default(null);

@@ -145,6 +145,8 @@
     "validation.ulid": "The :attribute field must be a valid ULID.",
     "validation.uuid": "The :attribute field must be a valid UUID.",
     "validation.temporary_file_rule": "The :attribute does not reference a valid temporary upload.",
+    "errors.athlete_lookup_failed": "Unable to verify the details provided. Check the tax number and email address and try again later.",
+    "errors.registration_verification_code_invalid": "The verification code is invalid or has expired. Request a new one.",
     "errors.athlete_has_registrations": "Cannot delete: athlete has existing registrations.",
     "errors.athlete_has_match_records": "Cannot delete: athlete has existing match records.",
     "errors.tournament_has_registrations": "Cannot delete: tournament has existing registrations.",

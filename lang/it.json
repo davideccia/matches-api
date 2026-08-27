@@ -145,6 +145,8 @@
     "validation.ulid": "Il campo :attribute deve essere un ULID valido.",
     "validation.uuid": "Il campo :attribute deve essere un UUID valido.",
     "validation.temporary_file_rule": "Il campo :attribute non fa riferimento a un file caricato valido.",
+    "errors.athlete_lookup_failed": "Impossibile verificare i dati inseriti. Controlla il codice fiscale e l'email e riprova pi\u00f9 tardi.",
+    "errors.registration_verification_code_invalid": "Il codice di verifica non \u00e8 valido o \u00e8 scaduto. Richiedine uno nuovo.",
     "errors.athlete_has_registrations": "Impossibile eliminare: l'atleta ha delle iscrizioni associate.",
     "errors.athlete_has_match_records": "Impossibile eliminare: l'atleta ha degli incontri associati.",
     "errors.tournament_has_registrations": "Impossibile eliminare: il torneo ha delle iscrizioni associate.",

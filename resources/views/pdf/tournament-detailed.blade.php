@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <title>{{ $tournament->name }} — Dettagliato</title>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 10mm 12mm;
-        }
-
-        * {
-            box-sizing: border-box;
+        /* A `*` reset zeroes out the @page margin in DOMPDF, so reset by element. */
+        body, h1, table, tr, td, th, div, span {
             margin: 0;
             padding: 0;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
         }
 
         html {
@@ -20,47 +20,29 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 11px;
-            color: #1a1a1a;
-        }
-
-        /* ── Tournament info inside card ─────────────── */
-        .tournament-info-row {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .tournament-info-name {
-            font-weight: 700;
-            font-size: 11px;
-            color: #111827;
-        }
-
-        .tournament-info-meta {
-            font-size: 9px;
-            color: #6b7280;
-            margin-top: 1px;
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10px;
+            color: #10141A;
         }
 
         /* ── Outer 2-column grid ──────────────────────── */
+
         .grid-table {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 8px 16px;
+            border-spacing: 7px 12px;
         }
 
         .grid-table > tbody > tr > td {
-            width: 50%;
+            width: 49%;
             vertical-align: top;
             padding: 0;
         }
 
-        /* ── Card wrapper ─────────────────────────────── */
+        /* ── Card ─────────────────────────────────────── */
+
         .card-wrap {
-            border: 1.5px solid #d1d5db;
-            border-radius: 8px;
-            overflow: hidden;
+            border: 1px solid #B4BBC3;
         }
 
         .card {
@@ -72,77 +54,99 @@
             padding: 0;
         }
 
-        /* ── Card header ──────────────────────────────── */
-        .card-header {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e5e7eb;
+        /* Tournament identity: context, so it stays quiet. */
+        .card-ident {
+            padding: 5px 10px;
+            border-bottom: 0.5px solid #DDE1E6;
+            font-size: 7px;
+            color: #7A828C;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
         }
 
-        .info-badge-table {
+        .card-ident strong {
+            color: #10141A;
+        }
+
+        /* ── Card header ──────────────────────────────── */
+
+        .card-header {
+            padding: 8px 10px;
+            border-bottom: 1px solid #B4BBC3;
+        }
+
+        .header-table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .info-badge-table td {
-            vertical-align: top;
+        .header-table td {
+            vertical-align: middle;
             padding: 0;
+        }
+
+        .td-no {
+            width: 9%;
+            font-size: 15px;
+            font-weight: bold;
+            color: #C3C8CE;
+        }
+
+        .discipline-name {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.1px;
+        }
+
+        .meta-row {
+            padding-top: 1px;
+            font-size: 7.5px;
+            color: #7A828C;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
         }
 
         .td-badge {
             width: 1%;
             white-space: nowrap;
+            text-align: right;
             padding-left: 6px;
-        }
-
-        .discipline-name {
-            font-weight: 700;
-            font-size: 11px;
-            color: #111827;
-        }
-
-        .meta-row {
-            margin-top: 2px;
-            font-size: 9px;
-            color: #6b7280;
-        }
-
-        .header-meta {
-            margin-top: 4px;
-            font-size: 9px;
-            color: #6b7280;
         }
 
         .badge {
             display: inline-block;
-            padding: 1px 7px;
-            font-size: 9px;
-            font-weight: 700;
+            padding: 2px 6px;
+            font-size: 6.5px;
+            font-weight: bold;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
             white-space: nowrap;
         }
 
         .badge-scheduled {
-            border: 1.5px solid #3b82f6;
-            color: #2563eb;
+            border: 1px solid #B4BBC3;
+            color: #7A828C;
         }
 
         .badge-in_progress {
-            background: #f59e0b;
-            color: #fff;
+            border: 1px solid #A4262C;
+            color: #A4262C;
         }
 
         .badge-completed {
-            background: #22c55e;
+            background: #10141A;
             color: #fff;
         }
 
         .badge-cancelled {
-            background: #fee2e2;
-            color: #dc2626;
+            background: #7A828C;
+            color: #fff;
         }
 
-        /* ── Card body: VS layout ─────────────────────── */
+        /* ── Card body: the two corners ───────────────── */
+
         .card-body {
-            padding: 10px 12px;
+            padding: 9px 0;
         }
 
         .vs-table {
@@ -152,202 +156,225 @@
 
         .vs-table td {
             vertical-align: middle;
-            padding: 2px 0;
+            padding: 0;
         }
 
+        /* Corner identity is carried by the outer edge rule + the name colour. */
         .td-red {
-            width: 44%;
+            width: 43%;
+            border-left: 3px solid #A4262C;
+        }
+
+        .td-red div {
+            padding-left: 10px;
+        }
+
+        .td-blue {
+            width: 43%;
+            text-align: right;
+            border-right: 3px solid #12507F;
+        }
+
+        .td-blue div {
+            padding-right: 10px;
         }
 
         .td-vs {
             width: 12%;
             text-align: center;
-            font-size: 10px;
-            font-weight: 700;
-            color: #9ca3af;
-        }
-
-        .td-blue {
-            width: 44%;
-            text-align: right;
+            font-size: 6.5px;
+            font-weight: bold;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: #A8AEB6;
         }
 
         .corner-name {
-            font-weight: 700;
             font-size: 11px;
-            color: #111827;
+            font-weight: bold;
         }
 
+        .td-red .corner-name {
+            color: #A4262C;
+        }
+
+        .td-blue .corner-name {
+            color: #12507F;
+        }
+
+        /* The loser stays legible — this is an official record, not a highlight reel. */
         .corner-name-dim {
-            font-weight: 700;
             font-size: 11px;
-            color: #c8c8c8;
+            font-weight: bold;
+            color: #7A828C;
         }
 
         .corner-team {
-            font-size: 9px;
-            color: #9ca3af;
+            font-size: 7.5px;
+            color: #7A828C;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding-top: 1px;
         }
 
-        .dot {
-            display: inline-block;
-            width: 7px;
-            height: 7px;
-            border-radius: 4px;
-            vertical-align: middle;
+        /* ── Outcome ──────────────────────────────────── */
+
+        .outcome {
+            padding: 6px 10px;
+            border-top: 0.5px solid #DDE1E6;
+            font-size: 7.5px;
         }
 
-        .dot-red {
-            background: #ef4444;
+        .outcome-label {
+            font-size: 6.5px;
+            color: #7A828C;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
         }
 
-        .dot-blue {
-            background: #3b82f6;
+        .outcome-value {
+            font-size: 9.5px;
+            font-weight: bold;
+            padding-top: 1px;
         }
 
-        /* result banner row */
-        .result-cell {
-            text-align: center;
-            font-size: 9px;
-            font-weight: 600;
-            padding: 3px 8px;
+        .outcome-red {
+            color: #A4262C;
         }
 
-        .result-winner {
-            background: #dcfce7;
-            color: #16a34a;
+        .outcome-blue {
+            color: #12507F;
         }
 
-        .result-draw {
-            background: #f3f4f6;
-            color: #6b7280;
+        .outcome-neutral {
+            color: #10141A;
         }
 
-        .result-cancelled {
-            background: #fee2e2;
-            color: #dc2626;
+        .outcome-muted {
+            color: #A8AEB6;
         }
 
-        .result-pending {
-            color: #9ca3af;
+        .outcome-method {
+            font-size: 7px;
+            color: #7A828C;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding-top: 2px;
         }
 
-        /* ── Card footer ──────────────────────────────── */
-        .card-footer {
-            padding: 8px 12px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 9px;
-            color: #6b7280;
-        }
+        /* ── Judges scorecard ─────────────────────────── */
 
-        .footer-method {
-            font-weight: 600;
-            color: #374151;
-        }
-
-        /* ── Judges table ─────────────────────────────── */
         .judges-section {
-            padding: 8px 12px 10px;
-            border-top: 1px solid #e5e7eb;
+            padding: 7px 10px 9px;
+            border-top: 0.5px solid #DDE1E6;
         }
 
         .judges-title {
-            font-size: 9px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 4px;
+            font-size: 6.5px;
+            color: #7A828C;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            padding-bottom: 4px;
         }
 
         .judges-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 8px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #B4BBC3;
         }
 
         .judges-table th, .judges-table td {
             text-align: center;
-            padding: 2px 4px;
+            padding: 2px 3px;
         }
 
         .jt-head-1 th {
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 0.5px solid #DDE1E6;
+            font-size: 6.5px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
         }
 
         .jt-head-2 th {
-            background: #f3f4f6;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid #B4BBC3;
+            font-size: 6.5px;
+            font-weight: normal;
+            color: #7A828C;
+            letter-spacing: 0.8px;
         }
 
         .round-th {
+            width: 22px;
             text-align: left;
-            font-weight: 500;
-            color: #9ca3af;
-            width: 24px;
+            font-weight: normal;
+            color: #7A828C;
         }
 
         .red-group {
-            color: #ef4444;
-            font-weight: 700;
+            color: #A4262C;
         }
 
         .blue-group {
-            color: #3b82f6;
-            font-weight: 700;
-        }
-
-        .sub {
-            font-weight: 500;
-            color: #9ca3af;
+            color: #12507F;
         }
 
         .bl-strong {
-            border-left: 1px solid #d1d5db;
+            border-left: 1px solid #B4BBC3;
         }
 
         .bl-soft {
-            border-left: 1px solid #e5e7eb;
+            border-left: 0.5px solid #DDE1E6;
         }
 
         .judges-table tbody tr {
-            border-top: 1px solid #f3f4f6;
+            border-top: 0.5px solid #DDE1E6;
         }
 
         .round-cell {
-            font-weight: 600;
-            color: #9ca3af;
             text-align: left;
-            padding-left: 4px;
+            color: #7A828C;
         }
 
         .jt-foot tr {
-            border-top: 1.5px solid #e5e7eb;
-            background: #f9fafb;
-            font-weight: 700;
+            border-top: 1px solid #B4BBC3;
+            font-weight: bold;
+        }
+
+        .jt-foot .round-cell {
+            font-size: 6.5px;
+            font-weight: normal;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         /* ── Misc ─────────────────────────────────────── */
+
         .empty {
+            border-top: 0.5px solid #DDE1E6;
+            border-bottom: 0.5px solid #DDE1E6;
             text-align: center;
             padding: 24px;
-            color: #94A3B8;
-            font-size: 10px;
+            color: #7A828C;
+            font-size: 8px;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
         }
 
         .page-footer {
             margin-top: 8px;
-            font-size: 8px;
-            color: #94A3B8;
+            font-size: 7px;
+            color: #A8AEB6;
+            letter-spacing: 1px;
+            text-transform: uppercase;
             text-align: right;
         }
     </style>
 </head>
 <body>
 
-
 @if($tournament->matchRecords->isEmpty())
-    <div class="empty">Nessun match registrato</div>
+    <div class="empty">Nessun incontro registrato</div>
 @else
     @php $chunks = $tournament->matchRecords->chunk(2); @endphp
     <table class="grid-table">
@@ -362,44 +389,41 @@
                         $isDraw       = $match->end_method?->value === 'draw';
                         $isCancelled  = $status === 'cancelled';
                         $isCompleted  = $status === 'completed';
+                        $hasWinner    = $isCompleted && $match->winner_id && ! $isDraw && ! $isCancelled;
                         $redDim       = $isCompleted && !$isCancelled && !$isRedWinner && !$isDraw;
                         $blueDim      = $isCompleted && !$isCancelled && !$isBlueWinner && !$isDraw;
                     @endphp
                     <td>
                         <div class="card-wrap">
                             <table class="card">
-                                {{-- ── Tournament info ── --}}
+                                {{-- ── Tournament identity ── --}}
                                 <tr>
-                                    <td class="tournament-info-row">
-                                        <div class="tournament-info-name">{{ $tournament->name }}</div>
-                                        <div class="tournament-info-meta">
-                                            {{ $tournament->date?->format('d/m/Y') }}
-                                            @if($tournament->location_name)
-                                                &nbsp;—&nbsp;{{ $tournament->location_name }}
-                                            @endif
-                                            @if($tournament->location_city)
-                                                ({{ $tournament->location_city }})
-                                            @endif
-                                        </div>
+                                    <td class="card-ident">
+                                        <strong>{{ $tournament->name }}</strong>
+                                        &middot; {{ $tournament->date?->format('d/m/Y') }}
+                                        @if($tournament->location_name) &middot; {{ $tournament->location_name }}@endif
+                                        @if($tournament->location_city) &middot; {{ $tournament->location_city }}@endif
                                     </td>
                                 </tr>
 
                                 {{-- ── Card header ── --}}
                                 <tr>
                                     <td class="card-header">
-                                        <table class="info-badge-table">
+                                        <table class="header-table">
                                             <tr>
+                                                <td class="td-no">{{ $match->sort }}</td>
                                                 <td>
-                                                    <div
-                                                        class="discipline-name">{{ $match->discipline?->label ?? '—' }}</div>
+                                                    <div class="discipline-name">{{ $match->discipline?->label ?? '—' }}</div>
                                                     <div class="meta-row">
                                                         {{ $match->weightCategory?->label ?? '—' }}
                                                         @if($match->rounds && $match->minutes_per_round)
-                                                            &nbsp;·&nbsp;{{ $match->rounds }}
-                                                            × {{ $match->minutes_per_round }}
+                                                            &middot; {{ $match->rounds }}&times;{{ $match->minutes_per_round }}
                                                         @endif
                                                         @if($match->gender)
-                                                            &nbsp;·&nbsp;{{ $match->gender->label() }}
+                                                            &middot; {{ $match->gender->label() }}
+                                                        @endif
+                                                        @if($match->scheduled_time)
+                                                            &middot; {{ \Carbon\Carbon::parse($match->scheduled_time)->format('H:i') }}
                                                         @endif
                                                     </div>
                                                 </td>
@@ -410,58 +434,25 @@
                                                 </td>
                                             </tr>
                                         </table>
-                                        <div class="header-meta">
-                                            @if($match->scheduled_time)
-                                                {{ \Carbon\Carbon::parse($match->scheduled_time)->format('H:i') }}&nbsp;
-                                                &nbsp;
-                                            @endif
-                                            #&nbsp;{{ $match->sort }}
-                                        </div>
                                     </td>
                                 </tr>
 
-                                {{-- ── Card body: VS ── --}}
+                                {{-- ── Card body: the two corners ── --}}
                                 <tr>
                                     <td class="card-body">
                                         <table class="vs-table">
                                             <tr>
-                                                {{-- Angolo rosso --}}
                                                 <td class="td-red">
-                                                    <div class="{{ $redDim ? 'corner-name-dim' : 'corner-name' }}">
-                                                        <span
-                                                            class="dot dot-red"></span>&nbsp;{{ $match->redCorner?->full_name ?? '—' }}
-                                                    </div>
+                                                    <div class="{{ $redDim ? 'corner-name-dim' : 'corner-name' }}">{{ $match->redCorner?->full_name ?? '—' }}</div>
                                                     @if($match->red_corner_team)
                                                         <div class="corner-team">{{ $match->red_corner_team }}</div>
                                                     @endif
                                                 </td>
                                                 <td class="td-vs">vs</td>
-                                                {{-- Angolo blu --}}
                                                 <td class="td-blue">
-                                                    <div class="{{ $blueDim ? 'corner-name-dim' : 'corner-name' }}">
-                                                        {{ $match->blueCorner?->full_name ?? '—' }}&nbsp;<span
-                                                            class="dot dot-blue"></span>
-                                                    </div>
+                                                    <div class="{{ $blueDim ? 'corner-name-dim' : 'corner-name' }}">{{ $match->blueCorner?->full_name ?? '—' }}</div>
                                                     @if($match->blue_corner_team)
-                                                        <div class="corner-team"
-                                                             style="text-align:right;">{{ $match->blue_corner_team }}</div>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                            {{-- Result banner --}}
-                                            <tr>
-                                                <td colspan="3"
-                                                    class="result-cell {{ $isCancelled ? 'result-cancelled' : ($isCompleted && $match->winner_id && !$isDraw ? 'result-winner' : ($isDraw ? 'result-draw' : 'result-pending')) }}">
-                                                    @if($isCancelled)
-                                                        Annullato
-                                                    @elseif($isCompleted && $match->winner_id && !$isDraw)
-                                                        {{ $match->winner?->full_name ?? '—' }}@if($match->end_round)
-                                                            &nbsp;(R{{ $match->end_round }})
-                                                        @endif
-                                                    @elseif($isDraw)
-                                                        Pareggio
-                                                    @else
-                                                        In attesa
+                                                        <div class="corner-team">{{ $match->blue_corner_team }}</div>
                                                     @endif
                                                 </td>
                                             </tr>
@@ -469,16 +460,33 @@
                                     </td>
                                 </tr>
 
-                                {{-- ── Card footer: end method ── --}}
-                                @if($match->end_method)
-                                    <tr>
-                                        <td class="card-footer">
-                                            Metodo: <span class="footer-method">{{ $match->end_method->label() }}</span>
-                                        </td>
-                                    </tr>
-                                @endif
+                                {{-- ── Outcome ── --}}
+                                <tr>
+                                    <td class="outcome">
+                                        @if($isCancelled)
+                                            <div class="outcome-label">Esito</div>
+                                            <div class="outcome-value outcome-muted">Annullato</div>
+                                        @elseif($hasWinner)
+                                            <div class="outcome-label">Vincitore</div>
+                                            <div class="outcome-value {{ $isRedWinner ? 'outcome-red' : 'outcome-blue' }}">
+                                                {{ $match->winner?->full_name ?? '—' }}
+                                                @if($match->end_round) (R{{ $match->end_round }})@endif
+                                            </div>
+                                        @elseif($isDraw)
+                                            <div class="outcome-label">Esito</div>
+                                            <div class="outcome-value outcome-neutral">Pareggio</div>
+                                        @else
+                                            <div class="outcome-label">Esito</div>
+                                            <div class="outcome-value outcome-muted">In attesa</div>
+                                        @endif
 
-                                {{-- ── Judges points ── --}}
+                                        @if($match->end_method)
+                                            <div class="outcome-method">Metodo &middot; {{ $match->end_method->label() }}</div>
+                                        @endif
+                                    </td>
+                                </tr>
+
+                                {{-- ── Judges scorecard ── --}}
                                 @if(!empty($match->judges_points))
                                     @php
                                         $rounds = $match->judges_points;
@@ -503,12 +511,12 @@
                                                     <th colspan="3" class="blue-group bl-strong">Blu</th>
                                                 </tr>
                                                 <tr class="jt-head-2">
-                                                    <th class="sub bl-strong">G1</th>
-                                                    <th class="sub bl-soft">G2</th>
-                                                    <th class="sub bl-soft">G3</th>
-                                                    <th class="sub bl-strong">G1</th>
-                                                    <th class="sub bl-soft">G2</th>
-                                                    <th class="sub bl-soft">G3</th>
+                                                    <th class="bl-strong">G1</th>
+                                                    <th class="bl-soft">G2</th>
+                                                    <th class="bl-soft">G3</th>
+                                                    <th class="bl-strong">G1</th>
+                                                    <th class="bl-soft">G2</th>
+                                                    <th class="bl-soft">G3</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -526,7 +534,7 @@
                                                 </tbody>
                                                 <tfoot class="jt-foot">
                                                 <tr>
-                                                    <td class="round-cell" style="font-size:8px;color:#9ca3af;">Tot</td>
+                                                    <td class="round-cell">Tot</td>
                                                     <td class="bl-strong">{{ $tot['j1r'] }}</td>
                                                     <td class="bl-soft">{{ $tot['j2r'] }}</td>
                                                     <td class="bl-soft">{{ $tot['j3r'] }}</td>
@@ -545,7 +553,7 @@
                     </td>
                 @endforeach
 
-                {{-- Pad with empty cell if odd number of matches --}}
+                {{-- Pad with an empty cell if the row holds a single match --}}
                 @if($pair->count() === 1)
                     <td></td>
                 @endif

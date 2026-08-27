@@ -16,7 +16,7 @@
 # HORIZON_*/LOG_VIEWER_* vanno iniettate come environment variable al deploy,
 # quindi la stessa immagine vale per tutti gli ambienti.
 #
-# DISATTIVATO: il push automatico su main è gestito da ghcr-publish.yml.
+# DISATTIVATO: la pubblicazione automatica su release è gestita da ghcr-publish.yml.
 # Resta solo l'avvio manuale (workflow_dispatch) come fallback.
 # ==============================================================================
 name: Dockerhub publish
@@ -85,8 +85,13 @@ jobs:
       - name: Check Docker daemon
         run: docker version
 
+      # RELEASE_TAG: titolo della release, normalizzato ai caratteri ammessi in
+      # un tag Docker ([A-Za-z0-9_.-], max 128). Fallback: tag_name, poi il ref.
       - name: Resolve tag
-        run: echo "SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_ENV"
+        run: |
+          RAW="${{ github.event.release.name || github.event.release.tag_name || github.ref_name }}"
+          RELEASE_TAG=$(echo "$RAW" | sed 's/[^A-Za-z0-9_.-]/-/g' | cut -c1-128)
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
 
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ vars.DOCKERHUB_USERNAME }}" --password-stdin
@@ -99,7 +104,7 @@ jobs:
           docker buildx build \
             -f docker/production/Dockerfile \
             -t "$IMAGE:latest" \
-            -t "$IMAGE:$SHORT_SHA" \
+            -t "$IMAGE:$RELEASE_TAG" \
             --push \
             .
 

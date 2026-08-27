@@ -1,6 +1,9 @@
 # ==============================================================================
 # Build dell'immagine di produzione e push su GitHub Container Registry (ghcr.io).
 #
+# Trigger: pubblicazione di una release (non piu' ogni push su main). L'immagine
+# viene taggata `latest` + titolo della release.
+#
 # Il job `tests` gira per primo: `build-push` ha `needs: tests`, quindi
 # nessuna immagine viene pubblicata se la suite PHPUnit fallisce.
 #
@@ -19,8 +22,8 @@
 name: GHCR publish
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -83,10 +86,14 @@ jobs:
         run: docker version
 
       # ghcr.io accetta solo path minuscoli, la variabile può non esserlo.
+      # RELEASE_TAG: titolo della release, normalizzato ai caratteri ammessi in
+      # un tag Docker ([A-Za-z0-9_.-], max 128). Fallback: tag_name, poi il ref.
       - name: Resolve image and tag
         run: |
           echo "IMAGE=ghcr.io/$(echo "${{ vars.GHCR_USERNAME }}" | tr '[:upper:]' '[:lower:]')/matches-api" >> "$GITHUB_ENV"
-          echo "SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_ENV"
+          RAW="${{ github.event.release.name || github.event.release.tag_name || github.ref_name }}"
+          RELEASE_TAG=$(echo "$RAW" | sed 's/[^A-Za-z0-9_.-]/-/g' | cut -c1-128)
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
 
       - name: Login to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ vars.GHCR_USERNAME }}" --password-stdin
@@ -99,7 +106,7 @@ jobs:
           docker buildx build \
             -f docker/production/Dockerfile \
             -t "$IMAGE:latest" \
-            -t "$IMAGE:$SHORT_SHA" \
+            -t "$IMAGE:$RELEASE_TAG" \
             --push \
             .
 

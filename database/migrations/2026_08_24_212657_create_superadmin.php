@@ -1,15 +1,18 @@
 <?php
 
+use Database\Seeders\UserSeeder;
 use Illuminate\Database\Migrations\Migration;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        new \Database\Seeders\UserSeeder()->run();
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        new UserSeeder()->run();
     }
 
-    public function down(): void
-    {
-
-    }
+    public function down(): void {}
 };

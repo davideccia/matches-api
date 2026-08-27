@@ -1,6 +1,9 @@
 # ==============================================================================
 # Build dell'immagine di produzione e push su GitHub Container Registry (ghcr.io).
 #
+# Il job `tests` gira per primo: `build-push` ha `needs: tests`, quindi
+# nessuna immagine viene pubblicata se la suite PHPUnit fallisce.
+#
 # Runner: label `docker-29-cli` → il job gira in un'immagine docker:29-cli
 # (CLI + buildx, daemon raggiunto via socket dell'host). Nessuna node action
 # oltre a checkout, così il workflow non dipende da mirror di docker/*-action.
@@ -21,7 +24,50 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Gate: l'immagine non viene costruita se la suite non passa.
+  # Nessun servizio esterno: la configurazione arriva da .env.testing
+  # (versionato) copiato in .env, e il database e' SQLite su file.
+  tests:
+    runs-on: docker-29-cli
+    container:
+      image: php:8.5-cli
+    steps:
+      # checkout@v6 e' una node action: il runner la lancia con `node` dentro
+      # questo container, che e' debian-slim e non ha ne' git ne' node.
+      - name: Install checkout deps
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git nodejs unzip libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev
+
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@v6
+
+      # pdo_sqlite/sqlite3 sono gia' attive in php:8.5-cli. Mancano quelle
+      # richieste da composer.json: zip, pcntl (horizon), exif (medialibrary)
+      # e gd, usata da UploadedFile::fake()->image() nei test.
+      - name: Install PHP extensions
+        run: |
+          docker-php-ext-configure gd --with-jpeg --with-freetype
+          docker-php-ext-install -j"$(nproc)" zip pcntl exif gd
+
+      - name: Install Composer
+        run: |
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          composer --version
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.testing .env
+          touch database/testing.sqlite
+
+      - name: Run tests
+        run: php artisan test --compact
+
   build-push:
+    needs: tests
     runs-on: docker-29-cli
     steps:
       # docker:29-cli è alpine e non ha né git né node: checkout@v6 è una node

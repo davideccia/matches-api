@@ -6,27 +6,26 @@ use App\Models\ExperienceTier;
 
 class ExperienceTierObserver
 {
-    public function creating(ExperienceTier $experienceTier): void
-    {
-        abort_if($experienceTier->overlapsAnotherTier(), 400, __('errors.experience_tier_overlapping_range'));
-    }
+    public function creating(ExperienceTier $experienceTier): void {}
 
     public function created(ExperienceTier $experienceTier): void {}
 
-    public function updating(ExperienceTier $experienceTier): void
+    public function updating(ExperienceTier $experienceTier): void {}
+
+    public function saving(ExperienceTier $experienceTier): void
     {
         abort_if($experienceTier->overlapsAnotherTier(), 400, __('errors.experience_tier_overlapping_range'));
     }
 
     public function updated(ExperienceTier $experienceTier): void
     {
-        $experienceTier->tournament->syncMatchmakingIssues();
+        $experienceTier->tournament?->syncMatchmakingIssues();
     }
 
     public function deleting(ExperienceTier $experienceTier): void {}
 
     public function deleted(ExperienceTier $experienceTier): void
     {
-        $experienceTier->tournament->syncMatchmakingIssues();
+        $experienceTier->tournament?->syncMatchmakingIssues();
     }
 }

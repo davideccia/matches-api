@@ -26,7 +26,7 @@ class RegistrationVerificationCodeNotification extends Notification implements S
     {
         return (new MailMessage)
             ->subject('Codice di verifica iscrizione')
-            ->view('emails.registration.verification-code', [
+            ->markdown('emails.registration.verification-code', [
                 'code' => $this->code,
                 'ttlMinutes' => RegistrationVerificationCode::TTL_MINUTES,
             ]);

@@ -1,7 +1,7 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
     "name": "davideccia/matches-api-laravel",
-    "version": "0.10.0",
+    "version": "2026.08.28-1",
     "type": "project",
     "description": "Fight tournaments management system (API only)",
     "keywords": [

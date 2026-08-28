@@ -33,12 +33,13 @@ class TemporaryUploadControllerTest extends TestCase
 
         $this->assertNotNull($id);
 
-        // Cache entry created by the action.
-        $this->assertTrue(Cache::has($id));
-        $this->assertInstanceOf(TemporaryFile::class, Cache::get($id));
+        // Cache entry created by the action, under a key namespaced and scoped to the uploader.
+        $this->assertTrue(Cache::has(TemporaryFile::cacheKey($id)));
+        $this->assertFalse(Cache::has($id));
 
         // File stored on the local disk at the temp path.
-        $temporaryFile = Cache::get($id);
+        $temporaryFile = TemporaryFile::find($id);
+        $this->assertInstanceOf(TemporaryFile::class, $temporaryFile);
         Storage::disk('local')->assertExists($temporaryFile->path);
         $this->assertStringStartsWith('temp/', $temporaryFile->path);
     }
@@ -81,6 +82,34 @@ class TemporaryUploadControllerTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('file');
+    }
+
+    public function test_temporary_upload_cannot_be_consumed_by_another_user(): void
+    {
+        Storage::fake('local');
+
+        $this->authenticate();
+
+        $id = $this->postJson('/api/admin/temporary_uploads', [
+            'file' => UploadedFile::fake()->image('photo.jpg'),
+        ])->json('data.id');
+
+        // A different authenticated user must not be able to attach someone else's upload.
+        $this->authenticate();
+
+        $this->assertNull(TemporaryFile::find($id));
+
+        $this->postJson('/api/admin/athletes', [
+            'first_name' => 'Mario',
+            'last_name' => 'Rossi',
+            'tax_number' => 'RSSMRA80A01H501U',
+            'email' => 'mario.rossi@example.com',
+            'birth_date' => '1980-01-01',
+            'gender' => 'male',
+            'photo' => $id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('photo');
     }
 
     public function test_store_requires_authentication(): void

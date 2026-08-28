@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 
 readonly class TemporaryFile
 {
@@ -14,6 +15,23 @@ readonly class TemporaryFile
         public string $mimeType,
         public int $size,
     ) {}
+
+    public static function cacheKey(string $id): string
+    {
+        return 'tmp_upload:'.auth()->id().':'.$id;
+    }
+
+    public static function find(string $id): ?self
+    {
+        $temporaryFile = Cache::get(self::cacheKey($id));
+
+        return $temporaryFile instanceof self ? $temporaryFile : null;
+    }
+
+    public function put(int $ttlMinutes): void
+    {
+        Cache::put(self::cacheKey($this->id), $this, now()->addMinutes($ttlMinutes));
+    }
 
     public function file(): UploadedFile
     {

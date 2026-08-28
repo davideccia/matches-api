@@ -10,8 +10,7 @@ trait InteractsWithMedia
 
     public function addMediaFromTemporaryFile(string $temporaryFileId, string $mediaCollection): void
     {
-        /** @var ?TemporaryFile $temporaryFile */
-        $temporaryFile = cache()->get($temporaryFileId);
+        $temporaryFile = TemporaryFile::find($temporaryFileId);
 
         if ($temporaryFile === null) {
             return;

@@ -26,7 +26,7 @@ intervenire) restano registrate qui.
 | 11 | Password deboli ammesse                         | Bassa   | 🔲 Aperto                    |
 | 12 | Nessun middleware security headers              | Bassa   | 🔲 Aperto                    |
 | 13 | Login throttled solo per IP                     | Bassa   | ✅ Risolto (2026-08-28)      |
-| 14 | Upload temporanei: cache key non namespaced     | Bassa   | 🔲 Aperto                    |
+| 14 | Upload temporanei: cache key non namespaced     | Bassa   | ✅ Risolto (2026-08-28)      |
 | 15 | `composer audit` assente dalla CI               | Bassa   | 🔲 Aperto                    |
 
 ---
@@ -265,14 +265,22 @@ Coperto da `test_login_is_locked_out_per_account_across_different_ips` e
 
 ---
 
-## 14. Upload temporanei: cache key non namespaced — 🔲 Aperto
+## 14. Upload temporanei: cache key non namespaced — ✅ Risolto
 
-**File:** `app/Actions/StoreTemporaryUploadAction.php:22` · `app/Rules/TemporaryFileRule.php:16`
+**File:** `app/Support/TemporaryFile.php` · `app/Actions/StoreTemporaryUploadAction.php` ·
+`app/Rules/TemporaryFileRule.php` · `app/Traits/InteractsWithMedia.php`
 
-La chiave di cache è uno UUID nudo nel namespace condiviso, e la rule fa
-`Cache::get($inputUtente)`. Un utente autenticato può consumare il file caricato da un altro.
+La chiave di cache era uno UUID nudo nel namespace condiviso, e la rule faceva `Cache::get($inputUtente)`: un utente
+autenticato poteva consumare il file caricato da un altro, e un input arbitrario leggeva qualsiasi chiave di cache
+dell'applicazione (con `RegistrationVerificationCode` nello stesso namespace).
 
-**Proposta:** prefissare la chiave (`tmp_upload:{id}`) e legarla all'utente che ha caricato.
+**Soluzione.** La chiave diventa `tmp_upload:{userId}:{id}` ed è costruita in **un solo punto**,
+`TemporaryFile::cacheKey()`. Scrittura e lettura passano da `TemporaryFile::put()` / `TemporaryFile::find()`, usate da
+tutti e tre i chiamanti (action, rule, trait): nessun chiamante può dimenticarsi lo scoping, e `find()` verifica anche
+il tipo dell'oggetto in cache.
+
+Coperto da `test_temporary_upload_cannot_be_consumed_by_another_user` e dagli assert di
+`test_store_uploads_file_and_caches_temporary_file` sulla forma della chiave.
 
 ---
 

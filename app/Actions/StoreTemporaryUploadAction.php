@@ -4,7 +4,6 @@ namespace App\Actions;
 
 use App\Support\TemporaryFile;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -28,7 +27,7 @@ class StoreTemporaryUploadAction
             size: $file->getSize(),
         );
 
-        Cache::put($id, $temporaryFile, now()->addMinutes($ttlMinutes));
+        $temporaryFile->put($ttlMinutes);
 
         return $temporaryFile;
     }

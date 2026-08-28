@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Foundation\Application;
@@ -33,6 +34,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(prepend: [
             SetLocale::class,
+        ]);
+
+        $middleware->api(append: [
+            SecurityHeaders::class,
+        ]);
+
+        $middleware->web(append: [
+            SecurityHeaders::class,
         ]);
 
         $middleware->alias([

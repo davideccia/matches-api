@@ -24,7 +24,7 @@ intervenire) restano registrate qui.
 | 9  | Confronto credenziali timing-unsafe             | Media   | 🔲 Aperto                    |
 | 10 | Abuso del form pubblico (creazione illimitata)  | Media   | ✅ Risolto (2026-08-27)      |
 | 11 | Password deboli ammesse                         | Bassa   | 🔲 Aperto                    |
-| 12 | Nessun middleware security headers              | Bassa   | 🔲 Aperto                    |
+| 12 | Nessun middleware security headers              | Bassa   | ✅ Risolto (2026-08-28)      |
 | 13 | Login throttled solo per IP                     | Bassa   | ✅ Risolto (2026-08-28)      |
 | 14 | Upload temporanei: cache key non namespaced     | Bassa   | ✅ Risolto (2026-08-28)      |
 | 15 | `composer audit` assente dalla CI               | Bassa   | ✅ Risolto (2026-08-28)      |
@@ -234,10 +234,27 @@ dietro, e il limite anti-abuso è per codice fiscale invece che per IP.
 
 ---
 
-## 12. Nessun middleware security headers — 🔲 Aperto
+## 12. Nessun middleware security headers — ✅ Risolto
 
-Mancano `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`. Poco rilevante per le risposte JSON, ma Horizon,
-Log Viewer e i PDF servono HTML.
+**File:** `app/Http/Middleware/SecurityHeaders.php` · `bootstrap/app.php`
+
+Mancavano `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`.
+
+**Il rischio reale era uno solo: clickjacking sui pannelli.** Sulle risposte `/api/*` questi header non cambiano nulla —
+un browser non renderizza `application/json` come documento. Ma la basic auth di Horizon e Log Viewer è cacheata dal
+browser: una pagina ostile che li incornicia in un `<iframe>` li carica **già autenticati**, e i click sui bottoni
+Horizon (retry job, cancella batch) partono same-origin dentro il frame. `X-Frame-Options: DENY` chiude il caso.
+`nosniff` e `Referrer-Policy` sono assicurazione a costo zero sulle future risposte non-JSON.
+
+**Soluzione.** `SecurityHeaders`, middleware appeso a **entrambi** i gruppi `api` e `web`. Il gruppo `web` non è
+opzionale: è quello su cui girano Horizon (`config/horizon.php:91`) e Log Viewer (`config/log-viewer.php:109`), cioè
+l'unico bersaglio che conta davvero.
+
+Coperto da `tests/Feature/SecurityHeadersTest.php` (admin, pubblico, web).
+
+> **Fuori portata di questo middleware:** **HSTS** appartiene al reverse proxy che termina il TLS davanti al container, non
+> all'app. **CSP** resta assente: è l'header che conterrebbe davvero un XSS su Horizon e Log Viewer, ma entrambi
+> caricano JS e CSS propri, quindi va scritta e verificata sui pannelli, non incollata.
 
 ---
 

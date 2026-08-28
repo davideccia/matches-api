@@ -1,8 +1,5 @@
 *
 !.gitignore
-!vps-estimate.html
-!architecture.html
-!architecture.json
 !apple-touch-icon.png
 !favicon.ico
 !favicon.svg

@@ -55,6 +55,43 @@ class AuthControllerTest extends TestCase
             ->assertJsonValidationErrors(['email', 'password']);
     }
 
+    public function test_login_is_locked_out_per_account_across_different_ips(): void
+    {
+        User::factory()->create(['email' => 'login@example.com']);
+
+        // Five failures spread over five different IPs: the per-email limit still trips.
+        foreach (range(1, 5) as $attempt) {
+            $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
+                ->postJson('/api/admin/auth/login', [
+                    'email' => 'login@example.com',
+                    'password' => 'wrong-password',
+                ])
+                ->assertUnauthorized();
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
+            ->postJson('/api/admin/auth/login', [
+                'email' => 'LOGIN@example.com',
+                'password' => 'password',
+            ])
+            ->assertStatus(429);
+    }
+
+    public function test_login_attempts_do_not_throttle_password_reset_requests(): void
+    {
+        User::factory()->create(['email' => 'login@example.com']);
+
+        foreach (range(1, 5) as $ignored) {
+            $this->postJson('/api/admin/auth/login', [
+                'email' => 'login@example.com',
+                'password' => 'wrong-password',
+            ])->assertUnauthorized();
+        }
+
+        $this->postJson('/api/admin/auth/forgot_password', ['email' => 'login@example.com'])
+            ->assertOk();
+    }
+
     // ---------------------------------------------------------------------
     // user
     // ---------------------------------------------------------------------

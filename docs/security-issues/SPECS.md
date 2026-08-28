@@ -25,7 +25,7 @@ intervenire) restano registrate qui.
 | 10 | Abuso del form pubblico (creazione illimitata)  | Media   | ✅ Risolto (2026-08-27)      |
 | 11 | Password deboli ammesse                         | Bassa   | 🔲 Aperto                    |
 | 12 | Nessun middleware security headers              | Bassa   | 🔲 Aperto                    |
-| 13 | Login throttled solo per IP                     | Bassa   | 🔲 Aperto                    |
+| 13 | Login throttled solo per IP                     | Bassa   | ✅ Risolto (2026-08-28)      |
 | 14 | Upload temporanei: cache key non namespaced     | Bassa   | 🔲 Aperto                    |
 | 15 | `composer audit` assente dalla CI               | Bassa   | 🔲 Aperto                    |
 
@@ -241,11 +241,27 @@ Log Viewer e i PDF servono HTML.
 
 ---
 
-## 13. Login throttled solo per IP — 🔲 Aperto
+## 13. Login throttled solo per IP — ✅ Risolto
 
-**File:** `routes/api.admin.php:19`
+**File:** `routes/api.admin.php:19` · `app/Providers/AppServiceProvider.php`
 
-`throttle:5,1` è per IP e condiviso fra login, forgot e reset password. Nessun lockout per singolo account.
+`throttle:5,1` era per IP e condiviso fra login, forgot e reset password. Nessun lockout per singolo account: un
+attaccante con IP a rotazione (banale visto il #3) provava password illimitate su una singola casella.
+
+**Soluzione.** Due limiter con nome, `auth-login` (login) e `auth-password-reset` (forgot + reset), ciascuno con **due**
+`Limit`: 5/min per IP **e** 5/min per email normalizzata. Il secondo è il lockout per account: vale anche se l'IP
+cambia a ogni tentativo.
+
+Separare i due nomi evita inoltre che i tentativi di login consumino il contatore del reset password — lo stesso
+inciampo documentato nel #4: un `throttle:5,1` anonimo chiava su `dominio|IP`, quindi rotte diverse condividono un
+unico contatore.
+
+Coperto da `test_login_is_locked_out_per_account_across_different_ips` e
+`test_login_attempts_do_not_throttle_password_reset_requests`.
+
+> **Limite noto:** il lockout per email è un vettore di DoS mirato (chi conosce l'indirizzo può tenerlo bloccato a
+> 5 richieste/minuto). Con una finestra di un minuto il costo è accettato; se diventasse un problema, la via è un
+> lockout progressivo invece di uno fisso.
 
 ---
 

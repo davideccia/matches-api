@@ -26,6 +26,7 @@ class PublicMatchRecordResource extends JsonResource
             'winner_id' => $this->resource->winner_id,
             'red_corner_team' => $this->resource->red_corner_team,
             'blue_corner_team' => $this->resource->blue_corner_team,
+            'unpaired' => $this->resource->unpaired,
             'judges_points' => $this->resource->judges_points,
             'tournament' => $this->whenLoaded('tournament', fn () => new PublicTournamentResource($this->resource->tournament)),
             'red_corner' => $this->whenLoaded('redCorner', fn () => new PublicAthleteResource($this->resource->redCorner)),

@@ -108,7 +108,7 @@ class PublicTournamentControllerTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonStructure([
                 'data' => [
-                    ['id', 'red_corner', 'blue_corner'],
+                    ['id', 'red_corner', 'blue_corner', 'unpaired'],
                 ],
             ]);
     }

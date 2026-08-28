@@ -29,6 +29,20 @@ class TournamentNestedControllerTest extends TestCase
         ExperienceTier::factory()->enabled()->create(['tournament_id' => null, 'label' => 'intermediate', 'min_match_count' => 5, 'max_match_count' => 15]);
         ExperienceTier::factory()->enabled()->create(['tournament_id' => null, 'label' => 'advanced', 'min_match_count' => 16, 'max_match_count' => null]);
     }
+
+    private function registerAdultMaleAthlete(Tournament $tournament, Discipline $discipline, WeightCategory $weightCategory): Athlete
+    {
+        $athlete = Athlete::factory()->adult()->male()->create();
+
+        Registration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'athlete_id' => $athlete->id,
+            'discipline_id' => $discipline->id,
+            'weight_category_id' => $weightCategory->id,
+        ]);
+
+        return $athlete;
+    }
     // ---------------------------------------------------------------------
     // registrations index
     // ---------------------------------------------------------------------
@@ -392,9 +406,9 @@ class TournamentNestedControllerTest extends TestCase
         $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records", [])
             ->assertJsonValidationErrors([
                 'red_corner_id', 'blue_corner_id', 'weight_category_id', 'discipline_id',
-                'gender', 'forced', 'red_corner_team', 'blue_corner_team', 'status',
-                'rounds', 'minutes_per_round',
-            ]);
+                'gender', 'forced', 'status', 'rounds', 'minutes_per_round',
+            ])
+            ->assertJsonMissingValidationErrors(['red_corner_team', 'blue_corner_team']);
     }
 
     public function test_generate_creates_match_records_for_paired_registrations(): void
@@ -448,9 +462,20 @@ class TournamentNestedControllerTest extends TestCase
             'weight_category_id' => $weightCategory->id,
         ]);
 
+        // The orphan still gets a half bout: red corner only, flagged as unpaired.
         $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
             ->assertOk()
-            ->assertJsonCount(0, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.red_corner_id', $orphanAthlete->id)
+            ->assertJsonPath('data.0.blue_corner_id', null)
+            ->assertJsonPath('data.0.unpaired', true);
+
+        $this->assertDatabaseHas('match_records', [
+            'tournament_id' => $tournament->id,
+            'red_corner_id' => $orphanAthlete->id,
+            'blue_corner_id' => null,
+            'blue_corner_team' => null,
+        ]);
 
         $issues = $tournament->fresh()->matchmaking_issues;
 
@@ -459,6 +484,8 @@ class TournamentNestedControllerTest extends TestCase
         $this->assertSame($orphanAthlete->id, $issues[0]['athlete_id']);
         $this->assertSame('beginner', $issues[0]['experience_tier']);
         $this->assertSame('unpaired', $issues[0]['reason']);
+        // Same shape whether the issues come from a run or are re-derived from the card.
+        $this->assertTrue($issues[0]['is_adult']);
     }
 
     public function test_generate_keeps_athletes_apart_when_they_fall_in_different_tiers(): void
@@ -482,9 +509,10 @@ class TournamentNestedControllerTest extends TestCase
             ]);
         }
 
+        // Not paired with each other: each one gets its own half bout.
         $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
             ->assertOk()
-            ->assertJsonCount(0, 'data');
+            ->assertJsonCount(2, 'data');
 
         $this->assertCount(2, $tournament->fresh()->matchmaking_issues);
     }
@@ -551,9 +579,10 @@ class TournamentNestedControllerTest extends TestCase
             ]);
         }
 
+        // The globals keep them apart, so each gets its own half bout.
         $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
             ->assertOk()
-            ->assertJsonCount(0, 'data');
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_generate_reports_athletes_not_covered_by_any_tier(): void
@@ -582,6 +611,7 @@ class TournamentNestedControllerTest extends TestCase
             ]);
         }
 
+        // No tier means no bucket to sit in: not even a half bout is created.
         $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
             ->assertOk()
             ->assertJsonCount(0, 'data');
@@ -591,6 +621,129 @@ class TournamentNestedControllerTest extends TestCase
         $this->assertCount(2, $issues);
         $this->assertNull($issues[0]['experience_tier']);
         $this->assertSame('no_tier', $issues[0]['reason']);
+    }
+
+    public function test_generate_completes_an_existing_half_bout_instead_of_opening_a_new_one(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $waiting = $this->registerAdultMaleAthlete($tournament, $discipline, $weightCategory);
+
+        // First run: nobody to pair with, so a half bout is opened.
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+        $this->assertDatabaseCount('match_records', 1);
+
+        $latecomer = $this->registerAdultMaleAthlete($tournament, $discipline, $weightCategory);
+
+        // Second run: the half bout is completed, not duplicated.
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.unpaired', false);
+
+        $this->assertDatabaseCount('match_records', 1);
+        $this->assertDatabaseHas('match_records', [
+            'tournament_id' => $tournament->id,
+            'red_corner_id' => $waiting->id,
+            'blue_corner_id' => $latecomer->id,
+        ]);
+
+        $this->assertEmpty($tournament->fresh()->matchmaking_issues);
+    }
+
+    public function test_generate_fills_the_red_corner_of_a_hand_entered_blue_only_bout(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $waiting = $this->registerAdultMaleAthlete($tournament, $discipline, $weightCategory);
+
+        // Entered by hand with the blue corner alone: matchmaking must complete it
+        // rather than open a second half bout for the same athlete.
+        MatchRecord::factory()->withoutRedCorner()->create([
+            'tournament_id' => $tournament->id,
+            'blue_corner_id' => $waiting->id,
+            'discipline_id' => $discipline->id,
+            'weight_category_id' => $weightCategory->id,
+        ]);
+
+        $opponent = $this->registerAdultMaleAthlete($tournament, $discipline, $weightCategory);
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+
+        $this->assertDatabaseCount('match_records', 1);
+        $this->assertDatabaseHas('match_records', [
+            'tournament_id' => $tournament->id,
+            'red_corner_id' => $opponent->id,
+            'blue_corner_id' => $waiting->id,
+        ]);
+    }
+
+    public function test_generate_still_sees_free_registrations_when_a_half_bout_exists(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // A half bout in an unrelated bucket: its NULL blue corner must not poison
+        // the "already booked" exclusion (SQL NOT IN over a set containing NULL
+        // matches nothing at all).
+        MatchRecord::factory()->withoutBlueCorner()->create(['tournament_id' => $tournament->id]);
+
+        foreach (range(1, 2) as $i) {
+            $this->registerAdultMaleAthlete($tournament, $discipline, $weightCategory);
+        }
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+
+        $this->assertDatabaseCount('match_records', 2);
+        $this->assertDatabaseHas('match_records', [
+            'tournament_id' => $tournament->id,
+            'discipline_id' => $discipline->id,
+            'weight_category_id' => $weightCategory->id,
+        ]);
+    }
+
+    public function test_half_bout_athlete_stays_in_matchmaking_issues_after_any_match_record_change(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $athlete = Athlete::factory()->adult()->male()->create();
+        Registration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'athlete_id' => $athlete->id,
+            'discipline_id' => $discipline->id,
+            'weight_category_id' => $weightCategory->id,
+        ]);
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+
+        // syncMatchmakingIssues re-derives the issues from the match records:
+        // a half bout must not make its athlete look paired.
+        $tournament->syncMatchmakingIssues();
+
+        $issues = $tournament->fresh()->matchmaking_issues;
+
+        $this->assertCount(1, $issues);
+        $this->assertSame($athlete->id, $issues[0]['athlete_id']);
+        $this->assertSame('unpaired', $issues[0]['reason']);
     }
 
     public function test_generate_requires_authentication(): void

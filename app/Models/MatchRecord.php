@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class MatchRecord extends Model
 {
     use HasFactory, HasUuids;
+
+    protected $appends = ['unpaired'];
 
     protected $fillable = [
         'tournament_id',
@@ -58,6 +61,17 @@ class MatchRecord extends Model
             'status' => MatchRecordStatusEnum::class,
             'judges_points' => 'array',
         ];
+    }
+
+    /**
+     * A half bout: one athlete is on the card, still waiting for an opponent.
+     * Computed rather than stored, so it can never drift from the corners.
+     */
+    protected function unpaired(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->red_corner_id === null || $this->blue_corner_id === null,
+        );
     }
 
     public function tournament(): BelongsTo

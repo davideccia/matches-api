@@ -255,6 +255,17 @@ time. Two athletes are matched only when **all five** of these agree:
 discipline · weight category · gender · adult or minor · experience tier
 ```
 
+### Half bouts
+
+Both `red_corner_id` and `blue_corner_id` are nullable. An athlete left over in an otherwise valid group still gets a
+match record with the **red corner only** — a *half bout* — so they are on the fight card while waiting for an
+opponent, and they stay listed in `matchmaking_issues` all the same. Every match record exposes a computed
+`unpaired` boolean, true whenever either corner is still empty.
+
+Re-running the generation completes existing half bouts instead of duplicating them: a compatible athlete registering
+later is dropped into the empty corner. A bout entered by hand with the blue corner alone is completed the same way,
+on its red corner. Athletes matching **no** tier (`no_tier`) get no match record at all.
+
 ### Experience tiers
 
 A tier is a named `min_match_count … max_match_count` band (leave the max empty for an open-ended top tier). Only
@@ -277,7 +288,7 @@ Registrations that could not be paired are stored on the tournament as `matchmak
 | Reason     | Meaning                                                       |
 |------------|---------------------------------------------------------------|
 | `no_tier`  | The athlete's fight count falls outside every enabled tier     |
-| `unpaired` | The athlete was the odd one out in an otherwise valid group    |
+| `unpaired` | The athlete was the odd one out in an otherwise valid group (they hold a half bout) |
 
 The list is kept current automatically as match records are created, edited, or deleted.
 

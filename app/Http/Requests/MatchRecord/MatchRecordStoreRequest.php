@@ -34,14 +34,14 @@ class MatchRecordStoreRequest extends FormRequest
     {
         return [
             'tournament_id' => ['required', 'string', 'uuid', 'exists:tournaments,id'],
-            'red_corner_id' => ['required', 'string', 'uuid', 'exists:athletes,id'],
-            'blue_corner_id' => ['required', 'string', 'uuid', 'exists:athletes,id'],
+            'red_corner_id' => ['nullable', 'required_without:blue_corner_id', 'string', 'uuid', 'exists:athletes,id'],
+            'blue_corner_id' => ['nullable', 'required_without:red_corner_id', 'string', 'uuid', 'exists:athletes,id'],
             'weight_category_id' => ['required', 'string', 'uuid', 'exists:weight_categories,id'],
             'discipline_id' => ['required', 'string', 'uuid', 'exists:disciplines,id'],
             'gender' => ['required', new Enum(AthleteGenderEnum::class)],
             'forced' => ['required', 'boolean'],
-            'red_corner_team' => ['required', 'string', 'max:255'],
-            'blue_corner_team' => ['required', 'string', 'max:255'],
+            'red_corner_team' => ['nullable', 'string', 'max:255'],
+            'blue_corner_team' => ['nullable', 'string', 'max:255'],
             'sort' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'scheduled_time' => ['nullable', 'date_format:H:i:s'],
             'winner_id' => ['nullable', 'string', 'uuid', 'exists:athletes,id'],

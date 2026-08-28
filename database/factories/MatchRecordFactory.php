@@ -46,6 +46,28 @@ class MatchRecordFactory extends Factory
         ];
     }
 
+    /**
+     * A half bout: red corner on the card, still waiting for an opponent.
+     */
+    public function withoutBlueCorner(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'blue_corner_id' => null,
+            'blue_corner_team' => null,
+        ]);
+    }
+
+    /**
+     * A half bout entered by hand with the blue corner alone.
+     */
+    public function withoutRedCorner(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'red_corner_id' => null,
+            'red_corner_team' => null,
+        ]);
+    }
+
     public function status(MatchRecordStatusEnum $status): static
     {
         return $this->state(fn (array $attributes): array => [

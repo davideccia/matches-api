@@ -135,14 +135,14 @@ Table registrations {
 Table match_records {
   id                 uuid         [pk]
   tournament_id      uuid         [not null, ref: > tournaments.id]
-  red_corner_id      uuid         [not null, ref: > athletes.id]
-  blue_corner_id     uuid         [not null, ref: > athletes.id]
+  red_corner_id      uuid         [null, ref: > athletes.id]     // null = half bout; matchmaking always fills this corner first
+  blue_corner_id     uuid         [null, ref: > athletes.id]     // null = half bout, athlete waiting for an opponent
   weight_category_id uuid         [not null, ref: > weight_categories.id]
   discipline_id      uuid         [not null, ref: > disciplines.id]
   gender             athlete_gender [not null]
   forced             boolean      [not null, default: false]
-  red_corner_team    varchar      [not null]
-  blue_corner_team   varchar      [not null]
+  red_corner_team    varchar      [null]     // null when there is no red corner yet
+  blue_corner_team   varchar      [null]     // null when there is no blue corner yet
   sort               int          [not null]
   scheduled_time     time         [null]
   winner_id          uuid         [null, ref: > athletes.id]

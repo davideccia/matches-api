@@ -90,6 +90,11 @@ class Tournament extends Model implements HasMedia
 
         DB::transaction(function () use ($service): void {
 
+            // Complete existing half bouts first, then open new ones.
+            foreach ($service->getHalfMatchRecordFills() as $fill) {
+                MatchRecord::find($fill['match_record_id'])?->update($fill['attributes']);
+            }
+
             foreach ($service->generateMatchRecords() as $attributes) {
                 MatchRecord::create($attributes);
             }

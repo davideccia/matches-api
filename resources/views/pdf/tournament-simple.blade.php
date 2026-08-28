@@ -236,7 +236,7 @@
                 <tr>
                     <td class="no">{{ $matchRecord->sort }}</td>
                     <td class="corner corner-red">
-                        <div class="athlete">{{ $matchRecord->redCorner->full_name }}</div>
+                        <div class="athlete">{{ $matchRecord->redCorner?->full_name ?? '—' }}</div>
                         <div class="team">{{ $matchRecord->red_corner_team }}</div>
                     </td>
                     <td class="spine">
@@ -250,7 +250,7 @@
                         </div>
                     </td>
                     <td class="corner corner-blue">
-                        <div class="athlete">{{ $matchRecord->blueCorner->full_name }}</div>
+                        <div class="athlete">{{ $matchRecord->blueCorner?->full_name ?? '—' }}</div>
                         <div class="team">{{ $matchRecord->blue_corner_team }}</div>
                     </td>
                 </tr>

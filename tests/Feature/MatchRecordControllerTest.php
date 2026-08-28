@@ -130,7 +130,7 @@ class MatchRecordControllerTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'data' => [[
-                    'id', 'red_corner', 'blue_corner', 'weight_category', 'discipline', 'tournament',
+                    'id', 'red_corner', 'blue_corner', 'unpaired', 'weight_category', 'discipline', 'tournament',
                 ]],
             ]);
     }
@@ -211,9 +211,10 @@ class MatchRecordControllerTest extends TestCase
         $this->postJson('/api/admin/match_records', [])
             ->assertJsonValidationErrors([
                 'tournament_id', 'red_corner_id', 'blue_corner_id', 'weight_category_id',
-                'discipline_id', 'gender', 'forced', 'red_corner_team', 'blue_corner_team',
+                'discipline_id', 'gender', 'forced',
                 'status', 'rounds', 'minutes_per_round',
-            ]);
+            ])
+            ->assertJsonMissingValidationErrors(['red_corner_team', 'blue_corner_team']);
     }
 
     public function test_store_rejects_invalid_enum_values(): void

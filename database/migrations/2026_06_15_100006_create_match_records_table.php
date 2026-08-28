@@ -11,14 +11,14 @@ return new class extends Migration
         Schema::create('match_records', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('tournament_id')->constrained('tournaments')->cascadeOnDelete();
-            $table->foreignUuid('red_corner_id')->constrained('athletes')->cascadeOnDelete();
-            $table->foreignUuid('blue_corner_id')->constrained('athletes')->cascadeOnDelete();
+            $table->foreignUuid('red_corner_id')->nullable()->constrained('athletes')->cascadeOnDelete();
+            $table->foreignUuid('blue_corner_id')->nullable()->constrained('athletes')->cascadeOnDelete();
             $table->foreignUuid('weight_category_id')->constrained('weight_categories')->cascadeOnDelete();
             $table->foreignUuid('discipline_id')->constrained('disciplines')->cascadeOnDelete();
             $table->string('gender');
             $table->boolean('forced')->default(false);
-            $table->string('red_corner_team');
-            $table->string('blue_corner_team');
+            $table->string('red_corner_team')->nullable();
+            $table->string('blue_corner_team')->nullable();
             $table->integer('sort');
             $table->time('scheduled_time')->nullable();
             $table->foreignUuid('winner_id')->nullable()->constrained('athletes')->nullOnDelete();

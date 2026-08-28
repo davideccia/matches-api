@@ -69,11 +69,16 @@ Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEn
   (users, weight_categories, disciplines, experience_tiers, athletes, tournaments, registrations, match_records), nested
   `tournaments.{registrations,match_records,experience_tiers}` (index/store only), `temporary_uploads`, PDF endpoints,
   and `DELETE {resource}/bulk` routes (preceding each `apiResource` so they aren't shadowed). Everything except the
-  `auth/*` entry points is behind `auth:sanctum`. Auth endpoints are rate-limited at `throttle:5,1`; `auth/user` at
-  `throttle:10,1`.
-- `routes/api.public.php` (`/api/public/`) — unauthenticated. `registration_form/*` (public athlete lookup by
-  tax_number, athlete/registration create, tournaments/disciplines/weight_categories index, registration PDF) and
-  `tournaments/*` (public tournament list + match records).
+  `auth/*` entry points is behind `auth:sanctum`. `auth/login` uses `throttle:auth-login`,
+  `auth/forgot_password` + `auth/reset_password` use `throttle:auth-password-reset`; `auth/user` at `throttle:10,1`.
+- `routes/api.public.php` (`/api/public/`) — unauthenticated. `registration_form/*` (`POST athletes/lookup`,
+  `POST verification_code`, `POST registrations`, tournaments/disciplines/weight_categories index, and a **signed**
+  `GET registrations/{registration}/pdf`) and `tournaments/*` (public tournament list + match records).
+
+**Rate limiters are named, not inline.** `AppServiceProvider::rateLimiting()` defines `auth-login`,
+`auth-password-reset` (both 5/min keyed *by IP and by email* — per-account, not just per-IP), `public-athlete-lookup`
+and `public-verification-code` (5/min per IP). They stack on top of the group-level `throttle:10,1` while keeping their
+own counter, which an unnamed `throttle:5,1` would not. Add new limits there, not as inline `throttle:n,m`.
 
 **Custom actions** (not part of the standard CRUD resource) must be declared *before* the matching `apiResource` so the
 resource's `{id}` wildcard doesn't shadow them:
@@ -86,6 +91,21 @@ resource's `{id}` wildcard doesn't shadow them:
 Nested-route controllers are separate classes named `Tournament{Child}Controller` (`TournamentRegistrationController`,
 `TournamentMatchRecordController`, `TournamentExperienceTierController`), not extra methods on the child's own
 controller.
+
+## Public Registration Flow
+
+The public registration form is a three-step, email-verified flow — it is not a plain `POST /registrations`:
+
+1. `POST registration_form/athletes/lookup` — tax_number **plus email**; both must match an existing athlete
+   (`Athlete::normalizeTaxNumber()` / `emailMatches()`), otherwise a generic 400 (`errors.athlete_lookup_failed`) and a
+   `public.athlete_lookup_failed` log line. Never reveal which half was wrong.
+2. `POST registration_form/verification_code` — `App\Support\RegistrationVerificationCode::issue()` mails a 6-digit
+   code (`RegistrationVerificationCodeNotification`) and caches only its sha256 hash for 10 minutes. An **existing**
+   athlete is always contacted at the address on file, never the caller-supplied one. Max 3 issues per 15 min per tax
+   number, and the endpoint always answers 204 so it cannot be used as an enumeration oracle.
+3. `POST registration_form/registrations` — `RegistrationVerificationCode::verify()` first (5 wrong guesses burn the
+   code; a wrong guess never refreshes the TTL). An existing athlete's record is **never overwritten** by the payload —
+   that would make this endpoint an account takeover.
 
 ## Request / Controller Patterns
 
@@ -163,10 +183,21 @@ in-memory leftovers after a matchmaking run, or re-derived from existing match r
 Only the `users` resource is policy-guarded: each `UserRequest::authorize()` calls the corresponding `UserPolicy`
 ability (`create`/`update`/`delete`/`bulkDestroy` gate on `$user->superadmin`). All other resources return `true` from
 `authorize()` and rely on `auth:sanctum` alone. An `ability` middleware alias (Sanctum's `CheckForAnyAbility`) is
-registered in `bootstrap/app.php` but not yet used by any route.
+registered in `bootstrap/app.php` but deliberately unused: every token is issued with the default `['*']` abilities
+because all admin users are trusted staff. The alias stays wired so scoping a future token type is a route change, not
+a setup. (The `docs/security-issues/SPECS.md` referenced by that comment is **not in this repo**.)
 
-Horizon's dashboard is behind `App\Http\Middleware\HorizonBasicAuth` (see `config/horizon.php`); the `viewHorizon` gate
-itself is open.
+Horizon's dashboard and Log Viewer are behind `HorizonBasicAuth` / `LogViewerBasicAuth`, both thin subclasses of the
+abstract `App\Http\Middleware\BasicAuth` (credentials read from `config('horizon.basic_auth_*')` /
+`config('log-viewer.basic_auth_*')`). Username and password are compared with `hash_equals` over sha256 and **both
+comparisons always run** — `&&` would short-circuit and leak, through timing, which half was correct. Keep that shape.
+The `viewHorizon` gate itself is open.
+
+`App\Http\Middleware\SecurityHeaders` is appended to *both* the `api` and `web` groups and sets
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`.
+
+`AppServiceProvider::definePasswordDefaults()` sets `Password::min(12)` (length over composition rules, per NIST
+800-63B) and adds `->uncompromised()` **only in production**, so local and test runs never hit the HIBP network API.
 
 ## PDF Generation
 
@@ -214,6 +245,12 @@ temporary uploads) every six hours, `horizon:snapshot` every five minutes, and `
 `run`/`monitor`) nightly — the backup entries are registered only when the destination disk is actually configured, so
 environments without S3 credentials skip them instead of failing.
 
+## CI
+
+CI is **Forgejo Actions**, not GitHub Actions: `.forgejo/workflows/docker-publish.yml` (Docker Hub) and
+`ghcr-publish.yml` (GHCR). Each runs the same gate before building the image — `composer install`, then
+`composer audit --no-dev` (a vulnerable direct dependency fails the build), then `php artisan test --compact`.
+
 ## Production Deploy
 
 Production runs a single `matches-api` image (`docker/production/Dockerfile`, two-stage on `php:8.5-fpm-bookworm`)
@@ -241,7 +278,9 @@ processes.
 ## Testing
 
 There is one feature test per controller in `tests/Feature/` (`{Controller}Test.php`), covering every resource plus
-auth, dashboard, nested tournament routes, and both public controllers. Unit tests are bootstrap-only.
+auth, dashboard, nested tournament routes, and both public controllers, plus cross-cutting suites that are *not*
+controller-shaped: `SecurityHeadersTest`, `HorizonTest`, `LogViewerTest` (basic-auth gates). Unit tests are
+bootstrap-only.
 
 `Tests\TestCase` (`tests/TestCase.php`) provides the shared setup: `LazilyRefreshDatabase`, response cache forced off
 (so public-endpoint assertions are deterministic), and `$this->authenticate(?User $user)` which `Sanctum::actingAs()` a

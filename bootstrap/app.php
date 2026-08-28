@@ -44,6 +44,10 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeaders::class,
         ]);
 
+        // Deliberately registered but unused: every token is issued with the
+        // default ['*'] abilities, because all admin users are trusted staff
+        // (see docs/security-issues/SPECS.md #7 and #8). The alias stays wired
+        // so that scoping a future token type is a route change, not a setup.
         $middleware->alias([
             'ability' => CheckForAnyAbility::class,
         ]);

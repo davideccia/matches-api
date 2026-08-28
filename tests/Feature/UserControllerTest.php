@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\UserCredentialsNotification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class UserControllerTest extends TestCase
@@ -75,14 +77,13 @@ class UserControllerTest extends TestCase
     // store
     // ---------------------------------------------------------------------
 
-    public function test_store_creates_user_and_hashes_password(): void
+    public function test_store_creates_user_with_auto_generated_hashed_password(): void
     {
         $this->authenticate(User::factory()->superadmin()->create());
 
         $response = $this->postJson('/api/admin/users', [
             'username' => 'johndoe',
             'email' => 'john@example.com',
-            'password' => 'secret-password',
             'superadmin' => true,
         ]);
 
@@ -96,24 +97,31 @@ class UserControllerTest extends TestCase
 
         $this->assertDatabaseHas('users', ['email' => 'john@example.com']);
 
-        // Stored password is hashed, not plaintext.
+        // A password is auto-generated server-side and stored hashed.
         $user = User::where('email', 'john@example.com')->firstOrFail();
-        $this->assertNotSame('secret-password', $user->password);
-        $this->assertTrue(Hash::check('secret-password', $user->password));
+        $this->assertNotEmpty($user->password);
+        $this->assertNotSame('password', $user->password);
     }
 
-    public function test_store_rejects_a_password_shorter_than_twelve_characters(): void
+    public function test_store_notifies_new_user_with_generated_credentials(): void
     {
+        Notification::fake();
         $this->authenticate(User::factory()->superadmin()->create());
 
-        // 11 characters: passed under the old 8-character floor, must not now.
         $this->postJson('/api/admin/users', [
-            'username' => 'shortpass',
-            'email' => 'shortpass@example.com',
-            'password' => 'elevenchars',
-        ])->assertJsonValidationErrors(['password']);
+            'username' => 'johndoe',
+            'email' => 'john@example.com',
+        ])->assertCreated();
 
-        $this->assertDatabaseMissing('users', ['email' => 'shortpass@example.com']);
+        $user = User::where('email', 'john@example.com')->firstOrFail();
+
+        Notification::assertSentTo(
+            $user,
+            UserCredentialsNotification::class,
+            fn (UserCredentialsNotification $notification): bool => $notification->email === $user->email
+                && $notification->username === $user->username
+                && Hash::check($notification->password, $user->password)
+        );
     }
 
     public function test_update_rejects_a_password_shorter_than_twelve_characters(): void
@@ -134,7 +142,6 @@ class UserControllerTest extends TestCase
         $this->postJson('/api/admin/users', [
             'username' => 'plainuser',
             'email' => 'plain@example.com',
-            'password' => 'secret-password',
         ])
             ->assertCreated()
             ->assertJsonPath('data.superadmin', null);
@@ -147,18 +154,7 @@ class UserControllerTest extends TestCase
         $this->authenticate(User::factory()->superadmin()->create());
 
         $this->postJson('/api/admin/users', [])
-            ->assertJsonValidationErrors(['username', 'email', 'password']);
-    }
-
-    public function test_store_rejects_short_password(): void
-    {
-        $this->authenticate(User::factory()->superadmin()->create());
-
-        $this->postJson('/api/admin/users', [
-            'username' => 'shortpw',
-            'email' => 'shortpw@example.com',
-            'password' => 'short',
-        ])->assertJsonValidationErrors(['password']);
+            ->assertJsonValidationErrors(['username', 'email']);
     }
 
     public function test_store_rejects_invalid_email_format(): void
@@ -168,7 +164,6 @@ class UserControllerTest extends TestCase
         $this->postJson('/api/admin/users', [
             'username' => 'bademail',
             'email' => 'not-an-email',
-            'password' => 'secret-password',
         ])->assertJsonValidationErrors(['email']);
     }
 
@@ -180,7 +175,6 @@ class UserControllerTest extends TestCase
         $this->postJson('/api/admin/users', [
             'username' => 'taken',
             'email' => 'fresh@example.com',
-            'password' => 'secret-password',
         ])->assertJsonValidationErrors(['username']);
     }
 
@@ -192,7 +186,6 @@ class UserControllerTest extends TestCase
         $this->postJson('/api/admin/users', [
             'username' => 'freshname',
             'email' => 'taken@example.com',
-            'password' => 'secret-password',
         ])->assertJsonValidationErrors(['email']);
     }
 
@@ -208,7 +201,6 @@ class UserControllerTest extends TestCase
         $this->postJson('/api/admin/users', [
             'username' => 'johndoe',
             'email' => 'john@example.com',
-            'password' => 'secret-password',
         ])->assertForbidden();
     }
 

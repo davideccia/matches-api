@@ -153,6 +153,7 @@ Table match_records {
   rounds             int          [not null]
   minutes_per_round  varchar      [not null]
   judges_points      json         [null]   // array of per-round scores: [{round, redCornerJudge1, redCornerJudge2, redCornerJudge3, blueCornerJudge1, blueCornerJudge2, blueCornerJudge3}] — int or null if judge not assigned
+  notes              text         [null]
   created_at         timestamptz  [null]
   updated_at         timestamptz  [null]
 }

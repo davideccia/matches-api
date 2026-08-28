@@ -43,6 +43,7 @@ class MatchRecordFactory extends Factory
             'rounds' => 3,
             'minutes_per_round' => '03:00',
             'judges_points' => null,
+            'notes' => null,
         ];
     }
 

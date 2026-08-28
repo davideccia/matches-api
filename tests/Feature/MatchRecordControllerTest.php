@@ -192,15 +192,19 @@ class MatchRecordControllerTest extends TestCase
 
         $tournament = Tournament::factory()->create();
 
-        $response = $this->postJson('/api/admin/match_records', $this->validStorePayload($tournament))
+        $response = $this->postJson('/api/admin/match_records', $this->validStorePayload($tournament, [
+            'notes' => 'hello',
+        ]))
             ->assertCreated()
             ->assertJsonPath('data.tournament_id', $tournament->id)
             ->assertJsonPath('data.sort', 1)
-            ->assertJsonPath('data.status', MatchRecordStatusEnum::SCHEDULED->value);
+            ->assertJsonPath('data.status', MatchRecordStatusEnum::SCHEDULED->value)
+            ->assertJsonPath('data.notes', 'hello');
 
         $this->assertDatabaseHas('match_records', [
             'tournament_id' => $tournament->id,
             'sort' => 1,
+            'notes' => 'hello',
         ]);
     }
 
@@ -472,7 +476,9 @@ class MatchRecordControllerTest extends TestCase
             'end_method' => MatchRecordEndMethodEnum::VICTORY_TKO->value,
             'end_round' => '2',
             'judges_points' => [['round' => 1, 'judge1_red' => 10, 'judge1_blue' => 9]],
+            'notes' => 'updated',
         ]))->assertOk()
+            ->assertJsonPath('data.notes', 'updated')
             ->assertJsonPath('data.winner_id', $winner->id)
             ->assertJsonPath('data.status', MatchRecordStatusEnum::COMPLETED->value)
             ->assertJsonPath('data.end_method', MatchRecordEndMethodEnum::VICTORY_TKO->value)
@@ -483,6 +489,7 @@ class MatchRecordControllerTest extends TestCase
             'id' => $record->id,
             'winner_id' => $winner->id,
             'status' => MatchRecordStatusEnum::COMPLETED->value,
+            'notes' => 'updated',
         ]);
     }
 

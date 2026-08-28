@@ -58,6 +58,7 @@ class MatchRecordStoreRequest extends FormRequest
             'judges_points.*.judge1_blue' => ['nullable', 'numeric'],
             'judges_points.*.judge2_blue' => ['nullable', 'numeric'],
             'judges_points.*.judge3_blue' => ['nullable', 'numeric'],
+            'notes' => ['nullable', 'string'],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];

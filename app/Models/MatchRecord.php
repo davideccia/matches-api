@@ -44,6 +44,7 @@ class MatchRecord extends Model
         'rounds',
         'minutes_per_round',
         'judges_points',
+        'notes',
     ];
 
     protected function casts(): array

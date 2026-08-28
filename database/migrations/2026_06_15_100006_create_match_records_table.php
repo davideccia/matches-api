@@ -28,6 +28,7 @@ return new class extends Migration
             $table->integer('rounds');
             $table->string('minutes_per_round');
             $table->json('judges_points')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }

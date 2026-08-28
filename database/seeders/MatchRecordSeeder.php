@@ -31,21 +31,13 @@ class MatchRecordSeeder extends Seeder
         ['round' => 3, 'judge1_red' => null, 'judge1_blue' => null, 'judge2_red' => null, 'judge2_blue' => null, 'judge3_red' => null, 'judge3_blue' => null],
     ];
 
-    public function run(): void
-    {
-        if (MatchRecord::withoutGlobalScopes()->count() > 0) {
-            return;
-        }
-
-        $athleteMap = Athlete::withoutGlobalScopes()->get(['id', 'last_name', 'team_name', 'gender'])
-            ->keyBy('last_name');
-        $tournaments = Tournament::withoutGlobalScopes()->pluck('id', 'name');
-        $disciplines = Discipline::withoutGlobalScopes()->pluck('id', 'label');
-        $weightCategories = WeightCategory::withoutGlobalScopes()->pluck('id', 'label');
-
-        $this->seedTorneo1($athleteMap, $tournaments, $disciplines, $weightCategories);
-        $this->seedTorneo2($athleteMap, $tournaments, $disciplines, $weightCategories);
-    }
+    /** Sample notes, cycled onto every fourth bout so some records ship with notes filled in. */
+    private const NOTES = [
+        'Atleta rosso arrivato in ritardo al peso.',
+        'Match spostato di ring su richiesta della federazione.',
+        'Blu con certificato medico consegnato a mano.',
+        'Verificare i punteggi con il giudice di sedia.',
+    ];
 
     private function seedTorneo1($athleteMap, $tournaments, $disciplines, $weightCategories): void
     {
@@ -92,6 +84,7 @@ class MatchRecordSeeder extends Seeder
                 'sort' => $i + 1,
                 'rounds' => 3,
                 'minutes_per_round' => '03:00',
+                'notes' => $i % 4 === 0 ? self::NOTES[intdiv($i, 4) % count(self::NOTES)] : null,
             ];
 
             if ($i % 2 === 0) {
@@ -239,6 +232,7 @@ class MatchRecordSeeder extends Seeder
                 'sort' => $i + 1,
                 'rounds' => 3,
                 'minutes_per_round' => '03:00',
+                'notes' => $i % 4 === 0 ? self::NOTES[intdiv($i, 4) % count(self::NOTES)] : null,
             ];
 
             if ($i <= 38) {
@@ -266,5 +260,21 @@ class MatchRecordSeeder extends Seeder
 
             MatchRecord::create($data);
         }
+    }
+
+    public function run(): void
+    {
+        if (MatchRecord::withoutGlobalScopes()->count() > 0) {
+            return;
+        }
+
+        $athleteMap = Athlete::withoutGlobalScopes()->get(['id', 'last_name', 'team_name', 'gender'])
+            ->keyBy('last_name');
+        $tournaments = Tournament::withoutGlobalScopes()->pluck('id', 'name');
+        $disciplines = Discipline::withoutGlobalScopes()->pluck('id', 'label');
+        $weightCategories = WeightCategory::withoutGlobalScopes()->pluck('id', 'label');
+
+        $this->seedTorneo1($athleteMap, $tournaments, $disciplines, $weightCategories);
+        $this->seedTorneo2($athleteMap, $tournaments, $disciplines, $weightCategories);
     }
 }

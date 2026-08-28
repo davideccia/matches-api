@@ -27,7 +27,7 @@ intervenire) restano registrate qui.
 | 12 | Nessun middleware security headers              | Bassa   | 🔲 Aperto                    |
 | 13 | Login throttled solo per IP                     | Bassa   | ✅ Risolto (2026-08-28)      |
 | 14 | Upload temporanei: cache key non namespaced     | Bassa   | ✅ Risolto (2026-08-28)      |
-| 15 | `composer audit` assente dalla CI               | Bassa   | 🔲 Aperto                    |
+| 15 | `composer audit` assente dalla CI               | Bassa   | ✅ Risolto (2026-08-28)      |
 
 ---
 
@@ -284,11 +284,21 @@ Coperto da `test_temporary_upload_cannot_be_consumed_by_another_user` e dagli as
 
 ---
 
-## 15. `composer audit` assente dalla CI — 🔲 Aperto
+## 15. `composer audit` assente dalla CI — ✅ Risolto
 
 **File:** `.forgejo/workflows/docker-publish.yml` · `.forgejo/workflows/ghcr-publish.yml`
 
-Le pipeline eseguono `composer install` ma mai `composer audit`.
+Le pipeline eseguivano `composer install` e poi buildavano e pubblicavano l'immagine: una CVE pubblicata su un pacchetto
+in `composer.lock` finiva in produzione senza che nulla lo segnalasse.
+
+**Soluzione.** Step `Security audit` (`composer audit --no-dev`) subito dopo `Install dependencies` in entrambi i
+workflow. `composer audit` confronta le versioni esatte di `composer.lock` — dipendenze transitive incluse — con il
+database advisory di Packagist ed esce con codice ≠ 0 se trova qualcosa, bloccando la build prima del push
+dell'immagine. `--no-dev` limita il controllo a ciò che viene effettivamente spedito.
+
+> **Limite noto:** l'audit gira solo sui push. Il lock non cambia, ma gli advisory sì: una CVE pubblicata dopo l'ultima
+> build non viene rilevata finché non si builda di nuovo. Se il progetto rallenta, la via è un workflow schedulato
+> settimanale che esegua il solo audit.
 
 ---
 

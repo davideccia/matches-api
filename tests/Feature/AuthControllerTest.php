@@ -238,6 +238,14 @@ class AuthControllerTest extends TestCase
             'password_confirmation' => 'short',
             'token' => $token,
         ])->assertJsonValidationErrors(['password']);
+
+        // 11 characters: passed under the old 8-character floor, must not now.
+        $this->postJson('/api/admin/auth/reset_password', [
+            'email' => 'reset@example.com',
+            'password' => 'elevenchars',
+            'password_confirmation' => 'elevenchars',
+            'token' => $token,
+        ])->assertJsonValidationErrors(['password']);
     }
 
     public function test_reset_password_validates_required_fields(): void

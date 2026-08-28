@@ -102,6 +102,30 @@ class UserControllerTest extends TestCase
         $this->assertTrue(Hash::check('secret-password', $user->password));
     }
 
+    public function test_store_rejects_a_password_shorter_than_twelve_characters(): void
+    {
+        $this->authenticate(User::factory()->superadmin()->create());
+
+        // 11 characters: passed under the old 8-character floor, must not now.
+        $this->postJson('/api/admin/users', [
+            'username' => 'shortpass',
+            'email' => 'shortpass@example.com',
+            'password' => 'elevenchars',
+        ])->assertJsonValidationErrors(['password']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'shortpass@example.com']);
+    }
+
+    public function test_update_rejects_a_password_shorter_than_twelve_characters(): void
+    {
+        $user = User::factory()->superadmin()->create();
+        $this->authenticate($user);
+
+        $this->patchJson("/api/admin/users/{$user->id}", [
+            'password' => 'elevenchars',
+        ])->assertJsonValidationErrors(['password']);
+    }
+
     public function test_store_allows_omitting_optional_superadmin(): void
     {
         // superadmin is optional and has no DB default, so it stays null when omitted.

@@ -23,7 +23,7 @@ intervenire) restano registrate qui.
 | 8  | Token Sanctum senza abilities                   | Media   | 🔲 Aperto                    |
 | 9  | Confronto credenziali timing-unsafe             | Media   | 🔲 Aperto                    |
 | 10 | Abuso del form pubblico (creazione illimitata)  | Media   | ✅ Risolto (2026-08-27)      |
-| 11 | Password deboli ammesse                         | Bassa   | 🔲 Aperto                    |
+| 11 | Password deboli ammesse                         | Bassa   | ✅ Risolto (2026-08-28)      |
 | 12 | Nessun middleware security headers              | Bassa   | ✅ Risolto (2026-08-28)      |
 | 13 | Login throttled solo per IP                     | Bassa   | ✅ Risolto (2026-08-28)      |
 | 14 | Upload temporanei: cache key non namespaced     | Bassa   | ✅ Risolto (2026-08-28)      |
@@ -226,11 +226,33 @@ dietro, e il limite anti-abuso è per codice fiscale invece che per IP.
 
 ---
 
-## 11. Password deboli ammesse — 🔲 Aperto
+## 11. Password deboli ammesse — ✅ Risolto
 
-**File:** `app/Http/Requests/Auth/ResetPasswordRequest.php:20` · `app/Http/Requests/User/UserStoreRequest.php:25`
+**File:** `app/Providers/AppServiceProvider.php` · `app/Http/Requests/Auth/ResetPasswordRequest.php` ·
+`app/Http/Requests/User/UserStoreRequest.php` · `app/Http/Requests/User/UserUpdateRequest.php`
 
-`Password::min(8)` senza `->uncompromised()` né requisiti di complessità.
+`Password::min(8)` senza `->uncompromised()`, ripetuto in **tre** request (l'audit ne citava due: anche
+`UserUpdateRequest:22` aveva la stessa riga). La duplicazione era metà del problema: irrigidire una regola e
+dimenticare le altre due non lasciava traccia.
+
+**Soluzione.** Un solo punto di verità, `AppServiceProvider::definePasswordDefaults()`, e le tre request passano a
+`Password::defaults()`. Aggiungere un requisito domani è una riga sola e vale ovunque.
+
+La regola è `Password::min(12)`, più `->uncompromised()` **solo in produzione**. Due scelte deliberate:
+
+- **Lunghezza, non complessità.** Niente `mixedCase()`/`numbers()`/`symbols()`: NIST 800-63B le sconsiglia
+  esplicitamente, perché spingono verso sostituzioni prevedibili (`Password1!`) senza aggiungere entropia reale.
+- **`uncompromised()` fuori da test e locale.** Interroga via HTTP la range API di haveibeenpwned (k-anonymity: invia i
+  primi 5 caratteri dell'hash SHA-1, mai la password), quindi la suite dipenderebbe dalla rete. Il minimo di 12
+  caratteri invece vale in **tutti** gli ambienti, ed è per questo che è testabile davvero.
+
+Coperto da `test_store_rejects_a_password_shorter_than_twelve_characters`,
+`test_update_rejects_a_password_shorter_than_twelve_characters` e dal caso a 11 caratteri aggiunto a
+`test_reset_password_validates_confirmation_and_length` — 11 caratteri passavano sotto il vecchio limite di 8.
+
+> **Nota su `uncompromised()`:** il `NotPwnedVerifier` di Laravel **fallisce aperto**, cioè se l'API HIBP è
+> irraggiungibile la validazione passa. È il comportamento giusto — non ti chiude fuori dal reset password durante un
+> disservizio di terzi — ma significa che non è un controllo su cui contare, è un filtro opportunistico.
 
 ---
 

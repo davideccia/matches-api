@@ -22,7 +22,7 @@ class UserStoreRequest extends FormRequest
         $rules = [
             'username' => ['required', 'string', 'max:255', Rule::unique('users')],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')],
-            'password' => ['required', Password::min(8)],
+            'password' => ['required', Password::defaults()],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];

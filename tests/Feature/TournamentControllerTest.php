@@ -16,12 +16,12 @@ class TournamentControllerTest extends TestCase
     // index
     // ---------------------------------------------------------------------
 
-    public function test_index_returns_tournaments_ordered_by_date_desc_with_resource_shape(): void
+    public function test_index_returns_tournaments_ordered_by_date_from_desc_with_resource_shape(): void
     {
         $this->authenticate();
 
-        $older = Tournament::factory()->create(['date' => '2026-01-01']);
-        $newer = Tournament::factory()->create(['date' => '2026-12-31']);
+        $older = Tournament::factory()->create(['date_from' => '2026-01-01', 'date_to' => '2026-01-01']);
+        $newer = Tournament::factory()->create(['date_from' => '2026-12-31', 'date_to' => '2026-12-31']);
 
         $response = $this->getJson('/api/admin/tournaments');
 
@@ -32,7 +32,7 @@ class TournamentControllerTest extends TestCase
 
         $response->assertJsonStructure([
             'data' => [
-                ['id', 'name', 'location_name', 'location_address', 'location_city', 'date', 'status'],
+                ['id', 'name', 'location_name', 'location_address', 'location_city', 'date_from', 'date_to', 'status'],
             ],
         ]);
     }
@@ -114,7 +114,8 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'PalaSport',
             'location_address' => 'Via Roma 1',
             'location_city' => 'Milano',
-            'date' => '2026-09-01',
+            'date_from' => '2026-09-01',
+            'date_to' => '2026-09-01',
             'status' => TournamentStatusEnum::SCHEDULED->value,
         ];
 
@@ -136,7 +137,7 @@ class TournamentControllerTest extends TestCase
 
         $this->postJson('/api/admin/tournaments', [])
             ->assertJsonValidationErrors([
-                'name', 'location_name', 'location_address', 'location_city', 'date', 'status',
+                'name', 'location_name', 'location_address', 'location_city', 'date_from', 'date_to', 'status',
             ]);
     }
 
@@ -149,9 +150,25 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'PalaSport',
             'location_address' => 'Via Roma 1',
             'location_city' => 'Milano',
-            'date' => '2026-09-01',
+            'date_from' => '2026-09-01',
+            'date_to' => '2026-09-01',
             'status' => 'not-a-status',
         ])->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_store_validates_date_to_not_before_date_from(): void
+    {
+        $this->authenticate();
+
+        $this->postJson('/api/admin/tournaments', [
+            'name' => 'Torneo Test',
+            'location_name' => 'PalaSport',
+            'location_address' => 'Via Roma 1',
+            'location_city' => 'Milano',
+            'date_from' => '2026-09-10',
+            'date_to' => '2026-09-01',
+            'status' => TournamentStatusEnum::SCHEDULED->value,
+        ])->assertJsonValidationErrors(['date_to']);
     }
 
     public function test_store_with_cover_upload_attaches_media(): void
@@ -175,7 +192,8 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'PalaSport',
             'location_address' => 'Via Roma 1',
             'location_city' => 'Milano',
-            'date' => '2026-09-01',
+            'date_from' => '2026-09-01',
+            'date_to' => '2026-09-01',
             'status' => TournamentStatusEnum::SCHEDULED->value,
             'cover' => $reference,
         ])->assertCreated();
@@ -194,7 +212,8 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'PalaSport',
             'location_address' => 'Via Roma 1',
             'location_city' => 'Milano',
-            'date' => '2026-09-01',
+            'date_from' => '2026-09-01',
+            'date_to' => '2026-09-01',
             'status' => TournamentStatusEnum::SCHEDULED->value,
             'cover' => 'not-a-real-temporary-file-id',
         ])->assertJsonValidationErrors(['cover']);
@@ -253,7 +272,8 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'New Arena',
             'location_address' => 'Via Nuova 5',
             'location_city' => 'Torino',
-            'date' => '2026-10-10',
+            'date_from' => '2026-10-10',
+            'date_to' => '2026-10-10',
             'status' => TournamentStatusEnum::IN_PROGRESS->value,
         ];
 
@@ -280,7 +300,8 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'New Arena',
             'location_address' => 'Via Nuova 5',
             'location_city' => 'Torino',
-            'date' => '2026-10-10',
+            'date_from' => '2026-10-10',
+            'date_to' => '2026-10-10',
             'status' => TournamentStatusEnum::SCHEDULED->value,
         ])->assertOk();
 
@@ -306,7 +327,8 @@ class TournamentControllerTest extends TestCase
             'location_name' => 'New Arena',
             'location_address' => 'Via Nuova 5',
             'location_city' => 'Torino',
-            'date' => '2026-10-10',
+            'date_from' => '2026-10-10',
+            'date_to' => '2026-10-10',
             'status' => TournamentStatusEnum::SCHEDULED->value,
             'cover' => $reference,
         ])->assertOk();
@@ -322,7 +344,7 @@ class TournamentControllerTest extends TestCase
 
         $this->putJson("/api/admin/tournaments/{$tournament->id}", [])
             ->assertJsonValidationErrors([
-                'name', 'location_name', 'location_address', 'location_city', 'date', 'status',
+                'name', 'location_name', 'location_address', 'location_city', 'date_from', 'date_to', 'status',
             ]);
     }
 

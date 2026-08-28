@@ -63,7 +63,7 @@ class PublicRegistrationFormController extends Controller
         $validated = $request->validated();
 
         $tournaments = Tournament::where('status', TournamentStatusEnum::REGISTRATIONS_OPENED)
-            ->orderBy('date')
+            ->orderBy('date_from')
             ->orderBy('id');
 
         if (isset($validated['search'])) {

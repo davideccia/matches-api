@@ -22,7 +22,7 @@ class TournamentController extends Controller
     {
         $validated = $request->validated();
 
-        $tournaments = Tournament::with($validated['with'] ?? [])->orderByDesc('date')->orderByDesc('id');
+        $tournaments = Tournament::with($validated['with'] ?? [])->orderByDesc('date_from')->orderByDesc('id');
 
         if (isset($validated['search'])) {
             $tournaments->search($validated['search']);

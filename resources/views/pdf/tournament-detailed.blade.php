@@ -400,7 +400,8 @@
                                 <tr>
                                     <td class="card-ident">
                                         <strong>{{ $tournament->name }}</strong>
-                                        &middot; {{ $tournament->date?->format('d/m/Y') }}
+                                        &middot; {{ $tournament->date_from?->format('d/m/Y') }}
+                                        @if($tournament->date_to && ! $tournament->date_to->isSameDay($tournament->date_from)) &ndash; {{ $tournament->date_to->format('d/m/Y') }}@endif
                                         @if($tournament->location_name) &middot; {{ $tournament->location_name }}@endif
                                         @if($tournament->location_city) &middot; {{ $tournament->location_city }}@endif
                                     </td>

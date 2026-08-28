@@ -18,12 +18,15 @@ class TournamentFactory extends Factory
      */
     public function definition(): array
     {
+        $dateFrom = fake()->dateTimeBetween('now', '+6 months');
+
         return [
             'name' => fake()->unique()->words(3, true),
             'location_name' => fake()->company(),
             'location_address' => fake()->streetAddress(),
             'location_city' => fake()->city(),
-            'date' => fake()->dateTimeBetween('now', '+6 months'),
+            'date_from' => $dateFrom,
+            'date_to' => $dateFrom,
             'status' => TournamentStatusEnum::SCHEDULED,
             'matchmaking_issues' => null,
         ];

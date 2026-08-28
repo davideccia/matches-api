@@ -16,7 +16,8 @@ class PublicTournamentResource extends JsonResource
         return [
             'id' => $this->resource->id,
             'name' => $this->resource->name,
-            'date' => $this->resource->date?->toDateString(),
+            'date_from' => $this->resource->date_from?->toDateString(),
+            'date_to' => $this->resource->date_to?->toDateString(),
             'location_city' => $this->resource->location_city,
             'status' => $this->resource->status?->value,
         ];

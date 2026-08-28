@@ -28,7 +28,7 @@ class DashboardController extends Controller
                 'matchRecords as completedMatches' => fn ($q) => $q->where('status', MatchRecordStatusEnum::COMPLETED),
                 'matchRecords as cancelledMatches' => fn ($q) => $q->where('status', MatchRecordStatusEnum::CANCELLED),
             ])
-            ->orderByDesc('date')
+            ->orderByDesc('date_from')
             ->orderBy('id')
             ->get();
 

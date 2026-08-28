@@ -207,7 +207,8 @@
             <td>
                 <h1>{{ $tournament->name }}</h1>
                 <div class="place">
-                    {{ $tournament->date?->format('d/m/Y') }}
+                    {{ $tournament->date_from?->format('d/m/Y') }}
+                    @if($tournament->date_to && ! $tournament->date_to->isSameDay($tournament->date_from)) &ndash; {{ $tournament->date_to->format('d/m/Y') }}@endif
                     @if($tournament->location_name) &middot; {{ $tournament->location_name }}@endif
                     @if($tournament->location_city) &middot; {{ $tournament->location_city }}@endif
                 </div>

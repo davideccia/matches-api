@@ -40,10 +40,10 @@ class PublicTournamentControllerTest extends TestCase
         $this->assertContains($completed->id, $ids);
     }
 
-    public function test_index_orders_by_date_descending(): void
+    public function test_index_orders_by_date_from_descending(): void
     {
-        $sooner = Tournament::factory()->inProgress()->create(['date' => now()->subDays(10)]);
-        $later = Tournament::factory()->completed()->create(['date' => now()->subDay()]);
+        $sooner = Tournament::factory()->inProgress()->create(['date_from' => now()->subDays(10), 'date_to' => now()->subDays(10)]);
+        $later = Tournament::factory()->completed()->create(['date_from' => now()->subDay(), 'date_to' => now()->subDay()]);
 
         $response = $this->getJson('/api/public/tournaments');
 

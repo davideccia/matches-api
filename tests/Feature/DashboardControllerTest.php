@@ -77,15 +77,17 @@ class DashboardControllerTest extends TestCase
             ]);
     }
 
-    public function test_index_orders_by_date_desc(): void
+    public function test_index_orders_by_date_from_desc(): void
     {
         $this->authenticate();
 
         $older = Tournament::factory()->status(TournamentStatusEnum::IN_PROGRESS)->create([
-            'date' => now()->addDays(1),
+            'date_from' => now()->addDays(1),
+            'date_to' => now()->addDays(1),
         ]);
         $newer = Tournament::factory()->status(TournamentStatusEnum::IN_PROGRESS)->create([
-            'date' => now()->addDays(10),
+            'date_from' => now()->addDays(10),
+            'date_to' => now()->addDays(10),
         ]);
 
         $response = $this->getJson('/api/admin/dashboard');

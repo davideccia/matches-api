@@ -21,7 +21,7 @@ intervenire) restano registrate qui.
 | 6  | Resource admin usata su endpoint pubblico       | Media   | ✅ Risolto (2026-08-27)      |
 | 7  | Nessuna autorizzazione oltre `users`            | Media   | 🔲 Aperto                    |
 | 8  | Token Sanctum senza abilities                   | Media   | 🔲 Aperto                    |
-| 9  | Confronto credenziali timing-unsafe             | Media   | 🔲 Aperto                    |
+| 9  | Confronto credenziali timing-unsafe             | Media   | ✅ Risolto (2026-08-28)      |
 | 10 | Abuso del form pubblico (creazione illimitata)  | Media   | ✅ Risolto (2026-08-27)      |
 | 11 | Password deboli ammesse                         | Bassa   | ✅ Risolto (2026-08-28)      |
 | 12 | Nessun middleware security headers              | Bassa   | ✅ Risolto (2026-08-28)      |
@@ -203,15 +203,37 @@ operazioni, per una settimana.
 
 ---
 
-## 9. Confronto credenziali timing-unsafe — 🔲 Aperto
+## 9. Confronto credenziali timing-unsafe — ✅ Risolto
 
-**File:** `app/Http/Middleware/HorizonBasicAuth.php:22`
+**File:** `app/Http/Middleware/BasicAuth.php` (nuovo) · `app/Http/Middleware/HorizonBasicAuth.php` ·
+`app/Http/Middleware/LogViewerBasicAuth.php`
 
 ```php
 if ($providedUser === $username && $providedPass === $password) {
 ```
 
-**Proposta:** `hash_equals()` su entrambi i confronti.
+L'audit citava solo `HorizonBasicAuth`, ma i due middleware erano **identici byte per byte** a meno del namespace di
+config e del realm: la stessa riga viveva anche in `LogViewerBasicAuth:22`.
+
+**Soluzione.** Classe base astratta `BasicAuth`, con le due sottoclassi ridotte a `configNamespace()` e `realm()`. Il
+confronto esiste ora in **un solo punto** e non si può correggere a metà.
+
+Tre difetti distinti nella riga originale, non uno:
+
+1. **`===` non è a tempo costante.** Sostituito da `hash_equals()`.
+2. **`hash_equals()` da solo non basta:** è a tempo costante solo fra stringhe di **pari lunghezza**, quindi continua a
+   rivelare la lunghezza attesa. Si confrontano gli `sha256` dei due valori, che normalizza la lunghezza.
+3. **`&&` va in corto circuito.** Con username errato il confronto della password non veniva nemmeno eseguito: il tempo
+   di risposta diceva all'attaccante *quale metà* aveva indovinato, che è l'informazione più utile delle due. I due
+   confronti ora vengono valutati entrambi, sempre, e solo dopo si combinano.
+
+Coperto da `tests/Feature/HorizonTest.php` (nuovo: il middleware Horizon non aveva **nessun** test) e dal preesistente
+`tests/Feature/LogViewerTest.php`.
+
+> **Proporzioni.** Un attacco di timing su HTTP contro un confronto di stringhe è al limite del praticabile: il rumore
+> di rete supera di ordini di grandezza il segnale. Il valore vero di questo intervento è la de-duplicazione; la
+> correzione in sé costa tre righe. **Resta assai più grave il #2** — quelle stesse credenziali hanno tuttora un default
+> `admin` / `12345678`, e indovinare non richiede alcun timing.
 
 ---
 

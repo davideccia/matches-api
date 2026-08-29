@@ -32,16 +32,14 @@ class Tournament extends Model implements HasMedia
         'location_name',
         'location_address',
         'location_city',
-        'date_from',
-        'date_to',
+        'date',
         'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'date_from' => 'date',
-            'date_to' => 'date',
+            'date' => 'date',
             'status' => TournamentStatusEnum::class,
             'matchmaking_issues' => 'array',
         ];

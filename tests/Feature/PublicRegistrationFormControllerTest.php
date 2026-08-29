@@ -355,10 +355,10 @@ class PublicRegistrationFormControllerTest extends TestCase
             ->assertJsonPath('data.0.id', $opened->id);
     }
 
-    public function test_tournaments_index_orders_by_date_from_ascending(): void
+    public function test_tournaments_index_orders_by_date_ascending(): void
     {
-        $later = Tournament::factory()->registrationsOpened()->create(['date_from' => now()->addDays(10), 'date_to' => now()->addDays(10)]);
-        $sooner = Tournament::factory()->registrationsOpened()->create(['date_from' => now()->addDay(), 'date_to' => now()->addDay()]);
+        $later = Tournament::factory()->registrationsOpened()->create(['date' => now()->addDays(10)]);
+        $sooner = Tournament::factory()->registrationsOpened()->create(['date' => now()->addDay()]);
 
         $response = $this->getJson('/api/public/registration_form/tournaments');
 

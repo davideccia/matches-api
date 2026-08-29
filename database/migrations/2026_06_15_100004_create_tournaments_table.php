@@ -14,8 +14,7 @@ return new class extends Migration
             $table->string('location_name');
             $table->string('location_address');
             $table->string('location_city');
-            $table->date('date_from');
-            $table->date('date_to');
+            $table->date('date');
             $table->string('status');
             $table->json('matchmaking_issues')->nullable();
             $table->timestamps();

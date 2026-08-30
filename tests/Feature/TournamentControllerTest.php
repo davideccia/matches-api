@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\TournamentStatusEnum;
+use App\Models\Discipline;
 use App\Models\MatchRecord;
 use App\Models\Registration;
 use App\Models\Tournament;
@@ -12,6 +13,21 @@ use Tests\TestCase;
 
 class TournamentControllerTest extends TestCase
 {
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function tournamentPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'name' => 'Torneo Test',
+            'location_name' => 'PalaSport',
+            'location_address' => 'Via Roma 1',
+            'location_city' => 'Milano',
+            'date' => '2026-09-01',
+            'status' => TournamentStatusEnum::SCHEDULED->value,
+        ], $overrides);
+    }
     // ---------------------------------------------------------------------
     // index
     // ---------------------------------------------------------------------
@@ -130,6 +146,48 @@ class TournamentControllerTest extends TestCase
         ]);
     }
 
+    public function test_store_syncs_disciplines(): void
+    {
+        $this->authenticate();
+
+        [$first, $second] = Discipline::factory()->count(2)->create()->all();
+
+        $response = $this->postJson('/api/admin/tournaments', $this->tournamentPayload([
+            'disciplines' => [$first->id, $second->id],
+        ]));
+
+        $response->assertCreated();
+
+        $tournamentId = $response->json('data.id');
+
+        $this->assertDatabaseHas('discipline_tournament', [
+            'tournament_id' => $tournamentId,
+            'discipline_id' => $first->id,
+        ]);
+        $this->assertDatabaseHas('discipline_tournament', [
+            'tournament_id' => $tournamentId,
+            'discipline_id' => $second->id,
+        ]);
+    }
+
+    public function test_store_without_disciplines_attaches_none(): void
+    {
+        $this->authenticate();
+
+        $this->postJson('/api/admin/tournaments', $this->tournamentPayload())->assertCreated();
+
+        $this->assertDatabaseCount('discipline_tournament', 0);
+    }
+
+    public function test_store_validates_disciplines_exist(): void
+    {
+        $this->authenticate();
+
+        $this->postJson('/api/admin/tournaments', $this->tournamentPayload([
+            'disciplines' => ['3f1c0a4e-0000-4000-8000-000000000000'],
+        ]))->assertJsonValidationErrors(['disciplines.0']);
+    }
+
     public function test_store_validates_required_fields(): void
     {
         $this->authenticate();
@@ -231,6 +289,21 @@ class TournamentControllerTest extends TestCase
             ->assertJsonStructure(['data' => ['id', 'cover_media']]);
     }
 
+    public function test_show_includes_disciplines_when_requested(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+
+        $tournament->disciplines()->sync([$discipline->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}?with=disciplines")
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['id', 'disciplines']])
+            ->assertJsonPath('data.disciplines.0.id', $discipline->id);
+    }
+
     public function test_show_requires_authentication(): void
     {
         $tournament = Tournament::factory()->create();
@@ -267,6 +340,60 @@ class TournamentControllerTest extends TestCase
             'name' => 'Updated Name',
             'location_city' => 'Torino',
         ]);
+    }
+
+    public function test_update_syncs_disciplines(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        [$old, $new] = Discipline::factory()->count(2)->create()->all();
+
+        $tournament->disciplines()->sync([$old->id]);
+
+        $this->putJson("/api/admin/tournaments/{$tournament->id}", $this->tournamentPayload([
+            'disciplines' => [$new->id],
+        ]))->assertOk();
+
+        $this->assertDatabaseMissing('discipline_tournament', [
+            'tournament_id' => $tournament->id,
+            'discipline_id' => $old->id,
+        ]);
+        $this->assertDatabaseHas('discipline_tournament', [
+            'tournament_id' => $tournament->id,
+            'discipline_id' => $new->id,
+        ]);
+    }
+
+    public function test_update_without_disciplines_key_keeps_existing_disciplines(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+
+        $tournament->disciplines()->sync([$discipline->id]);
+
+        $this->putJson("/api/admin/tournaments/{$tournament->id}", $this->tournamentPayload())->assertOk();
+
+        $this->assertDatabaseHas('discipline_tournament', [
+            'tournament_id' => $tournament->id,
+            'discipline_id' => $discipline->id,
+        ]);
+    }
+
+    public function test_update_with_empty_disciplines_detaches_all(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $tournament->disciplines()->sync(Discipline::factory()->count(2)->create()->pluck('id'));
+
+        $this->putJson("/api/admin/tournaments/{$tournament->id}", $this->tournamentPayload([
+            'disciplines' => [],
+        ]))->assertOk();
+
+        $this->assertDatabaseCount('discipline_tournament', 0);
     }
 
     public function test_update_keeps_existing_cover_when_none_provided(): void

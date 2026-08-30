@@ -22,6 +22,7 @@ class TournamentShowRequest extends FormRequest
             'with.*' => [Rule::in([
                 'coverMedia',
                 'experienceTiers',
+                'disciplines',
             ])],
         ];
     }

@@ -107,6 +107,17 @@ Table tournaments {
   updated_at       timestamptz       [null]
 }
 
+Table discipline_tournament {
+  discipline_id uuid        [not null, ref: > disciplines.id]
+  tournament_id uuid        [not null, ref: > tournaments.id]
+  created_at    timestamptz [null]
+  updated_at    timestamptz [null]
+
+  indexes {
+    (discipline_id, tournament_id) [pk]
+  }
+}
+
 Table experience_tiers {
   id              uuid        [pk]
   tournament_id   uuid        [null, ref: > tournaments.id]  // null = global default; a tournament's own enabled tiers replace the globals entirely

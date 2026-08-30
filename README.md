@@ -156,6 +156,7 @@ Standard CRUD unless noted.
 | Tournament → registrations   | `/api/admin/tournaments/{id}/registrations`          | `index`, `store`                                                                                     |
 | Tournament → match records   | `/api/admin/tournaments/{id}/match_records`          | `index`, `store`                                                                                     |
 | Tournament → experience tiers | `/api/admin/tournaments/{id}/experience_tiers`      | `index`, `store`                                                                                     |
+| Tournament → disciplines     | `/api/admin/tournaments/{id}/disciplines`            | `index` — the tournament's disciplines (write them via `disciplines` on the tournament itself)        |
 | Generate fight card          | `/api/admin/tournaments/{id}/match_records/generate` | `POST` — run matchmaking over the registrations                                                      |
 | Registration PDF             | `/api/admin/registrations/{id}/pdf`                  | Download                                                                                             |
 | Fight card PDF               | `/api/admin/tournaments/{id}/match_records/pdf`      | `?type=simple\|detailed` (required)                                                                  |

@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,11 @@ class Tournament extends Model implements HasMedia
     public function experienceTiers(): HasMany
     {
         return $this->hasMany(ExperienceTier::class)->orderBy('min_match_count')->orderBy('id');
+    }
+
+    public function disciplines(): BelongsToMany
+    {
+        return $this->belongsToMany(Discipline::class)->orderBy('label')->orderBy('id');
     }
 
     public function coverMedia(): MorphOne

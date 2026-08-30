@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\TournamentStatusEnum;
+use App\Models\Discipline;
 use App\Models\Tournament;
 use Illuminate\Database\Seeder;
 
@@ -49,8 +50,10 @@ class TournamentSeeder extends Seeder
             ],
         ];
 
+        $disciplineIds = Discipline::pluck('id');
+
         foreach ($rows as $row) {
-            Tournament::create($row);
+            Tournament::create($row)->disciplines()->sync($disciplineIds);
         }
     }
 }

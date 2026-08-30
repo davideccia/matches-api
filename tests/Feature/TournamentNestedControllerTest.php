@@ -755,6 +755,62 @@ class TournamentNestedControllerTest extends TestCase
     }
 
     // ---------------------------------------------------------------------
+    // disciplines index
+    // ---------------------------------------------------------------------
+
+    public function test_disciplines_index_returns_only_this_tournaments_disciplines(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $wanted = Discipline::factory()->create();
+        Discipline::factory()->create();
+
+        $tournament->disciplines()->sync([$wanted->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/disciplines")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wanted->id);
+    }
+
+    public function test_disciplines_index_filters_by_search(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $wanted = Discipline::factory()->create(['label' => 'Kickboxing Light']);
+        $other = Discipline::factory()->create(['label' => 'Muay Thai Full']);
+
+        $tournament->disciplines()->sync([$wanted->id, $other->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/disciplines?search=Kickboxing")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wanted->id);
+    }
+
+    public function test_disciplines_index_paginates(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $tournament->disciplines()->sync(Discipline::factory()->count(3)->create()->pluck('id'));
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/disciplines?paginate=1&per_page=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_disciplines_index_requires_authentication(): void
+    {
+        $tournament = Tournament::factory()->create();
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/disciplines")->assertUnauthorized();
+    }
+
+    // ---------------------------------------------------------------------
     // pdf
     // ---------------------------------------------------------------------
 

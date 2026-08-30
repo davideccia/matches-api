@@ -28,10 +28,13 @@ class TournamentStoreRequest extends FormRequest
             'date' => ['required', 'date'],
             'status' => ['required', new Enum(TournamentStatusEnum::class)],
             'cover' => ['nullable', new TemporaryFileRule],
+            'disciplines' => ['nullable', 'array'],
+            'disciplines.*' => ['required', 'string', 'uuid', Rule::exists('disciplines', 'id')],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([
                 'coverMedia',
                 'experienceTiers',
+                'disciplines',
             ])],
         ];
     }

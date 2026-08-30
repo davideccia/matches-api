@@ -15,7 +15,7 @@ Route::prefix('registration_form')->group(function () {
 
     Route::get('tournaments', [PublicRegistrationFormController::class, 'tournamentsIndex']);
 
-    Route::get('disciplines', [PublicRegistrationFormController::class, 'disciplinesIndex']);
+    Route::get('tournaments/{tournament}/disciplines', [PublicRegistrationFormController::class, 'tournamentDisciplinesIndex']);
 
     Route::get('weight_categories', [PublicRegistrationFormController::class, 'weightCategoriesIndex']);
 

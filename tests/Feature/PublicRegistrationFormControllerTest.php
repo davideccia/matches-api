@@ -37,6 +37,11 @@ class PublicRegistrationFormControllerTest extends TestCase
         ];
     }
 
+    private function openTournament(): Tournament
+    {
+        return Tournament::factory()->registrationsOpened()->create();
+    }
+
     private function issueVerificationCode(string $taxNumber, string $email): string
     {
         $this->postJson('/api/public/registration_form/verification_code', [
@@ -258,7 +263,7 @@ class PublicRegistrationFormControllerTest extends TestCase
         $this->app->forgetInstance(ThrottleRequests::class);
 
         $this->getJson('/api/public/registration_form/tournaments')->assertOk();
-        $this->getJson('/api/public/registration_form/disciplines')->assertOk();
+        $this->getJson("/api/public/registration_form/tournaments/{$this->openTournament()->id}/disciplines")->assertOk();
         $this->getJson('/api/public/registration_form/weight_categories')->assertOk();
         $this->postJson('/api/public/registration_form/athletes/lookup', [
             'tax_number' => 'RSSMRA90A01H501A',
@@ -279,32 +284,48 @@ class PublicRegistrationFormControllerTest extends TestCase
     }
 
     // ---------------------------------------------------------------------
-    // disciplinesIndex
+    // tournamentDisciplinesIndex
     // ---------------------------------------------------------------------
 
-    public function test_disciplines_index_returns_disciplines_ordered_by_label(): void
+    public function test_tournament_disciplines_index_returns_only_that_tournaments_disciplines_ordered_by_label(): void
     {
+        $tournament = $this->openTournament();
+
         $beta = Discipline::factory()->create(['label' => 'Beta']);
         $alpha = Discipline::factory()->create(['label' => 'Alpha']);
+        Discipline::factory()->create(['label' => 'Gamma']);
 
-        $response = $this->getJson('/api/public/registration_form/disciplines');
+        $tournament->disciplines()->sync([$beta->id, $alpha->id]);
 
-        $response->assertOk()
+        $this->getJson("/api/public/registration_form/tournaments/{$tournament->id}/disciplines")
+            ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.id', $alpha->id)
             ->assertJsonPath('data.1.id', $beta->id);
     }
 
-    public function test_disciplines_index_search_filters_by_label(): void
+    public function test_tournament_disciplines_index_search_filters_by_label(): void
     {
+        $tournament = $this->openTournament();
+
         $match = Discipline::factory()->create(['label' => 'Kickboxing Pro']);
-        Discipline::factory()->create(['label' => 'Boxe Amatori']);
+        $other = Discipline::factory()->create(['label' => 'Boxe Amatori']);
 
-        $response = $this->getJson('/api/public/registration_form/disciplines?search=kickboxing');
+        $tournament->disciplines()->sync([$match->id, $other->id]);
 
-        $response->assertOk()
+        $this->getJson("/api/public/registration_form/tournaments/{$tournament->id}/disciplines?search=kickboxing")
+            ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $match->id);
+    }
+
+    public function test_tournament_disciplines_index_returns_empty_when_none_attached(): void
+    {
+        Discipline::factory()->create();
+
+        $this->getJson("/api/public/registration_form/tournaments/{$this->openTournament()->id}/disciplines")
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
     }
 
     // ---------------------------------------------------------------------

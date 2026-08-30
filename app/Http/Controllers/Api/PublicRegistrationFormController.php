@@ -17,7 +17,6 @@ use App\Http\Resources\Public\PublicRegistrationResource;
 use App\Http\Resources\Public\PublicTournamentResource;
 use App\Http\Resources\WeightCategoryResource;
 use App\Models\Athlete;
-use App\Models\Discipline;
 use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
@@ -73,11 +72,11 @@ class PublicRegistrationFormController extends Controller
         return PublicTournamentResource::collection($tournaments->get());
     }
 
-    public function disciplinesIndex(PublicRegistrationFormDisciplineIndexRequest $request): ResourceCollection
+    public function tournamentDisciplinesIndex(PublicRegistrationFormDisciplineIndexRequest $request, Tournament $tournament): ResourceCollection
     {
         $validated = $request->validated();
 
-        $disciplines = Discipline::orderBy('label')->orderBy('id');
+        $disciplines = $tournament->disciplines();
 
         if (isset($validated['search'])) {
             $disciplines->search($validated['search']);

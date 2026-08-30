@@ -178,7 +178,7 @@ No authentication required (rate-limited).
 | `GET`  | `/api/public/registration_form/athletes/{tax_number}`  | Look up an athlete by tax number       |
 | `POST` | `/api/public/registration_form/athletes`               | Create/update an athlete               |
 | `GET`  | `/api/public/registration_form/tournaments`            | List tournaments open for registration |
-| `GET`  | `/api/public/registration_form/disciplines`            | List disciplines                       |
+| `GET`  | `/api/public/registration_form/tournaments/{id}/disciplines` | List a tournament's disciplines  |
 | `GET`  | `/api/public/registration_form/weight_categories`      | List weight categories                 |
 | `POST` | `/api/public/registration_form/registrations`          | Submit a registration                  |
 | `GET`  | `/api/public/registration_form/registrations/{id}/pdf` | Download registration PDF              |

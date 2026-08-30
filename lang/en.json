@@ -153,6 +153,7 @@
     "errors.tournament_has_match_records": "Cannot delete: tournament has existing match records.",
     "errors.discipline_has_registrations": "Cannot delete: discipline has existing registrations.",
     "errors.discipline_has_match_records": "Cannot delete: discipline has existing match records.",
+    "errors.discipline_has_tournaments": "Cannot delete: discipline is assigned to one or more tournaments.",
     "errors.discipline_has_athletes": "Cannot delete: discipline has athletes assigned to it.",
     "errors.weight_category_has_registrations": "Cannot delete: weight category has existing registrations.",
     "errors.weight_category_has_match_records": "Cannot delete: weight category has existing match records.",

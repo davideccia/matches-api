@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Discipline;
 use App\Models\MatchRecord;
 use App\Models\Registration;
+use App\Models\Tournament;
 use Tests\TestCase;
 
 class DisciplineControllerTest extends TestCase
@@ -260,6 +261,19 @@ class DisciplineControllerTest extends TestCase
 
         $discipline = Discipline::factory()->create();
         MatchRecord::factory()->create(['discipline_id' => $discipline->id]);
+
+        $this->deleteJson("/api/admin/disciplines/{$discipline->id}")
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('disciplines', ['id' => $discipline->id]);
+    }
+
+    public function test_destroy_is_blocked_when_discipline_is_attached_to_a_tournament(): void
+    {
+        $this->authenticate();
+
+        $discipline = Discipline::factory()->create();
+        Tournament::factory()->create()->disciplines()->sync([$discipline->id]);
 
         $this->deleteJson("/api/admin/disciplines/{$discipline->id}")
             ->assertStatus(409);

@@ -153,6 +153,7 @@
     "errors.tournament_has_match_records": "Impossibile eliminare: il torneo ha degli incontri associati.",
     "errors.discipline_has_registrations": "Impossibile eliminare: la disciplina ha delle iscrizioni associate.",
     "errors.discipline_has_match_records": "Impossibile eliminare: la disciplina ha degli incontri associati.",
+    "errors.discipline_has_tournaments": "Impossibile eliminare: la disciplina è associata a uno o più tornei.",
     "errors.discipline_has_athletes": "Impossibile eliminare: la disciplina è assegnata ad alcuni atleti.",
     "errors.weight_category_has_registrations": "Impossibile eliminare: la categoria di peso ha delle iscrizioni associate.",
     "errors.weight_category_has_match_records": "Impossibile eliminare: la categoria di peso ha degli incontri associati.",

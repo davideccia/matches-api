@@ -77,10 +77,7 @@ class TournamentController extends Controller
             $tournament->addMediaFromTemporaryFile($validated['cover'], Tournament::COVER_MEDIA_COLLECTION_NAME);
         }
 
-        // An absent key leaves the pivot untouched; an empty array detaches every discipline.
-        if (array_key_exists('disciplines', $validated)) {
-            $tournament->disciplines()->sync($validated['disciplines'] ?? []);
-        }
+        $tournament->disciplines()->sync($validated['disciplines'] ?? []);
 
         \DB::commit();
 

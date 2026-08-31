@@ -169,7 +169,7 @@
     "enums.match_record_status.completed": "Completato",
     "enums.match_record_status.cancelled": "Annullato",
     "enums.match_record_end_method.victory_unanimous_decision": "Decisione unanime",
-    "enums.match_record_end_method.victory_split_decision": "Decisione divisa",
+    "enums.match_record_end_method.victory_split_decision": "Decisione non unanime",
     "enums.match_record_end_method.victory_ko": "KO",
     "enums.match_record_end_method.victory_tko": "TKO",
     "enums.match_record_end_method.victory_disqualification": "Squalifica",

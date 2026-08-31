@@ -120,6 +120,7 @@ class PublicRegistrationFormController extends Controller
             // would turn this endpoint into an account takeover.
             $athlete ??= Athlete::create(Arr::only($validated, [
                 'first_name', 'last_name', 'birth_date', 'gender', 'tax_number', 'email', 'team_name',
+                'phone_number', 'generic_match_records_count',
             ]));
 
             $registration = new Registration;

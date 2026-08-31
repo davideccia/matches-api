@@ -37,6 +37,7 @@ class Athlete extends Model implements HasMedia
         'tax_number',
         'email',
         'team_name',
+        'phone_number',
         'generic_match_records_count',
         'registered_match_records_count',
     ];

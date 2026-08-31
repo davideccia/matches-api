@@ -34,7 +34,7 @@ class AthleteControllerTest extends TestCase
 
         $response->assertJsonStructure([
             'data' => [
-                ['id', 'first_name', 'last_name', 'full_name', 'birth_date', 'gender', 'tax_number', 'is_adult', 'match_records_count'],
+                ['id', 'first_name', 'last_name', 'full_name', 'birth_date', 'gender', 'tax_number', 'phone_number', 'is_adult', 'match_records_count'],
             ],
         ]);
     }
@@ -235,6 +235,53 @@ class AthleteControllerTest extends TestCase
         $this->assertDatabaseHas('athletes', ['tax_number' => 'ABCDEF12G34H567I']);
     }
 
+    public function test_store_persists_phone_number(): void
+    {
+        $this->authenticate();
+
+        $payload = [
+            'first_name' => 'Mario',
+            'last_name' => 'Verdi',
+            'birth_date' => '1990-01-01',
+            'gender' => AthleteGenderEnum::MALE->value,
+            'tax_number' => 'ABCDEF12G34H567I',
+            'email' => 'atleta@example.test',
+            'phone_number' => '+39 340 1234567',
+        ];
+
+        $this->postJson('/api/admin/athletes', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.phone_number', '+39 340 1234567');
+
+        $this->assertDatabaseHas('athletes', [
+            'tax_number' => 'ABCDEF12G34H567I',
+            'phone_number' => '+39 340 1234567',
+        ]);
+    }
+
+    public function test_store_succeeds_without_phone_number(): void
+    {
+        $this->authenticate();
+
+        $payload = [
+            'first_name' => 'Mario',
+            'last_name' => 'Verdi',
+            'birth_date' => '1990-01-01',
+            'gender' => AthleteGenderEnum::MALE->value,
+            'tax_number' => 'ABCDEF12G34H567I',
+            'email' => 'atleta@example.test',
+        ];
+
+        $this->postJson('/api/admin/athletes', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.phone_number', null);
+
+        $this->assertDatabaseHas('athletes', [
+            'tax_number' => 'ABCDEF12G34H567I',
+            'phone_number' => null,
+        ]);
+    }
+
     public function test_store_validates_required_fields(): void
     {
         $this->authenticate();
@@ -348,6 +395,31 @@ class AthleteControllerTest extends TestCase
             'full_name' => 'Luca Neri',
             'tax_number' => 'ZZZZZZ99Z99Z999Z',
             'email' => 'atleta@example.test',
+        ]);
+    }
+
+    public function test_update_modifies_phone_number(): void
+    {
+        $this->authenticate();
+
+        $athlete = Athlete::factory()->create(['phone_number' => '+39 340 0000000']);
+
+        $payload = [
+            'first_name' => $athlete->first_name,
+            'last_name' => $athlete->last_name,
+            'birth_date' => $athlete->birth_date->toDateString(),
+            'gender' => $athlete->gender->value,
+            'email' => $athlete->email,
+            'phone_number' => '+39 340 9999999',
+        ];
+
+        $this->putJson("/api/admin/athletes/{$athlete->id}", $payload)
+            ->assertOk()
+            ->assertJsonPath('data.phone_number', '+39 340 9999999');
+
+        $this->assertDatabaseHas('athletes', [
+            'id' => $athlete->id,
+            'phone_number' => '+39 340 9999999',
         ]);
     }
 

@@ -522,6 +522,57 @@ class PublicRegistrationFormControllerTest extends TestCase
         $response->assertJsonMissingPath('data.athlete_id');
     }
 
+    public function test_store_registration_persists_phone_number_and_generic_match_records_count_for_a_new_athlete(): void
+    {
+        $payload = $this->registrationPayload();
+        $payload['phone_number'] = '+39 340 1234567';
+        $payload['generic_match_records_count'] = 7;
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertCreated();
+
+        $this->assertDatabaseHas('athletes', [
+            'tax_number' => $payload['tax_number'],
+            'phone_number' => '+39 340 1234567',
+            'generic_match_records_count' => 7,
+        ]);
+    }
+
+    public function test_store_registration_never_overwrites_phone_number_or_generic_match_records_count_of_an_existing_athlete(): void
+    {
+        $existing = Athlete::factory()->create([
+            'tax_number' => 'RSSMRA90A01H501A',
+            'email' => 'mario@example.test',
+            'phone_number' => '+39 340 0000000',
+            'generic_match_records_count' => 2,
+        ]);
+
+        $payload = $this->registrationPayload();
+        $payload['phone_number'] = '+39 340 9999999';
+        $payload['generic_match_records_count'] = 99;
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)->assertCreated();
+
+        $this->assertSame(1, Athlete::count());
+        $this->assertDatabaseHas('athletes', [
+            'id' => $existing->id,
+            'phone_number' => '+39 340 0000000',
+            'generic_match_records_count' => 2,
+        ]);
+    }
+
+    public function test_store_registration_rejects_a_negative_generic_match_records_count(): void
+    {
+        $payload = $this->registrationPayload();
+        $payload['generic_match_records_count'] = -1;
+        $payload['code'] = $this->issueVerificationCode($payload['tax_number'], $payload['email']);
+
+        $this->postJson('/api/public/registration_form/registrations', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['generic_match_records_count']);
+    }
+
     public function test_store_registration_validates_required_fields(): void
     {
         $this->postJson('/api/public/registration_form/registrations', [])

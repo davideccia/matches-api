@@ -28,6 +28,7 @@ class AthleteStoreRequest extends FormRequest
             'tax_number' => ['required', 'string', 'max:255', Rule::unique('athletes', 'tax_number')],
             'email' => ['required', 'email', 'max:255'],
             'team_name' => ['nullable', 'string', 'max:255'],
+            'phone_number' => ['nullable', 'string', 'max:255'],
             'generic_match_records_count' => ['nullable', 'integer'],
             'photo' => ['nullable', new TemporaryFileRule],
             'with' => ['nullable', 'array'],

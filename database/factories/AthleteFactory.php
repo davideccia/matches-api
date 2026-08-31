@@ -31,6 +31,7 @@ class AthleteFactory extends Factory
             'tax_number' => Str::upper(Str::random(16)),
             'email' => fake()->unique()->safeEmail(),
             'team_name' => fake()->company(),
+            'phone_number' => fake()->phoneNumber(),
         ];
     }
 

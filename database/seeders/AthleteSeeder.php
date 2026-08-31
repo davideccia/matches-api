@@ -25,6 +25,7 @@ class AthleteSeeder extends Seeder
                 'tax_number' => "ATLTM{$n}00000000",
                 'email' => "atleta.m{$n}@example.test",
                 'team_name' => "Team M{$n}",
+                'phone_number' => "+39 000 M{$n}",
             ]);
         }
 
@@ -39,6 +40,7 @@ class AthleteSeeder extends Seeder
                 'tax_number' => "ATLTF{$n}00000000",
                 'email' => "atleta.f{$n}@example.test",
                 'team_name' => "Team F{$n}",
+                'phone_number' => "+39 000 F{$n}",
             ]);
         }
     }

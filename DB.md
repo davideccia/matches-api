@@ -81,18 +81,20 @@ Table disciplines {
 }
 
 Table athletes {
-  id                         uuid    [pk]
-  first_name                 varchar [not null]
-  last_name                  varchar [not null]
-  full_name                  varchar [not null]
-  birth_date                 date    [not null]
-  gender                     athlete_gender [not null]
-  tax_number                 varchar [not null, unique]
-  team_name                  varchar [null]
-  default_weight_category_id uuid    [null, ref: > weight_categories.id]
-  default_discipline_id      uuid    [null, ref: > disciplines.id]
-  created_at                 timestamptz [null]
-  updated_at                 timestamptz [null]
+  id                             uuid    [pk]
+  first_name                     varchar [not null]
+  last_name                      varchar [not null]
+  full_name                      varchar [not null]
+  birth_date                     date    [not null]
+  gender                         athlete_gender [not null]
+  tax_number                     varchar [not null, unique]
+  email                          varchar [not null]
+  team_name                      varchar [null]
+  phone_number                   varchar [null]
+  generic_match_records_count    int     [null]   // prior fight history, entered by hand
+  registered_match_records_count int     [null]   // completed bouts inside this system
+  created_at                     timestamptz [null]
+  updated_at                     timestamptz [null]
 }
 
 Table tournaments {

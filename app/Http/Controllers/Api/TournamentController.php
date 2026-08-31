@@ -51,7 +51,7 @@ class TournamentController extends Controller
         }
 
         // An absent key leaves the pivot untouched; an empty array detaches every discipline.
-        if (array_key_exists('disciplines', $validated)) {
+        if (isset($validated['disciplines'])) {
             $tournament->disciplines()->sync($validated['disciplines'] ?? []);
         }
 

@@ -78,15 +78,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # RELEASE_TAG: titolo della release, normalizzato ai caratteri ammessi in
-      # un tag Docker ([A-Za-z0-9_.-], max 128). Fallback: tag_name, poi il ref.
+      # VERSION: tag della release (es. v1.2.3), normalizzato ai caratteri
+      # ammessi in un tag Docker ([A-Za-z0-9_.-], max 128). Fallback: titolo
+      # della release, poi il ref (per gli avvii manuali senza release).
       # `github.repository` è già in lowercase, a differenza di GHCR_USERNAME
       # su Forgejo che poteva non esserlo.
-      - name: Resolve tag
+      - name: Resolve version
         run: |
-          RAW="${{ github.event.release.name || github.event.release.tag_name || github.ref_name }}"
-          RELEASE_TAG=$(echo "$RAW" | sed 's/[^A-Za-z0-9_.-]/-/g' | cut -c1-128)
-          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+          RAW="${{ github.event.release.tag_name || github.event.release.name || github.ref_name }}"
+          VERSION=$(echo "$RAW" | sed 's/[^A-Za-z0-9_.-]/-/g' | cut -c1-128)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -109,4 +110,4 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ env.RELEASE_TAG }}
+            ${{ env.IMAGE }}:${{ env.VERSION }}

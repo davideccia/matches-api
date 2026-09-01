@@ -342,8 +342,8 @@ vendor/bin/sail artisan route:list --path=api --except-vendor
 # Tail application logs
 vendor/bin/sail artisan pail
 
-# Run the queue worker and Reverb WebSocket server together
-vendor/bin/sail composer run queue-ws
+# Start Sail, the queue worker, and the Reverb WebSocket server together
+make dev
 ```
 
 > [!TIP]

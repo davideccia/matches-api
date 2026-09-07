@@ -32,22 +32,6 @@ class TournamentSeeder extends Seeder
                 'date' => now(),
                 'status' => TournamentStatusEnum::IN_PROGRESS,
             ],
-            [
-                'name' => 'Torneo 3',
-                'location_name' => 'Palamazzola',
-                'location_address' => 'Via Palamazzola',
-                'location_city' => 'Taranto',
-                'date' => now()->addMonths(),
-                'status' => TournamentStatusEnum::REGISTRATIONS_OPENED,
-            ],
-            [
-                'name' => 'Torneo 4',
-                'location_name' => 'Visarno Arena',
-                'location_address' => 'Via Visarno Arena',
-                'location_city' => 'Firenze',
-                'date' => now()->addMonths(2),
-                'status' => TournamentStatusEnum::SCHEDULED,
-            ],
         ];
 
         $disciplineIds = Discipline::pluck('id');

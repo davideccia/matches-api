@@ -57,6 +57,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('tournaments', TournamentController::class);
     Route::apiResource('tournaments.registrations', TournamentRegistrationController::class)->only(['index', 'store']);
     Route::apiResource('tournaments.match_records', TournamentMatchRecordController::class)->only(['index', 'store']);
+    Route::post('tournaments/{tournament}/experience_tiers/batch', [TournamentExperienceTierController::class, 'batch']);
     Route::apiResource('tournaments.experience_tiers', TournamentExperienceTierController::class)->only(['index', 'store']);
     Route::apiResource('tournaments.disciplines', TournamentDisciplineController::class)->only(['index']);
 

@@ -301,6 +301,73 @@ class TournamentNestedControllerTest extends TestCase
     }
 
     // ---------------------------------------------------------------------
+    // experience_tiers batch
+    // ---------------------------------------------------------------------
+
+    public function test_experience_tiers_batch_creates_all_tiers_and_injects_tournament_id(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        $response = $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers/batch", [
+            'experience_tiers' => [
+                ['label' => 'beginner', 'min_match_count' => 0, 'max_match_count' => 4, 'enabled' => true],
+                ['label' => 'intermediate', 'min_match_count' => 5, 'max_match_count' => 15, 'enabled' => true],
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.tournament_id', $tournament->id)
+            ->assertJsonPath('data.1.tournament_id', $tournament->id);
+
+        $this->assertDatabaseCount('experience_tiers', 2);
+        $this->assertDatabaseHas('experience_tiers', ['tournament_id' => $tournament->id, 'label' => 'beginner']);
+        $this->assertDatabaseHas('experience_tiers', ['tournament_id' => $tournament->id, 'label' => 'intermediate']);
+    }
+
+    public function test_experience_tiers_batch_validates_required_fields(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers/batch", [])
+            ->assertJsonValidationErrors(['experience_tiers']);
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers/batch", [
+            'experience_tiers' => [[]],
+        ])->assertJsonValidationErrors(['experience_tiers.0.label', 'experience_tiers.0.min_match_count']);
+    }
+
+    public function test_experience_tiers_batch_rolls_back_entirely_when_one_item_overlaps(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+
+        // The second item overlaps the first (same batch), so the whole batch
+        // must be rolled back: neither tier should be persisted.
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers/batch", [
+            'experience_tiers' => [
+                ['label' => 'beginner', 'min_match_count' => 0, 'max_match_count' => 10, 'enabled' => true],
+                ['label' => 'overlapping', 'min_match_count' => 5, 'max_match_count' => 20, 'enabled' => true],
+            ],
+        ])->assertStatus(400);
+
+        $this->assertDatabaseCount('experience_tiers', 0);
+    }
+
+    public function test_experience_tiers_batch_requires_authentication(): void
+    {
+        $tournament = Tournament::factory()->create();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/experience_tiers/batch", [])
+            ->assertUnauthorized();
+    }
+
+    // ---------------------------------------------------------------------
     // match_records index
     // ---------------------------------------------------------------------
 

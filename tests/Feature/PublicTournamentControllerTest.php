@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\MatchRecordStatusEnum;
 use App\Enums\TournamentStatusEnum;
 use App\Models\MatchRecord;
 use App\Models\Tournament;
@@ -121,5 +122,128 @@ class PublicTournamentControllerTest extends TestCase
         $response = $this->getJson("/api/public/tournaments/{$tournament->id}/match_records");
 
         $response->assertNotFound();
+    }
+
+    // ---------------------------------------------------------------------
+    // currentMatchRecords
+    // ---------------------------------------------------------------------
+
+    public function test_current_match_records_returns_in_progress_as_current_with_surrounding_records(): void
+    {
+        $tournament = Tournament::factory()->inProgress()->create();
+
+        $previous = MatchRecord::factory()->status(MatchRecordStatusEnum::COMPLETED)->create(['tournament_id' => $tournament->id]);
+        $current = MatchRecord::factory()->status(MatchRecordStatusEnum::IN_PROGRESS)->create(['tournament_id' => $tournament->id]);
+        $next = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertOk()
+            ->assertJson([
+                'previous' => ['id' => $previous->id],
+                'current' => ['id' => $current->id],
+                'next' => ['id' => $next->id],
+            ]);
+    }
+
+    public function test_current_match_records_picks_closest_previous_and_next_among_several_candidates(): void
+    {
+        $tournament = Tournament::factory()->inProgress()->create();
+
+        MatchRecord::factory()->status(MatchRecordStatusEnum::COMPLETED)->create(['tournament_id' => $tournament->id]);
+        $previous = MatchRecord::factory()->status(MatchRecordStatusEnum::COMPLETED)->create(['tournament_id' => $tournament->id]);
+        $current = MatchRecord::factory()->status(MatchRecordStatusEnum::IN_PROGRESS)->create(['tournament_id' => $tournament->id]);
+        $next = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+        MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertOk()
+            ->assertJson([
+                'previous' => ['id' => $previous->id],
+                'current' => ['id' => $current->id],
+                'next' => ['id' => $next->id],
+            ]);
+    }
+
+    public function test_current_match_records_includes_cancelled_records_for_previous_and_next(): void
+    {
+        $tournament = Tournament::factory()->inProgress()->create();
+
+        MatchRecord::factory()->status(MatchRecordStatusEnum::COMPLETED)->create(['tournament_id' => $tournament->id]);
+        $previous = MatchRecord::factory()->status(MatchRecordStatusEnum::CANCELLED)->create(['tournament_id' => $tournament->id]);
+        $current = MatchRecord::factory()->status(MatchRecordStatusEnum::IN_PROGRESS)->create(['tournament_id' => $tournament->id]);
+        $next = MatchRecord::factory()->status(MatchRecordStatusEnum::CANCELLED)->create(['tournament_id' => $tournament->id]);
+        MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertOk()
+            ->assertJson([
+                'previous' => ['id' => $previous->id],
+                'current' => ['id' => $current->id],
+                'next' => ['id' => $next->id],
+            ]);
+    }
+
+    public function test_current_match_records_falls_back_to_first_scheduled_when_none_in_progress(): void
+    {
+        $tournament = Tournament::factory()->inProgress()->create();
+
+        $first = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+        $second = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertOk()
+            ->assertJson([
+                'previous' => null,
+                'current' => ['id' => $first->id],
+                'next' => ['id' => $second->id],
+            ]);
+    }
+
+    public function test_current_match_records_leaves_missing_previous_or_next_null(): void
+    {
+        $tournament = Tournament::factory()->inProgress()->create();
+
+        $current = MatchRecord::factory()->status(MatchRecordStatusEnum::IN_PROGRESS)->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertOk()
+            ->assertJson([
+                'previous' => null,
+                'current' => ['id' => $current->id],
+                'next' => null,
+            ]);
+    }
+
+    public function test_current_match_records_returns_all_null_when_no_pairable_record_exists(): void
+    {
+        $tournament = Tournament::factory()->completed()->create();
+        MatchRecord::factory()->status(MatchRecordStatusEnum::COMPLETED)->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertOk()
+            ->assertJson([
+                'previous' => null,
+                'current' => null,
+                'next' => null,
+            ]);
+    }
+
+    public function test_current_match_records_supports_allowlisted_with(): void
+    {
+        $tournament = Tournament::factory()->inProgress()->create();
+        MatchRecord::factory()->status(MatchRecordStatusEnum::IN_PROGRESS)->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current?with=redCorner,blueCorner")
+            ->assertOk()
+            ->assertJsonStructure(['current' => ['id', 'red_corner', 'blue_corner']]);
+    }
+
+    public function test_current_match_records_returns404_for_non_visible_tournament(): void
+    {
+        $tournament = Tournament::factory()->status(TournamentStatusEnum::SCHEDULED)->create();
+        MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
+            ->assertNotFound();
     }
 }

@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\TournamentStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PublicTournament\PublicTournamentCurrentMatchRecordsRequest;
 use App\Http\Requests\PublicTournament\PublicTournamentIndexRequest;
 use App\Http\Requests\PublicTournament\PublicTournamentMatchRecordIndexRequest;
 use App\Http\Resources\Public\PublicMatchRecordResource;
 use App\Http\Resources\Public\PublicTournamentResource;
 use App\Models\Tournament;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Spatie\ResponseCache\Attributes\Cache;
 
-#[Cache(lifetime: 60)]
 class PublicTournamentController extends Controller
 {
     public function tournamentsIndex(PublicTournamentIndexRequest $request): ResourceCollection
@@ -59,5 +59,27 @@ class PublicTournamentController extends Controller
         }
 
         return PublicMatchRecordResource::collection($matchRecords);
+    }
+
+    public function currentMatchRecords(PublicTournamentCurrentMatchRecordsRequest $request, Tournament $tournament): JsonResponse
+    {
+        abort_unless(
+            in_array($tournament->status->value, [TournamentStatusEnum::IN_PROGRESS->value, TournamentStatusEnum::COMPLETED->value], true),
+            404
+        );
+
+        $validated = $request->validated();
+
+        $window = $tournament->getCurrentMatchRecordsWindow();
+
+        foreach ($window as $matchRecord) {
+            $matchRecord?->loadMissing($validated['with'] ?? []);
+        }
+
+        return response()->json([
+            'previous' => $window['previous'] ? new PublicMatchRecordResource($window['previous']) : null,
+            'current' => $window['current'] ? new PublicMatchRecordResource($window['current']) : null,
+            'next' => $window['next'] ? new PublicMatchRecordResource($window['next']) : null,
+        ]);
     }
 }

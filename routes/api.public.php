@@ -28,5 +28,6 @@ Route::prefix('tournaments')->group(function () {
 
     Route::get('/', [PublicTournamentController::class, 'tournamentsIndex']);
     Route::get('{tournament}/match_records', [PublicTournamentController::class, 'tournamentMatchRecords']);
+    Route::get('{tournament}/match_records/current', [PublicTournamentController::class, 'currentMatchRecords']);
 
 });

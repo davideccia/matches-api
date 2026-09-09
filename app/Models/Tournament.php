@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MatchRecordStatusEnum;
 use App\Enums\TournamentStatusEnum;
 use App\Models\Scopes\TournamentScope;
 use App\Observers\TournamentObserver;
@@ -88,6 +89,32 @@ class Tournament extends Model implements HasMedia
     {
         $this->matchmaking_issues = (new MatchmakingService($this))->getMatchmakingIssues();
         $this->saveQuietly();
+    }
+
+    public function getCurrentMatchRecordsWindow(): array
+    {
+        $current = $this->matchRecords()
+            ->where('status', MatchRecordStatusEnum::IN_PROGRESS)
+            ->first()
+            ?? $this->matchRecords()
+                ->where('status', MatchRecordStatusEnum::SCHEDULED)
+                ->first();
+
+        if ($current === null) {
+            return ['previous' => null, 'current' => null, 'next' => null];
+        }
+
+        $previous = $this->matchRecords()
+            ->where('sort', '<', $current->sort)
+            ->reorder('sort', 'desc')
+            ->first();
+
+        $next = $this->matchRecords()
+            ->where('sort', '>', $current->sort)
+            ->reorder('sort', 'asc')
+            ->first();
+
+        return ['previous' => $previous, 'current' => $current, 'next' => $next];
     }
 
     public function runMatchmaking(): void

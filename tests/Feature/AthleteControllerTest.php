@@ -56,6 +56,23 @@ class AthleteControllerTest extends TestCase
         $this->assertArrayNotHasKey('match_records_history', $target);
     }
 
+    public function test_index_with_pagination_exposes_match_records_history(): void
+    {
+        $this->authenticate();
+
+        $athlete = Athlete::factory()->create();
+
+        MatchRecord::factory()->completed()->create(['red_corner_id' => $athlete->id]);
+        MatchRecord::factory()->completed()->create(['blue_corner_id' => $athlete->id]);
+
+        $response = $this->getJson('/api/admin/athletes?paginate=1');
+
+        $target = collect($response->json('data'))->firstWhere('id', $athlete->id);
+
+        $this->assertNotNull($target);
+        $this->assertArrayHasKey('match_records_history', $target);
+    }
+
     public function test_index_search_filters_on_full_name_case_insensitively(): void
     {
         $this->authenticate();

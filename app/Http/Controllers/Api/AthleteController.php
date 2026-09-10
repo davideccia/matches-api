@@ -23,7 +23,6 @@ class AthleteController extends Controller
         $validated = $request->validated();
 
         $athletes = Athlete::query()
-            ->withoutMatchRecordsHistory()
             ->with($validated['with'] ?? [])
             ->orderBy('full_name')->orderBy('id');
 
@@ -54,7 +53,7 @@ class AthleteController extends Controller
         if ($validated['paginate'] ?? false) {
             $athletes = $athletes->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {
-            $athletes = $athletes->get();
+            $athletes = $athletes->withoutMatchRecordsHistory()->get();
         }
 
         return AthleteResource::collection($athletes);

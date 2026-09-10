@@ -72,7 +72,7 @@ class MatchmakingService
 
         return $registrations->map(function (Registration $registration) {
 
-            $matchCount = $registration->athlete->match_records_count;
+            $matchCount = $registration->athlete->matchRecordsCountForDiscipline($registration->discipline_id);
 
             $tier = $this->resolveTier($matchCount);
 
@@ -137,7 +137,7 @@ class MatchmakingService
         // Bucket the pool: athletes can only meet inside the same group + tier.
         foreach ($registrations as $registration) {
 
-            $tier = $this->resolveTier($registration->athlete->match_records_count);
+            $tier = $this->resolveTier($registration->athlete->matchRecordsCountForDiscipline($registration->discipline_id));
 
             if ($tier === null) {
                 $orphans[] = $this->describeOrphan($registration, null);
@@ -269,7 +269,7 @@ class MatchmakingService
             'weight_category_id' => $registration->weight_category_id,
             'weight_category_label' => $registration->weightCategory->label,
             'experience_tier' => $tier,
-            'match_count' => $registration->athlete->match_records_count,
+            'match_count' => $registration->athlete->matchRecordsCountForDiscipline($registration->discipline_id),
             'reason' => $tier === null ? 'no_tier' : 'unpaired',
         ];
     }

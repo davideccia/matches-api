@@ -12,8 +12,8 @@ class MatchRecordObserver
     {
         $matchRecord->tournament->syncMatchmakingIssues();
 
-        $matchRecord->redCorner?->syncMatchRecordsCount();
-        $matchRecord->blueCorner?->syncMatchRecordsCount();
+        $matchRecord->redCorner?->syncMatchRecordsHistory();
+        $matchRecord->blueCorner?->syncMatchRecordsHistory();
     }
 
     public function creating(MatchRecord $matchRecord): void
@@ -47,7 +47,7 @@ class MatchRecordObserver
 
         $matchRecord->tournament->syncMatchmakingIssues();
 
-        $matchRecord->redCorner?->syncMatchRecordsCount();
-        $matchRecord->blueCorner?->syncMatchRecordsCount();
+        $matchRecord->redCorner?->syncMatchRecordsHistory();
+        $matchRecord->blueCorner?->syncMatchRecordsHistory();
     }
 }

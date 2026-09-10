@@ -567,7 +567,13 @@ class TournamentNestedControllerTest extends TestCase
         // Same group on every axis but experience: 0 matches is "beginner",
         // 20 matches is "advanced", so they must not be paired.
         foreach ([0, 20] as $matchCount) {
-            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => $matchCount]);
+            $athlete = Athlete::factory()->adult()->male()->create([
+                'match_records_history' => ['disciplines' => [[
+                    'id' => $discipline->id,
+                    'label' => $discipline->label,
+                    'manual_total' => $matchCount,
+                ]]],
+            ]);
             Registration::factory()->create([
                 'tournament_id' => $tournament->id,
                 'athlete_id' => $athlete->id,
@@ -603,7 +609,13 @@ class TournamentNestedControllerTest extends TestCase
         ]);
 
         foreach ([0, 20] as $matchCount) {
-            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => $matchCount]);
+            $athlete = Athlete::factory()->adult()->male()->create([
+                'match_records_history' => ['disciplines' => [[
+                    'id' => $discipline->id,
+                    'label' => $discipline->label,
+                    'manual_total' => $matchCount,
+                ]]],
+            ]);
             Registration::factory()->create([
                 'tournament_id' => $tournament->id,
                 'athlete_id' => $athlete->id,
@@ -637,7 +649,13 @@ class TournamentNestedControllerTest extends TestCase
         ]);
 
         foreach ([0, 20] as $matchCount) {
-            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => $matchCount]);
+            $athlete = Athlete::factory()->adult()->male()->create([
+                'match_records_history' => ['disciplines' => [[
+                    'id' => $discipline->id,
+                    'label' => $discipline->label,
+                    'manual_total' => $matchCount,
+                ]]],
+            ]);
             Registration::factory()->create([
                 'tournament_id' => $tournament->id,
                 'athlete_id' => $athlete->id,
@@ -669,7 +687,13 @@ class TournamentNestedControllerTest extends TestCase
         $weightCategory = WeightCategory::factory()->create();
 
         foreach (range(1, 2) as $i) {
-            $athlete = Athlete::factory()->adult()->male()->create(['generic_match_records_count' => 30]);
+            $athlete = Athlete::factory()->adult()->male()->create([
+                'match_records_history' => ['disciplines' => [[
+                    'id' => $discipline->id,
+                    'label' => $discipline->label,
+                    'manual_total' => 30,
+                ]]],
+            ]);
             Registration::factory()->create([
                 'tournament_id' => $tournament->id,
                 'athlete_id' => $athlete->id,

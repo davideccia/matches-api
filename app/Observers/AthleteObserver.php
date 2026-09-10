@@ -19,6 +19,13 @@ class AthleteObserver
         $athlete->full_name = "{$athlete->first_name} {$athlete->last_name}";
         $athlete->tax_number = Athlete::normalizeTaxNumber($athlete->tax_number);
         $athlete->email = Athlete::normalizeEmail($athlete->email);
+
+        if ($athlete->isDirty('match_records_history')) {
+            $athlete->match_records_history = Athlete::normalizeMatchRecordsHistory(
+                $athlete->match_records_history,
+                $athlete->getOriginal('match_records_history'),
+            );
+        }
     }
 
     public function deleting(Athlete $athlete): void

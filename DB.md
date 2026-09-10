@@ -91,8 +91,7 @@ Table athletes {
   email                          varchar [not null]
   team_name                      varchar [null]
   phone_number                   varchar [null]
-  generic_match_records_count    int     [null]   // prior fight history, entered by hand
-  registered_match_records_count int     [null]   // completed bouts inside this system
+  match_records_history          json    [null]   // per-discipline manual + system match count history
   created_at                     timestamptz [null]
   updated_at                     timestamptz [null]
 }

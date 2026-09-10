@@ -30,7 +30,6 @@ class PublicRegistrationFormRegistrationStoreRequest extends FormRequest
             'gender' => ['required', new Enum(AthleteGenderEnum::class)],
             'team_name' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'string', 'max:255'],
-            'generic_match_records_count' => ['nullable', 'integer', 'min:0'],
 
             'tournament_id' => ['required', 'string', 'uuid', Rule::exists('tournaments', 'id')->where('status', TournamentStatusEnum::REGISTRATIONS_OPENED->value)],
             'discipline_id' => ['required', 'string', 'uuid', 'exists:disciplines,id'],

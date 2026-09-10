@@ -34,12 +34,12 @@ class AthleteControllerTest extends TestCase
 
         $response->assertJsonStructure([
             'data' => [
-                ['id', 'first_name', 'last_name', 'full_name', 'birth_date', 'gender', 'tax_number', 'phone_number', 'is_adult', 'match_records_count'],
+                ['id', 'first_name', 'last_name', 'full_name', 'birth_date', 'gender', 'tax_number', 'phone_number', 'is_adult', 'match_records_history'],
             ],
         ]);
     }
 
-    public function test_index_match_records_count_reflects_red_and_blue_corner_matches(): void
+    public function test_index_match_records_history_reflects_red_and_blue_corner_matches(): void
     {
         $this->authenticate();
 
@@ -53,7 +53,7 @@ class AthleteControllerTest extends TestCase
         $target = collect($response->json('data'))->firstWhere('id', $athlete->id);
 
         $this->assertNotNull($target);
-        $this->assertSame(2, $target['match_records_count']);
+        $this->assertSame(2, $target['match_records_history']['total']);
     }
 
     public function test_index_search_filters_on_full_name_case_insensitively(): void

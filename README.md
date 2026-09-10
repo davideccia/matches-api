@@ -229,9 +229,12 @@ Discipline, WeightCategory ──< Registration, MatchRecord  (shared reference 
 
 `MatchRecord.judges_points` is a JSON array of per-round, per-judge scores.
 
-An athlete's experience is `generic_match_records_count` (bouts fought before joining this system, entered by hand) plus
-`registered_match_records_count` (completed bouts tracked here, kept in sync automatically). The sum is exposed as the
-computed `match_records_count` field and is what experience tiers are matched against.
+An athlete's experience is tracked per discipline in `match_records_history`, a JSON column shaped as
+`{"total": int, "disciplines": [{"id": ?uuid, "label": string, "manual_total": int, "app_total": int, "total": int}]}`.
+`manual_total` is entered by hand (bouts fought before joining this system); `app_total` is completed bouts tracked here,
+kept in sync automatically and never accepted from client input. The root `total` sums every discipline's `total`
+(`manual_total + app_total`); matchmaking instead matches experience tiers against the count for the specific
+discipline being contested, not the root total.
 
 **Enums** (stored as strings, cast to PHP-backed enums in models):
 

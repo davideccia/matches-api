@@ -33,11 +33,15 @@ Combat sports tournament management. Core entities and their relationships:
   tournament override. Only `enabled` tiers participate.
 - **Discipline** and **WeightCategory** are reference data shared across tournaments
 
-**Athlete computed attributes** (`$appends`): `age`, `is_adult` (birth_date-derived, 18+), and `match_records_count` =
-`generic_match_records_count` (manually entered prior-fight history) + `registered_match_records_count` (completed bouts
-in this system, recomputed by `Athlete::syncMatchRecordsCount()`). `match_records_count` is what feeds experience-tier
-resolution, so DB-level filtering uses the `minMatchRecordsCount`/`maxMatchRecordsCount` scopes (raw SQL over both
-columns), not the appended attribute.
+**Athlete match history** is tracked per discipline in the `match_records_history` JSON column: `{"total": int,
+"disciplines": [{"id": ?uuid, "label": string, "manual_total": int, "app_total": int, "total": int}]}`. `manual_total`
+is entered by hand (prior-fight history) and is the only client-writable sub-field; `app_total` is recomputed from
+completed `MatchRecord`s by `Athlete::syncMatchRecordsHistory()` (never accepted from client input) and `total` =
+`manual_total + app_total` per discipline; the root `total` sums every discipline's `total`. There is no appended
+`match_records_count` attribute — read `match_records_history['total']` directly. `Athlete` `$appends` are only `age`
+and `is_adult` (birth_date-derived, 18+). DB-level filtering uses the `minMatchRecordsCount`/`maxMatchRecordsCount`
+scopes (raw SQL over the JSON column's root `total`). Matchmaking uses `Athlete::matchRecordsCountForDiscipline()` to
+bucket an athlete by their experience in the specific discipline being contested, not their combined total.
 
 Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEnum`).
 
@@ -133,7 +137,7 @@ Each model has an observer (`app/Observers/`) wired via `#[ObservedBy]` attribut
   maintain contiguous `sort` ordering per tournament
 - **WebSocket broadcast**: `MatchRecordObserver` fires `MatchRecordChanged` event on every CRUD operation
 - **Denormalized counters**: `MatchRecordObserver::saved`/`deleted` re-sync `Tournament::syncMatchmakingIssues()` and
-  `Athlete::syncMatchRecordsCount()` for both corners. These use `saveQuietly()` to avoid observer recursion — keep it
+  `Athlete::syncMatchRecordsHistory()` for both corners. These use `saveQuietly()` to avoid observer recursion — keep it
   that way when adding similar sync logic.
 - **Validation guards**: `ExperienceTierObserver::creating`/`updating` abort with 400
   (`errors.experience_tier_overlapping_range`) when `ExperienceTier::overlapsAnotherTier()` finds an enabled tier whose
@@ -170,8 +174,9 @@ grouped by `discipline_id | weight_category_id | gender | adult-or-minor` and, w
 must match for two athletes to be paired.
 
 **Tier resolution** (`MatchmakingService::tiers()`): if the tournament has any `enabled` tiers of its own they **replace
-the global set entirely** (not merged); otherwise the enabled `tournament_id IS NULL` globals are used. An athlete whose
-`match_records_count` falls in no tier is never paired.
+the global set entirely** (not merged); otherwise the enabled `tournament_id IS NULL` globals are used. Tiers are matched
+against the athlete's `matchRecordsCountForDiscipline()` for the registration's own discipline, not their combined total
+across all disciplines. An athlete whose per-discipline count falls in no tier is never paired.
 
 **`matchmaking_issues`** is a JSON array of unpaired registrations, each with a `reason`: `no_tier` (no matching
 experience tier) or `unpaired` (odd one out in its bucket). It is computed two ways depending on entry point — from

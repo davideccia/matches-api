@@ -38,30 +38,48 @@ class Athlete extends Model implements HasMedia
         'email',
         'team_name',
         'phone_number',
-        'generic_match_records_count',
-        'registered_match_records_count',
+        'match_records_history',
     ];
 
     protected $appends = [
         'age',
         'is_adult',
-        'match_records_count',
     ];
 
-    /**
-     * Canonical form of a tax number. Every comparison must go through this:
-     * the stored value is normalized by AthleteObserver::saving, so lookups
-     * against raw user input would otherwise miss.
-     */
     public static function normalizeTaxNumber(?string $taxNumber): string
     {
         return Str::of($taxNumber)->trim()->upper()->value();
     }
 
-    /** Canonical form of an email address. See normalizeTaxNumber(). */
     public static function normalizeEmail(?string $email): string
     {
         return Str::of($email)->trim()->lower()->value();
+    }
+
+    public static function normalizeMatchRecordsHistory(?array $input, ?array $existing): array
+    {
+        $existingByDisciplineId = collect($existing['disciplines'] ?? [])->keyBy('id');
+
+        $disciplines = collect($input['disciplines'] ?? [])
+            ->map(function (array $discipline) use ($existingByDisciplineId): array {
+                $manualTotal = (int) ($discipline['manual_total'] ?? 0);
+                $appTotal = (int) ($existingByDisciplineId->get($discipline['id'] ?? null)['app_total'] ?? 0);
+
+                return [
+                    'id' => $discipline['id'] ?? null,
+                    'label' => $discipline['label'] ?? '',
+                    'manual_total' => $manualTotal,
+                    'app_total' => $appTotal,
+                    'total' => $manualTotal + $appTotal,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'total' => array_sum(array_column($disciplines, 'total')),
+            'disciplines' => $disciplines,
+        ];
     }
 
     protected function casts(): array
@@ -69,8 +87,7 @@ class Athlete extends Model implements HasMedia
         return [
             'birth_date' => 'date',
             'gender' => AthleteGenderEnum::class,
-            'generic_match_records_count' => 'integer',
-            'registered_match_records_count' => 'integer',
+            'match_records_history' => 'array',
         ];
     }
 
@@ -88,32 +105,68 @@ class Athlete extends Model implements HasMedia
         );
     }
 
-    protected function matchRecordsCount(): Attribute
+    public function matchRecordsCountForDiscipline(?string $disciplineId): int
     {
-        return Attribute::make(
-            get: fn () => (($this->generic_match_records_count ?? 0) + ($this->registered_match_records_count ?? 0)),
-        );
+        $discipline = collect($this->match_records_history['disciplines'] ?? [])
+            ->first(fn (array $d) => $d['id'] === $disciplineId);
+
+        return $discipline !== null ? $discipline['total'] : 0;
     }
 
-    /**
-     * Second factor for the public registration form: an Italian tax number is
-     * derivable from name, birth date and birthplace, so it cannot stand alone
-     * as proof of identity. Compared in constant time.
-     */
     public function emailMatches(?string $email): bool
     {
         return hash_equals($this->email ?? '', self::normalizeEmail($email));
     }
 
-    public function syncMatchRecordsCount(): void
+    public function syncMatchRecordsHistory(): void
     {
-        $this->registered_match_records_count = MatchRecord::query()
+        $appTotals = MatchRecord::query()
             ->where(fn (Builder $builder) => $builder
                 ->where('red_corner_id', $this->id)
                 ->orWhere('blue_corner_id', $this->id)
             )
             ->where('status', MatchRecordStatusEnum::COMPLETED)
-            ->count();
+            ->whereNotNull('discipline_id')
+            ->selectRaw('discipline_id, COUNT(*) as app_total')
+            ->groupBy('discipline_id')
+            ->pluck('app_total', 'discipline_id');
+
+        $existingDisciplines = collect($this->match_records_history['disciplines'] ?? []);
+        $existingById = $existingDisciplines->filter(fn (array $d) => $d['id'] !== null)->keyBy('id');
+        $manualOnly = $existingDisciplines->filter(fn (array $d) => $d['id'] === null);
+
+        $ids = $existingById->keys()->merge($appTotals->keys())->unique()->values();
+
+        $labels = Discipline::query()->whereIn('id', $ids)->pluck('label', 'id');
+
+        $disciplines = $ids
+            ->map(function (string $id) use ($existingById, $appTotals, $labels): array {
+                $manualTotal = (int) ($existingById->get($id)['manual_total'] ?? 0);
+                $appTotal = (int) ($appTotals->get($id) ?? 0);
+
+                return [
+                    'id' => $id,
+                    'label' => $labels->get($id) ?? ($existingById->get($id)['label'] ?? ''),
+                    'manual_total' => $manualTotal,
+                    'app_total' => $appTotal,
+                    'total' => $manualTotal + $appTotal,
+                ];
+            })
+            ->concat(
+                $manualOnly->map(fn (array $d) => [
+                    'id' => null,
+                    'label' => $d['label'],
+                    'manual_total' => (int) ($d['manual_total'] ?? 0),
+                    'app_total' => 0,
+                    'total' => (int) ($d['manual_total'] ?? 0),
+                ])->values()
+            )
+            ->values();
+
+        $this->match_records_history = [
+            'total' => $disciplines->sum('total'),
+            'disciplines' => $disciplines->all(),
+        ];
 
         $this->saveQuietly();
     }
@@ -169,13 +222,13 @@ class Athlete extends Model implements HasMedia
     #[Scope]
     public function minMatchRecordsCount(Builder $builder, int $minMatchRecordsCount): Builder
     {
-        return $builder->whereRaw('(COALESCE(generic_match_records_count, 0) + COALESCE(registered_match_records_count, 0)) >= ?', [$minMatchRecordsCount]);
+        return $builder->whereRaw("COALESCE((match_records_history->>'total')::int, 0) >= ?", [$minMatchRecordsCount]);
     }
 
     #[Scope]
     public function maxMatchRecordsCount(Builder $builder, int $maxMatchRecordsCount): Builder
     {
-        return $builder->whereRaw('(COALESCE(generic_match_records_count, 0) + COALESCE(registered_match_records_count, 0)) <= ?', [$maxMatchRecordsCount]);
+        return $builder->whereRaw("COALESCE((match_records_history->>'total')::int, 0) <= ?", [$maxMatchRecordsCount]);
     }
 
     #[Scope]

@@ -50,7 +50,9 @@ class TournamentController extends Controller
             $tournament->addMediaFromTemporaryFile($validated['cover'], Tournament::COVER_MEDIA_COLLECTION_NAME);
         }
 
-        $tournament->disciplines()->sync($validated['disciplines'] ?? []);
+        if (array_key_exists('disciplines', $validated)) {
+            $tournament->disciplines()->sync($validated['disciplines']);
+        }
 
         \DB::commit();
 
@@ -77,7 +79,9 @@ class TournamentController extends Controller
             $tournament->addMediaFromTemporaryFile($validated['cover'], Tournament::COVER_MEDIA_COLLECTION_NAME);
         }
 
-        $tournament->disciplines()->sync($validated['disciplines'] ?? []);
+        if (array_key_exists('disciplines', $validated)) {
+            $tournament->disciplines()->sync($validated['disciplines']);
+        }
 
         \DB::commit();
 

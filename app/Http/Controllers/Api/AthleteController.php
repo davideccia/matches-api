@@ -23,6 +23,7 @@ class AthleteController extends Controller
         $validated = $request->validated();
 
         $athletes = Athlete::query()
+            ->withoutMatchRecordsHistory()
             ->with($validated['with'] ?? [])
             ->orderBy('full_name')->orderBy('id');
 

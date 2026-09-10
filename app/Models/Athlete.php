@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 
@@ -199,6 +200,14 @@ class Athlete extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::PHOTO_MEDIA_COLLECTION_NAME)->singleFile();
+    }
+
+    #[Scope]
+    public function withoutMatchRecordsHistory(Builder $builder): Builder
+    {
+        $columns = array_diff(Schema::getColumnListing($this->getTable()), ['match_records_history']);
+
+        return $builder->select($columns);
     }
 
     #[Scope]

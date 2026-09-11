@@ -22,6 +22,7 @@ class Discipline extends Model
 
     protected $fillable = [
         'label',
+        'sort',
         'rounds',
         'minutes_per_round',
     ];

@@ -74,6 +74,7 @@ Table weight_categories {
 Table disciplines {
   id                uuid    [pk]
   label             varchar [not null]
+  sort              int     [not null]   // contiguous global ordering, maintained by ReorderDisciplinesAction
   rounds            int     [not null]
   minutes_per_round varchar [not null]
   created_at        timestamptz [null]

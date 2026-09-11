@@ -1,0 +1,3 @@
+This software is the exclusive property of the author. The use of this software is free of charge for all users, but it is limited to the conditions of use indicated in the accompanying agreement and for permitted purposes only.
+
+This software is provided 'as is', without any warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the author be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.

@@ -19,6 +19,7 @@ class DisciplineStoreRequest extends FormRequest
     {
         return [
             'label' => ['required', 'string', 'max:255'],
+            'sort' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'rounds' => ['nullable', 'numeric', 'max:255'],
             'minutes_per_round' => ['nullable', 'date_format:H:i', 'max:255'],
             'with' => ['nullable', 'array'],

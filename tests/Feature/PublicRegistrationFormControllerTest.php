@@ -287,21 +287,22 @@ class PublicRegistrationFormControllerTest extends TestCase
     // tournamentDisciplinesIndex
     // ---------------------------------------------------------------------
 
-    public function test_tournament_disciplines_index_returns_only_that_tournaments_disciplines_ordered_by_label(): void
+    public function test_tournament_disciplines_index_returns_only_that_tournaments_disciplines_ordered_by_sort(): void
     {
         $tournament = $this->openTournament();
 
-        $beta = Discipline::factory()->create(['label' => 'Beta']);
-        $alpha = Discipline::factory()->create(['label' => 'Alpha']);
+        $beta = Discipline::factory()->create(['label' => 'Beta']);   // sort 1
+        $alpha = Discipline::factory()->create(['label' => 'Alpha']); // sort 2
         Discipline::factory()->create(['label' => 'Gamma']);
 
         $tournament->disciplines()->sync([$beta->id, $alpha->id]);
 
+        // Ordered by sort, not by label: "Beta" was created first.
         $this->getJson("/api/public/registration_form/tournaments/{$tournament->id}/disciplines")
             ->assertOk()
             ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.id', $alpha->id)
-            ->assertJsonPath('data.1.id', $beta->id);
+            ->assertJsonPath('data.0.id', $beta->id)
+            ->assertJsonPath('data.1.id', $alpha->id);
     }
 
     public function test_tournament_disciplines_index_search_filters_by_label(): void

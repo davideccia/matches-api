@@ -166,7 +166,7 @@ return [
              * The disk names on which the backups will be stored.
              */
             'disks' => [
-                env('BACKUP_DISK', 's3-backup'),
+                env('BACKUP_DISK', 'local-backup'),
             ],
 
             /*
@@ -299,9 +299,11 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => [env('BACKUP_DISK', 's3')],
+            'disks' => [env('BACKUP_DISK', 'local-backup')],
             'health_checks' => [
-                MaximumAgeInDays::class => 1,
+                // Backups run every 3 days (routes/console.php); allow one extra day of slack
+                // before flagging a backup as stale.
+                MaximumAgeInDays::class => 4,
                 MaximumStorageInMegabytes::class => 5000,
             ],
         ],
@@ -334,11 +336,12 @@ return [
             /*
              * The number of days for which backups must be kept.
              *
-             * Set to keep only the last 5 days of backups. With one daily
-             * backup this retains roughly the 5 most recent archives; the
-             * longer-term tiers below are disabled so nothing older is kept.
+             * Backups run every 3 days (routes/console.php); 16 days keeps the
+             * last 5 archives with a 1-day buffer so the 5th backup never
+             * falls exactly on the boundary. The longer-term tiers below are
+             * disabled so nothing older is kept.
              */
-            'keep_all_backups_for_days' => 5,
+            'keep_all_backups_for_days' => 16,
 
             /*
              * After the "keep_all_backups_for_days" period is over, the most recent backup

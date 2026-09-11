@@ -60,6 +60,13 @@ return [
             'report' => false,
         ],
 
+        'local-backup' => [
+            'driver' => 'local',
+            'root' => storage_path('backups'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3-backup' => [
             'driver' => 's3',
             'key' => env('BACKUP_AWS_ACCESS_KEY_ID'),

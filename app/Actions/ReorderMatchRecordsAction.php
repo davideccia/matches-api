@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\DB;
 
 class ReorderMatchRecordsAction
 {
+    private static function maxSort(string $tournamentId, ?string $excludeId = null): int
+    {
+        return (int) MatchRecord::withoutGlobalScopes([MatchRecordScope::class])
+            ->where('tournament_id', $tournamentId)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->max('sort');
+    }
+
     public static function handleCreating(MatchRecord $matchRecord): void
     {
         DB::transaction(static function () use ($matchRecord) {
@@ -32,7 +40,7 @@ class ReorderMatchRecordsAction
 
     public static function handleUpdating(MatchRecord $matchRecord): void
     {
-        if (!$matchRecord->isDirty('sort')) {
+        if (! $matchRecord->isDirty('sort')) {
             return;
         }
 
@@ -78,11 +86,39 @@ class ReorderMatchRecordsAction
         });
     }
 
-    private static function maxSort(string $tournamentId, ?string $excludeId = null): int
+    /**
+     * Renumbers a tournament's whole fight card so the bouts run in discipline
+     * order. Ties keep their previous relative order (`sortBy` is stable), so a
+     * hand-entered bout stays ahead of the bouts generated after it within the
+     * same discipline.
+     *
+     * The rows are written through the query builder on purpose: model events
+     * would re-enter handleUpdating, re-broadcast MatchRecordChanged per row and
+     * re-run syncMatchmakingIssues for every single bout.
+     */
+    public static function sortByDiscipline(string $tournamentId): void
     {
-        return (int) MatchRecord::withoutGlobalScopes([MatchRecordScope::class])
-            ->where('tournament_id', $tournamentId)
-            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
-            ->max('sort');
+        DB::transaction(static function () use ($tournamentId) {
+            $ordered = MatchRecord::withoutGlobalScopes([MatchRecordScope::class])
+                ->where('tournament_id', $tournamentId)
+                ->with('discipline')
+                ->orderBy('sort')
+                ->orderBy('id')
+                ->get()
+                ->sortBy(static fn (MatchRecord $matchRecord) => $matchRecord->discipline->sort)
+                ->values();
+
+            foreach ($ordered as $index => $matchRecord) {
+                $sort = $index + 1;
+
+                if ((int) $matchRecord->sort === $sort) {
+                    continue;
+                }
+
+                MatchRecord::withoutGlobalScopes([MatchRecordScope::class])
+                    ->whereKey($matchRecord->id)
+                    ->update(['sort' => $sort]);
+            }
+        });
     }
 }

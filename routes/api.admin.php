@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AthleteController;
+use App\Http\Controllers\Api\AthleteMatchRecordController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DisciplineController;
@@ -50,6 +51,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::delete('athletes/bulk', [AthleteController::class, 'bulkDestroy']);
     Route::apiResource('athletes', AthleteController::class);
+    Route::apiResource('athletes.match_records', AthleteMatchRecordController::class)->only(['index']);
 
     Route::get('tournaments/{tournament}/match_records/pdf', [TournamentMatchRecordController::class, 'matchRecordsPdf']);
     Route::post('tournaments/{tournament}/match_records/generate', [TournamentMatchRecordController::class, 'generateMatchRecords']);

@@ -68,7 +68,12 @@ class MatchmakingService
                 'weightCategory',
             ])
             ->whereNotIn('athlete_id', $pairedAthleteIds)
-            ->get();
+            ->reorder()
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->sortBy(static fn (Registration $registration) => $registration->discipline->sort)
+            ->values();
 
         return $registrations->map(function (Registration $registration) {
 
@@ -121,6 +126,11 @@ class MatchmakingService
             ->get()
             ->keyBy(fn (MatchRecord $matchRecord) => $matchRecord->red_corner_id ?? $matchRecord->blue_corner_id);
 
+        // The pool drives the whole card's order. `$groups` is a plain array, so it
+        // keeps the order its keys were first seen in: walking the registrations by
+        // discipline sort means every bout of one discipline is emitted before the
+        // next one's. `reorder()` drops the relation's own `created_at desc`, and
+        // `sortBy` is stable, so within a discipline the earliest entrant pairs first.
         $registrations = $this->tournament->registrations()
             ->with([
                 'athlete',
@@ -129,7 +139,12 @@ class MatchmakingService
             ])
             ->whereNotIn('athlete_id', fn (QueryBuilder $q) => $this->selectBookedAthletes($q, 'red_corner_id'))
             ->whereNotIn('athlete_id', fn (QueryBuilder $q) => $this->selectBookedAthletes($q, 'blue_corner_id'))
-            ->get();
+            ->reorder()
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->sortBy(static fn (Registration $registration) => $registration->discipline->sort)
+            ->values();
 
         $groups = [];
         $orphans = [];

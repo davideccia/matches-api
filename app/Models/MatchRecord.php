@@ -115,4 +115,13 @@ class MatchRecord extends Model
                 ->orWhereHas('discipline', fn (Builder $q) => $q->whereLike('label', "%{$search}%"));
         });
     }
+
+    #[Scope]
+    public function forAthlete(Builder $builder, string $athleteId): Builder
+    {
+        return $builder->where(fn (Builder $q) => $q
+            ->where('red_corner_id', $athleteId)
+            ->orWhere('blue_corner_id', $athleteId)
+        );
+    }
 }

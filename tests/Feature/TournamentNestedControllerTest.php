@@ -11,6 +11,7 @@ use App\Models\MatchRecord;
 use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
+use DateTimeInterface;
 use Tests\TestCase;
 
 class TournamentNestedControllerTest extends TestCase
@@ -42,6 +43,28 @@ class TournamentNestedControllerTest extends TestCase
         ]);
 
         return $athlete;
+    }
+
+    private function registerAdultMaleAthleteAt(Tournament $tournament, Discipline $discipline, WeightCategory $weightCategory, DateTimeInterface $registeredAt): Athlete
+    {
+        $athlete = Athlete::factory()->adult()->male()->create();
+
+        Registration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'athlete_id' => $athlete->id,
+            'discipline_id' => $discipline->id,
+            'weight_category_id' => $weightCategory->id,
+            'created_at' => $registeredAt,
+        ]);
+
+        return $athlete;
+    }
+
+    private function registerAdultMaleAthletesAt(Tournament $tournament, Discipline $discipline, WeightCategory $weightCategory, DateTimeInterface $registeredAt): void
+    {
+        foreach (range(1, 2) as $i) {
+            $this->registerAdultMaleAthleteAt($tournament, $discipline, $weightCategory, $registeredAt);
+        }
     }
     // ---------------------------------------------------------------------
     // registrations index
@@ -834,6 +857,96 @@ class TournamentNestedControllerTest extends TestCase
 
         $this->assertCount(1, $issues);
         $this->assertSame($athlete->id, $issues[0]['athlete_id']);
+        $this->assertSame('unpaired', $issues[0]['reason']);
+    }
+
+    public function test_generate_orders_new_match_records_by_discipline_sort(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $first = Discipline::factory()->create();  // sort 1
+        $second = Discipline::factory()->create(); // sort 2
+
+        // The second discipline's entrants register first, so without the
+        // discipline ordering they would take the head of the card.
+        $this->registerAdultMaleAthletesAt($tournament, $second, $weightCategory, now()->subHour());
+        $this->registerAdultMaleAthletesAt($tournament, $first, $weightCategory, now());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.discipline_id', $first->id)
+            ->assertJsonPath('data.0.sort', 1)
+            ->assertJsonPath('data.1.discipline_id', $second->id)
+            ->assertJsonPath('data.1.sort', 2);
+    }
+
+    public function test_generate_renumbers_the_whole_card_by_discipline_sort(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $first = Discipline::factory()->create();  // sort 1
+        $second = Discipline::factory()->create(); // sort 2
+
+        // A hand-entered bout on the *last* discipline already sits at sort 1.
+        $manual = MatchRecord::factory()->create([
+            'tournament_id' => $tournament->id,
+            'discipline_id' => $second->id,
+        ]);
+
+        $this->assertSame(1, $manual->fresh()->sort);
+
+        $this->registerAdultMaleAthletesAt($tournament, $first, $weightCategory, now());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            // The generated bout was appended at sort 2, then the card was
+            // renumbered: the first discipline now leads and the manual bout follows.
+            ->assertJsonPath('data.0.discipline_id', $first->id)
+            ->assertJsonPath('data.0.sort', 1)
+            ->assertJsonPath('data.1.id', $manual->id)
+            ->assertJsonPath('data.1.sort', 2);
+
+        $this->assertSame(2, $manual->fresh()->sort);
+    }
+
+    public function test_generate_pairs_the_earliest_registrations_and_leaves_the_last_one_unpaired(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // Same discipline, weight, gender and tier: one single bucket.
+        $nine = $this->registerAdultMaleAthleteAt($tournament, $discipline, $weightCategory, now()->setTime(9, 0));
+        $halfPast = $this->registerAdultMaleAthleteAt($tournament, $discipline, $weightCategory, now()->setTime(9, 30));
+        $ten = $this->registerAdultMaleAthleteAt($tournament, $discipline, $weightCategory, now()->setTime(10, 0));
+
+        // The two earliest entrants meet; the last one gets the half bout.
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.red_corner_id', $nine->id)
+            ->assertJsonPath('data.0.blue_corner_id', $halfPast->id)
+            ->assertJsonPath('data.1.red_corner_id', $ten->id)
+            ->assertJsonPath('data.1.blue_corner_id', null)
+            ->assertJsonPath('data.1.unpaired', true);
+
+        $issues = $tournament->fresh()->matchmaking_issues;
+
+        $this->assertCount(1, $issues);
+        $this->assertSame($ten->id, $issues[0]['athlete_id']);
         $this->assertSame('unpaired', $issues[0]['reason']);
     }
 

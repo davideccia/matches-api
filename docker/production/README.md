@@ -18,9 +18,10 @@ condividendo i container `postgres` e `redis`. Per il dimensionamento e i costi 
 | `postgres`          | **condiviso**       | un secondo database, stesse credenziali    |
 | `redis`             | **condiviso**       | indici DB e prefissi diversi               |
 | reverse proxy       | **condiviso**       | due hostname in più                        |
-| `matches-api`       | **duplicato**       | `matches-api-staging`, limiti ridotti (§6) |
+| `matches-api`       | **duplicato**       | `matches-api-staging`, limiti ridotti (§7) |
 | `matches-dashboard` | **duplicato**       | `matches-dashboard-staging`                |
-| Object Storage      | **bucket separati** | backup e media, vedi §4                    |
+| Backup              | **volume separato** | `storage/backups` locale per default, vedi §5 |
+| Object Storage      | **bucket separato** | media (e backup, se `BACKUP_DISK` punta a S3), vedi §4 |
 
 ---
 
@@ -130,7 +131,8 @@ Anche quando il servizio sottostante è condiviso, questi valori devono essere d
 | `APP_KEY`                                         | stessa chiave ⇒ i token e i cookie di staging sono validi in produzione |
 | `APP_NAME`                                        | è ciò che fa divergere i prefissi Redis di default                      |
 | `APP_URL`                                         | usato nei link delle mail (reset password)                              |
-| `AWS_BUCKET` (backup) e bucket media              | un `migrate:fresh` di staging altrimenti tocca lo storage di produzione |
+| `AWS_BUCKET` (media)                              | un `migrate:fresh` di staging altrimenti tocca lo storage di produzione |
+| percorso host del volume `storage/backups` (vedi §5) | stesso motivo, lato backup: due container non devono scrivere nello stesso path |
 | `REVERB_APP_ID` / `REVERB_APP_KEY` / `..._SECRET` | credenziali websocket distinte                                          |
 | `HORIZON_USERNAME` / `HORIZON_PASSWORD`           | Basic Auth della dashboard (`HorizonBasicAuth`)                         |
 | `LOG_VIEWER_*`                                    | idem per `/log-viewer`                                                  |
@@ -139,7 +141,47 @@ Anche quando il servizio sottostante è condiviso, questi valori devono essere d
 
 ---
 
-## 5. Rete e reverse proxy
+## 5. Backup: volume locale
+
+Il disco di backup di default (`config/backup.php`, disco `local-backup`) è **locale**:
+`storage/backups`, cioè `/var/www/storage/backups` nel container (`entrypoint.sh` lavora da
+`/var/www`). `backup:run` gira ogni 3 giorni, `backup:clean` tiene solo gli ultimi 5 archivi.
+
+**Va bind-montato**, altrimenti i backup vivono solo nel layer effimero del container e si perdono
+al prossimo deploy o `docker compose up --force-recreate`:
+
+```yaml
+services:
+  matches-api:
+    volumes:
+      - '/opt/matches/backups:/var/www/storage/backups'
+```
+
+`entrypoint.sh` crea la cartella e sistema i permessi (`chown www-data:www-data`) a ogni boot, come
+per il resto di `storage/` — non serve prepararla a mano sul VPS.
+
+**Staging usa un path host diverso**, per lo stesso motivo di §4: Spatie namespacea già i backup
+per `APP_NAME` in una sottocartella, quindi condividere il path non li mischierebbe — ma tenerli
+separati evita che un `backup:clean` scritto male in un ambiente tocchi i file dell'altro:
+
+```yaml
+services:
+  matches-api-staging:
+    volumes:
+      - '/opt/matches/staging-backups:/var/www/storage/staging-backups'
+```
+
+(e in questo caso serve anche un secondo disco, ad es. `staging-backups`, in
+`config/filesystems.php` con `root => storage_path('staging-backups')`, così le due istanze non
+condividono `storage_path('backups')` neanche a livello di config Laravel.)
+
+Se preferisci ancora S3 per un ambiente specifico, imposta `BACKUP_DISK=s3-backup` e compila le
+`BACKUP_AWS_*` di quell'ambiente (vedi `.env.example`) — il disco locale è il default, non l'unica
+opzione.
+
+---
+
+## 6. Rete e reverse proxy
 
 Le porte *dentro* al container non cambiano (`:80` nginx, `REVERB_SERVER_PORT` per Reverb):
 sono container distinti, quindi non collidono. Deve differire solo la **porta pubblicata sull'host** e la mappatura per
@@ -161,7 +203,7 @@ Ricorda che `REVERB_SERVER_PORT` è la porta di **ascolto**, mentre `REVERB_HOST
 
 ---
 
-## 6. Limiti di risorse per lo staging
+## 7. Limiti di risorse per lo staging
 
 Staging deve stare nel margine lasciato dalla produzione. Riduci i due pool che dominano il worst case:
 
@@ -178,7 +220,7 @@ dello stack che può crescere senza limite.
 
 ---
 
-## 7. Cosa resta NON isolato
+## 8. Cosa resta NON isolato
 
 Due punti che l'opzione "container condivisi" non risolve:
 
@@ -199,7 +241,7 @@ Nota su Reverb: il pub/sub Redis **ignora l'indice del database**. Oggi non è u
 
 ---
 
-## 8. Build e deploy
+## 9. Build e deploy
 
 - **Non buildare sul VPS.** `pnpm generate` della dashboard richiede
   `NODE_OPTIONS=--max-old-space-size=4096`: con due ambienti sulla stessa macchina questo passa da consiglio a vincolo.
@@ -210,7 +252,7 @@ Nota su Reverb: il pub/sub Redis **ignora l'indice del database**. Oggi non è u
 
 ---
 
-## 9. Accesso alle UI di amministrazione
+## 10. Accesso alle UI di amministrazione
 
 Horizon, log-viewer e Arcane **non sono raggiungibili da internet**. L'unico utente è l'operatore, e per un utente
 singolo configurare OAuth è complessità senza guadagno: si arrivano con un `LocalForward` SSH, quindi
@@ -235,7 +277,7 @@ proxy, identico per traffico pubblico e tunnelato. **L'IP non discrimina, la por
 
 ### Pubblicazione: solo su loopback
 
-La porta interna è `:8081` per entrambi gli ambienti (sono container distinti, non collidono — vedi §5). Cambia solo la
+La porta interna è `:8081` per entrambi gli ambienti (sono container distinti, non collidono — vedi §6). Cambia solo la
 porta sull'host:
 
 ```yaml
@@ -312,7 +354,7 @@ repo e `composer.json` non li pubblica, quindi in locale con Sail `/log-viewer` 
 
 **Compose in git, build in CI, Arcane fa solo log, restart, stats ed exec.** Arcane sa tenere i progetti Compose nel
 suo volume dati, ma quel file non è versionato: se diventa lui la fonte di verità della configurazione, il primo drift
-lo scopri durante un torneo. E non usare il suo volume `/builds`: buildare sul VPS contraddice §8.
+lo scopri durante un torneo. E non usare il suo volume `/builds`: buildare sul VPS contraddice §9.
 
 Arcane non risolve nessuno dei limiti di `docs/vps_costs/README.md` §7 — l'alta disponibilità resta zero, il deploy ha
 ancora downtime, il restore resta non testato.

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\ReorderMatchRecordsAction;
 use App\Enums\MatchRecordStatusEnum;
 use App\Enums\TournamentStatusEnum;
 use App\Models\Scopes\TournamentScope;
@@ -64,7 +65,7 @@ class Tournament extends Model implements HasMedia
 
     public function disciplines(): BelongsToMany
     {
-        return $this->belongsToMany(Discipline::class)->orderBy('label')->orderBy('id');
+        return $this->belongsToMany(Discipline::class)->orderBy('sort')->orderBy('label')->orderBy('id');
     }
 
     public function coverMedia(): MorphOne
@@ -131,6 +132,10 @@ class Tournament extends Model implements HasMedia
             foreach ($service->generateMatchRecords() as $attributes) {
                 MatchRecord::create($attributes);
             }
+
+            // Only the explicit matchmaking run renumbers the card; editing a
+            // discipline's sort from the CRUD must leave existing cards alone.
+            ReorderMatchRecordsAction::sortByDiscipline($this->id);
 
             $this->matchmaking_issues = $service->getMatchmakingIssues();
             $this->saveQuietly();

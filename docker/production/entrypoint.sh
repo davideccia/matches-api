@@ -11,6 +11,7 @@ mkdir -p \
     storage/app/public \
     storage/app/private \
     storage/app/backup-temp \
+    storage/backups \
     storage/framework/{cache/data,sessions,views} \
     storage/logs
 chown -R www-data:www-data storage bootstrap/cache

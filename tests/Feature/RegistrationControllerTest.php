@@ -32,7 +32,7 @@ class RegistrationControllerTest extends TestCase
 
         $response->assertJsonStructure([
             'data' => [
-                ['id', 'athlete_id', 'tournament_id', 'discipline_id', 'weight_category_id', 'paid_at', 'arrived', 'weight_in', 'notes'],
+                ['id', 'athlete_id', 'tournament_id', 'discipline_id', 'weight_category_id', 'paid_at', 'privacy_accepted_at', 'arrived', 'weight_in', 'notes'],
             ],
         ]);
     }
@@ -243,6 +243,28 @@ class RegistrationControllerTest extends TestCase
         ])->assertStatus(409);
     }
 
+    public function test_store_allows_setting_privacy_accepted_at(): void
+    {
+        $this->authenticate();
+
+        $payload = [
+            'athlete_id' => Athlete::factory()->create()->id,
+            'tournament_id' => Tournament::factory()->create()->id,
+            'discipline_id' => Discipline::factory()->create()->id,
+            'weight_category_id' => WeightCategory::factory()->create()->id,
+            'arrived' => false,
+            'privacy_accepted_at' => now()->toDateTimeString(),
+        ];
+
+        $this->postJson('/api/admin/registrations', $payload)
+            ->assertCreated();
+
+        $this->assertDatabaseHas('registrations', [
+            'athlete_id' => $payload['athlete_id'],
+            'tournament_id' => $payload['tournament_id'],
+        ]);
+    }
+
     public function test_store_requires_authentication(): void
     {
         $this->postJson('/api/admin/registrations', [])->assertUnauthorized();
@@ -300,6 +322,30 @@ class RegistrationControllerTest extends TestCase
             'id' => $registration->id,
             'arrived' => true,
             'notes' => 'updated',
+        ]);
+    }
+
+    public function test_update_rejects_a_change_to_privacy_accepted_at(): void
+    {
+        $this->authenticate();
+
+        $registration = Registration::factory()->create();
+
+        $payload = [
+            'athlete_id' => $registration->athlete_id,
+            'tournament_id' => $registration->tournament_id,
+            'discipline_id' => $registration->discipline_id,
+            'weight_category_id' => $registration->weight_category_id,
+            'arrived' => $registration->arrived,
+            'privacy_accepted_at' => now()->toDateTimeString(),
+        ];
+
+        $this->putJson("/api/admin/registrations/{$registration->id}", $payload)
+            ->assertStatus(400);
+
+        $this->assertDatabaseHas('registrations', [
+            'id' => $registration->id,
+            'privacy_accepted_at' => null,
         ]);
     }
 

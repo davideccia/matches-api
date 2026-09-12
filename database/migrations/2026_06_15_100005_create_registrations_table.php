@@ -15,6 +15,7 @@ return new class extends Migration
             $table->foreignUuid('discipline_id')->constrained('disciplines')->cascadeOnDelete();
             $table->foreignUuid('weight_category_id')->constrained('weight_categories')->cascadeOnDelete();
             $table->timestamp('paid_at')->nullable();
+            $table->timestamp('privacy_accepted_at')->nullable();
             $table->boolean('arrived')->default(false);
             $table->decimal('weight_in')->nullable();
             $table->text('notes')->nullable();

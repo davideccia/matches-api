@@ -424,6 +424,10 @@ class PublicRegistrationFormControllerTest extends TestCase
             'tournament_id' => $payload['tournament_id'],
             'discipline_id' => $payload['discipline_id'],
         ]);
+
+        $registration = Registration::where('tournament_id', $payload['tournament_id'])->firstOrFail();
+        $this->assertNotNull($registration->privacy_accepted_at);
+        $this->assertTrue($registration->privacy_accepted_at->diffInMinutes(now()) < 1);
     }
 
     public function test_store_registration_reuses_an_existing_athlete_without_overwriting_it(): void
@@ -517,6 +521,7 @@ class PublicRegistrationFormControllerTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonMissingPath('data.paid_at');
+        $response->assertJsonMissingPath('data.privacy_accepted_at');
         $response->assertJsonMissingPath('data.arrived');
         $response->assertJsonMissingPath('data.weight_in');
         $response->assertJsonMissingPath('data.notes');

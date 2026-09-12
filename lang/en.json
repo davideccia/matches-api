@@ -161,6 +161,7 @@
     "errors.registration_duplicate": "Cannot save: athlete is already registered for this tournament, discipline and weight category.",
     "errors.registration_has_match_records": "Cannot delete: registration has existing match records.",
     "errors.experience_tier_overlapping_range": "Cannot save: an enabled experience tier already covers this match count range.",
+    "errors.registration_privacy_accepted_at_immutable": "Cannot save: the privacy acceptance timestamp cannot be changed.",
     "enums.athlete_gender.male": "Male",
     "enums.athlete_gender.female": "Female",
     "enums.athlete_gender.hybrid": "Hybrid",

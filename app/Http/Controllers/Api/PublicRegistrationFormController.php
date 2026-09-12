@@ -126,6 +126,7 @@ class PublicRegistrationFormController extends Controller
             $registration = new Registration;
             $registration->fill([
                 'athlete_id' => $athlete->id,
+                'privacy_accepted_at' => now(),
                 ...Arr::only($validated, ['tournament_id', 'discipline_id', 'weight_category_id']),
             ])->saveOrFail();
 

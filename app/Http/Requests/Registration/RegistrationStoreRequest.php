@@ -12,6 +12,15 @@ class RegistrationStoreRequest extends FormRequest
         prepareForValidation as injectWithPrepare;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->injectWithPrepare();
+
+        $this->merge([
+            'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return auth()->hasUser();
@@ -25,20 +34,12 @@ class RegistrationStoreRequest extends FormRequest
             'discipline_id' => ['required', 'string', 'uuid', 'exists:disciplines,id'],
             'weight_category_id' => ['required', 'string', 'uuid', 'exists:weight_categories,id'],
             'paid_at' => ['nullable', 'date'],
+            'privacy_accepted_at' => ['nullable', 'date'],
             'arrived' => ['required', 'boolean'],
             'weight_in' => ['nullable', 'numeric'],
             'notes' => ['nullable', 'string'],
             'with' => ['nullable', 'array'],
             'with.*' => [Rule::in([])],
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        $this->injectWithPrepare();
-
-        $this->merge([
-            'tournament_id' => $this->input('tournament_id', $this->tournament?->id),
-        ]);
     }
 }

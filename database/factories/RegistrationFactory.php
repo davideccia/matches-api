@@ -27,6 +27,7 @@ class RegistrationFactory extends Factory
             'discipline_id' => Discipline::factory(),
             'weight_category_id' => WeightCategory::factory(),
             'paid_at' => null,
+            'privacy_accepted_at' => null,
             'arrived' => false,
             'weight_in' => null,
             'notes' => null,

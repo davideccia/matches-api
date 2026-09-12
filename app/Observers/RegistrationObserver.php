@@ -10,7 +10,10 @@ class RegistrationObserver
 
     public function created(Registration $registration): void {}
 
-    public function updating(Registration $registration): void {}
+    public function updating(Registration $registration): void
+    {
+        abort_if($registration->isDirty('privacy_accepted_at'), 400, __('errors.registration_privacy_accepted_at_immutable'));
+    }
 
     public function updated(Registration $registration): void {}
 

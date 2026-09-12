@@ -161,6 +161,7 @@
     "errors.registration_duplicate": "Impossibile salvare: l'atleta è già iscritto a questo torneo, disciplina e categoria di peso.",
     "errors.registration_has_match_records": "Impossibile eliminare: l'iscrizione ha degli incontri associati.",
     "errors.experience_tier_overlapping_range": "Impossibile salvare: esiste già un livello di esperienza attivo che copre questo intervallo di incontri.",
+    "errors.registration_privacy_accepted_at_immutable": "Impossibile salvare: la data di accettazione della privacy non può essere modificata.",
     "enums.athlete_gender.male": "Maschile",
     "enums.athlete_gender.female": "Femminile",
     "enums.athlete_gender.hybrid": "Misto",

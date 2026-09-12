@@ -25,6 +25,7 @@ class Registration extends Model
         'discipline_id',
         'weight_category_id',
         'paid_at',
+        'privacy_accepted_at',
         'arrived',
         'weight_in',
         'notes',
@@ -38,6 +39,7 @@ class Registration extends Model
             'discipline_id' => 'string',
             'weight_category_id' => 'string',
             'paid_at' => 'datetime',
+            'privacy_accepted_at' => 'datetime',
             'weight_in' => 'float',
             'arrived' => 'boolean',
         ];

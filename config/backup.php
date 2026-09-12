@@ -13,8 +13,10 @@ use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes;
 use Spatie\DbDumper\Compressors\GzipCompressor;
 
 return [
+    'enabled' => env('BACKUP_ENABLED', false),
 
     'backup' => [
+
         /*
          * The name of this application. You can use this name to monitor
          * the backups.

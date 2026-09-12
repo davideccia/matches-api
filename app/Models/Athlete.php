@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
@@ -89,6 +91,7 @@ class Athlete extends Model implements HasMedia
             'birth_date' => 'date',
             'gender' => AthleteGenderEnum::class,
             'match_records_history' => 'array',
+            'anonymized_at' => 'datetime',
         ];
     }
 
@@ -250,5 +253,34 @@ class Athlete extends Model implements HasMedia
             ->select('registrations.athlete_id');
 
         return $builder->whereIn('id', $registrationsAthletes);
+    }
+
+    /**
+     * Athletes eligible for GDPR retention anonymization: not yet anonymized, and whose most
+     * recent completed match was fought before $cutoffDate. An athlete who never fought a
+     * completed match is never eligible, regardless of how old their registrations are.
+     */
+    #[Scope]
+    public function retentionExpired(Builder $builder, Carbon $cutoffDate): Builder
+    {
+        $matchRecordsTable = (new MatchRecord)->getTable();
+        $tournamentsTable = (new Tournament)->getTable();
+
+        $hasCompletedMatch = function (QueryBuilder $query) use ($matchRecordsTable, $tournamentsTable): QueryBuilder {
+            return $query
+                ->from($matchRecordsTable)
+                ->join($tournamentsTable, "{$tournamentsTable}.id", '=', "{$matchRecordsTable}.tournament_id")
+                ->where("{$matchRecordsTable}.status", MatchRecordStatusEnum::COMPLETED->value)
+                ->where(fn (QueryBuilder $q) => $q
+                    ->whereColumn("{$matchRecordsTable}.red_corner_id", 'athletes.id')
+                    ->orWhereColumn("{$matchRecordsTable}.blue_corner_id", 'athletes.id')
+                );
+        };
+
+        return $builder
+            ->whereNull('anonymized_at')
+            ->whereExists($hasCompletedMatch)
+            ->whereNotExists(fn (QueryBuilder $query) => $hasCompletedMatch($query)
+                ->where("{$tournamentsTable}.date", '>=', $cutoffDate));
     }
 }

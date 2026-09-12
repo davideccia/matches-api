@@ -13,13 +13,14 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->string('full_name');
-            $table->date('birth_date');
-            $table->string('gender');
+            $table->date('birth_date')->nullable();
+            $table->string('gender')->nullable();
             $table->string('tax_number')->unique();
             $table->string('email');
             $table->string('phone_number')->nullable();
             $table->string('team_name')->nullable();
             $table->json('match_records_history')->nullable();
+            $table->timestamp('anonymized_at')->nullable()->index();
             $table->timestamps();
         });
     }

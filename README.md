@@ -25,7 +25,7 @@ lifecycle: schedule a tournament, register athletes, build the ordered fight car
 as bouts change.
 
 > [!NOTE]
-> Dashboard [**here**](https://codeberg.org/davideccia/matches-dashboard-laravel)
+> Dashboard [**here**](https://github.com/davideccia/matches-dashboard)
 
 ## Features
 

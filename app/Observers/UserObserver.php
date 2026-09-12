@@ -20,7 +20,7 @@ class UserObserver
     public function created(User $user): void
     {
         if ($user->generatedPassword !== null) {
-            $user->notify(new UserCredentialsNotification($user->email, $user->username, $user->generatedPassword));
+            $user->notify(new UserCredentialsNotification($user->email, $user->username));
         }
     }
 

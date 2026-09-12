@@ -14,7 +14,6 @@ class UserCredentialsNotification extends Notification implements ShouldQueue
     public function __construct(
         public readonly string $email,
         public readonly string $username,
-        #[\SensitiveParameter] public readonly string $password,
     ) {}
 
     /**
@@ -32,7 +31,6 @@ class UserCredentialsNotification extends Notification implements ShouldQueue
             ->markdown('emails.auth.user-credentials', [
                 'email' => $this->email,
                 'username' => $this->username,
-                'password' => $this->password,
             ]);
     }
 }

@@ -1,15 +1,13 @@
 <x-mail::message>
 # Ciao, {{ $username }}
 
-È stato creato un account per te su {{ config('app.name') }}. Ecco le tue credenziali di accesso:
+È stato creato un account per te su {{ config('app.name') }}. Ecco la tua email di accesso:
 
 <x-mail::panel>
 **Email:** {{ $email }}
-
-**Password:** {{ $password }}
 </x-mail::panel>
 
-Per motivi di sicurezza, ti invitiamo a cambiare la password al primo accesso.
+Per motivi di sicurezza, ti invitiamo a eseguire il flusso "Password dimenticata".
 
 Grazie,<br>
 {{ config('app.name') }}

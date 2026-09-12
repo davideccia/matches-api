@@ -120,7 +120,6 @@ class UserControllerTest extends TestCase
             UserCredentialsNotification::class,
             fn (UserCredentialsNotification $notification): bool => $notification->email === $user->email
                 && $notification->username === $user->username
-                && Hash::check($notification->password, $user->password)
         );
     }
 

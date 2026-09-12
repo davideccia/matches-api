@@ -14,7 +14,7 @@ and [Reverb](https://laravel.com/docs/reverb) for real-time WebSocket broadcasti
 ![PHP](https://img.shields.io/badge/PHP-8.5+-777BB4?logo=php&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-PHPUnit_12-3776AB)
 
-[Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Matchmaking](#matchmaking) • [Real-time events](#real-time-events) • [Development](#development) • [Docs](#documentation)
+[Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Matchmaking](#matchmaking) • [Real-time events](#real-time-events) • [Data retention](#data-retention) • [Development](#development) • [Docs](#documentation)
 
 </div>
 
@@ -47,6 +47,8 @@ as bouts change.
   scoreboards.
 - **Public registration form API** — unauthenticated endpoints for athlete self-lookup, self-registration, and PDF
   export.
+- **Data retention (GDPR)** — scheduled jobs anonymize athletes past the retention term, prune expired sessions and API
+  tokens, and an artisan command exports an athlete's full data as CSV for data-portability requests.
 - **PDF generation** — registration confirmations and tournament fight cards (simple or detailed layouts).
 - **Relation sideloading** — clients control eager loading with `?with=relation1,relation2` on any index/show endpoint.
 - **Bilingual** — `en` / `it` responses selected from the `Accept-Language` header.
@@ -325,7 +327,20 @@ Echo.channel(`tournaments.${tournamentId}.match_records`)
 
 > [!NOTE]
 > Broadcasting is queued. `BROADCAST_CONNECTION=reverb` is already the default — to see live events locally you just
-> need a queue worker and the Reverb server running (`composer run queue-ws`, see below).
+> need a queue worker and the Reverb server running (`make dev`, see below).
+
+## Data retention
+
+Three artisan commands cover the athlete-data lifecycle end to end:
+
+| Command                                     | Purpose                                                                                          |
+|----------------------------------------------|---------------------------------------------------------------------------------------------------|
+| `app:anonymize-expired-athletes [--apply]`   | Scrubs name, tax number, email, phone, team, birth date, gender, and photo for athletes whose most recent completed match is more than 5 years old. Dry-run by default (prints a report); pass `--apply` to anonymize. Registrations and match records are left untouched, so tournament history and stats survive. |
+| `app:prune-expired-sessions`                 | Garbage-collects expired rows from the configured session store.                                  |
+| `app:export-athlete-data {athlete} [--disk] [--path]` | Writes a full CSV export (profile, match history, registrations, match records) for one athlete — for data-portability requests. |
+
+All three run daily from `routes/console.php`, alongside `sanctum:prune-expired --hours=24` (expired API tokens,
+`SANCTUM_EXPIRATION` defaults to 7 days) and `auth:clear-resets` (expired password-reset tokens).
 
 ## Development
 

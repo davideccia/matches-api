@@ -109,7 +109,9 @@ The public registration form is a three-step, email-verified flow — it is not 
    number, and the endpoint always answers 204 so it cannot be used as an enumeration oracle.
 3. `POST registration_form/registrations` — `RegistrationVerificationCode::verify()` first (5 wrong guesses burn the
    code; a wrong guess never refreshes the TTL). An existing athlete's record is **never overwritten** by the payload —
-   that would make this endpoint an account takeover.
+   that would make this endpoint an account takeover. `privacy_accepted_at` is stamped server-side with `now()` at
+   creation (never trusted from client input) and is then immutable — `RegistrationObserver::updating` aborts with 400
+   (`errors.registration_privacy_accepted_at_immutable`) if a later update tries to change it.
 
 ## Request / Controller Patterns
 
@@ -246,9 +248,33 @@ API exceptions are always rendered as JSON for `api/*` (`withExceptions` in `boo
 ## Scheduled Work
 
 All scheduling lives in `routes/console.php`: `CleanupTemporaryUploadsCommand` (`app/Console/Commands/`, prunes orphaned
-temporary uploads) every six hours, `horizon:snapshot` every five minutes, and `spatie/laravel-backup` (`backup:clean`/
-`run`/`monitor`) nightly — the backup entries are registered only when the destination disk is actually configured, so
-environments without S3 credentials skip them instead of failing.
+temporary uploads) every six hours, `horizon:snapshot` every five minutes, `AnonymizeExpiredAthletesCommand` +
+`PruneExpiredSessionsCommand` + `sanctum:prune-expired --hours=24` + `auth:clear-resets` daily, and
+`spatie/laravel-backup` (`backup:clean`/`run`/`monitor`) nightly — the backup entries are registered only when the
+destination disk is actually configured, so environments without S3 credentials skip them instead of failing.
+
+## Data Retention & GDPR
+
+- **`AnonymizeExpiredAthletesCommand`** (`app:anonymize-expired-athletes`) — dry-run by default (prints a table via
+  `Athlete::retentionExpired()`); pass `--apply` to actually scrub matching rows through `AnonymizeAthleteAction`.
+  Eligibility (`Athlete::retentionExpired()` scope) requires the athlete to have **at least one completed
+  `MatchRecord`** and for their *most recent* one to be more than 5 years old (`RETENTION_YEARS` on the command) — an
+  athlete who never fought a completed match is never auto-anonymized, regardless of registration age.
+  `AnonymizeAthleteAction::handle()` overwrites name/tax_number/email/phone/team/birth_date/gender, clears the photo
+  media collection, and stamps `anonymized_at`; registrations and match records are left in place (tournament
+  history/stats survive) and the athlete row itself is never deleted — deletion is separately blocked by
+  `AthleteObserver::deleting` once any history exists.
+- **`PruneExpiredSessionsCommand`** (`app:prune-expired-sessions`) — calls the configured session handler's `gc()`
+  using `session.lifetime`. Runs alongside `sanctum:prune-expired --hours=24` (personal access tokens) and
+  `auth:clear-resets` (password reset tokens) to cover the "tokens" and "sessions" parts of retention.
+  `SANCTUM_EXPIRATION` defaults to 10080 minutes (7 days) — see `config/sanctum.php`.
+  `LOG_DAILY_DAYS` (`.env.example`, default 365) bounds how long the `daily` log channel keeps rotated files.
+- **`ExportAthleteDataCommand`** (`app:export-athlete-data {athlete} {--disk=local} {--path=}`) — GDPR data-portability
+  export. `ExportAthleteDataAction::handle()` builds CSV sections (profile, match-records history, registrations,
+  match records) that the command writes to the given disk as `{path}/{section}.csv` (default path
+  `exports/athlete-{id}-{timestamp}`).
+- The `gdpr-compliant` skill (`.claude/skills/gdpr-compliant/`) documents the broader data-rights/security posture
+  this retention tooling implements — activate it when touching personal-data handling, retention, or export code.
 
 ## CI
 
@@ -284,8 +310,9 @@ processes.
 
 There is one feature test per controller in `tests/Feature/` (`{Controller}Test.php`), covering every resource plus
 auth, dashboard, nested tournament routes, and both public controllers, plus cross-cutting suites that are *not*
-controller-shaped: `SecurityHeadersTest`, `HorizonTest`, `LogViewerTest` (basic-auth gates). Unit tests are
-bootstrap-only.
+controller-shaped: `SecurityHeadersTest`, `HorizonTest`, `LogViewerTest` (basic-auth gates), and the retention/export
+commands under `tests/Feature/Commands/` (`AnonymizeExpiredAthletesCommandTest`, `PruneExpiredSessionsCommandTest`,
+`ExportAthleteDataCommandTest`). Unit tests are bootstrap-only.
 
 `Tests\TestCase` (`tests/TestCase.php`) provides the shared setup: `LazilyRefreshDatabase`, response cache forced off
 (so public-endpoint assertions are deterministic), and `$this->authenticate(?User $user)` which `Sanctum::actingAs()` a
@@ -321,6 +348,8 @@ Laravel Boost is wired as an MCP server (`.mcp.json` → `sail artisan boost:mcp
 - `DB_SEED.md` — seeded reference data (disciplines, weight categories, experience tiers).
 - `docs/vps_costs/README.md` — production resource footprint derived from `docker/production/`, VPS sizing and OVHcloud
   cost estimate; also documents the `BACKUP_DISK`/`MEDIA_DISK` Object Storage wiring.
+- `TODO.md` (Italian) — outstanding GDPR gaps tracked against the frontend's `matches-dashboard/TODO.md` (not in this
+  repo); legal/retention decisions belong to the Titolare, not this codebase.
 
 <laravel-boost-guidelines>
 === foundation rules ===

@@ -425,3 +425,8 @@ Both storage concerns are S3-compatible disks, and neither has a safe default:
 - [`DB_SEED.md`](DB_SEED.md) — development seed reference
 - [`CLAUDE.md`](CLAUDE.md) — architecture invariants and conventions
 - [`docs/vps_costs/README.md`](docs/vps_costs/README.md) — production resource footprint, VPS sizing, hosting cost estimate
+
+## License
+
+All rights reserved — see [`LICENSE.md`](LICENSE.md). The source is visible for reading, but any use, copy,
+modification, or distribution requires the author's prior written consent.

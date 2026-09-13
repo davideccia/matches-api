@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -11,6 +13,14 @@ use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
+    private function defineGates(): void
+    {
+        // Overrides Pulse's default gate, which only allows the local
+        // environment. The dashboard is protected by PulseBasicAuth, which
+        // authenticates no user, so the parameter must be nullable.
+        Gate::define('viewPulse', static fn (?Authenticatable $user) => true);
+    }
+
     private function definePasswordDefaults(): void
     {
         Password::defaults(function () {
@@ -47,5 +57,6 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->rateLimiting();
         $this->definePasswordDefaults();
+        $this->defineGates();
     }
 }

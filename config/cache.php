@@ -1,6 +1,5 @@
 <?php
 
-use App\Support\TemporaryFile;
 use Illuminate\Support\Str;
 
 return [
@@ -130,8 +129,12 @@ return [
     | storage. By default, no PHP classes will be unserialized from your
     | cache to prevent gadget chain attacks if your APP_KEY is leaked.
     |
+    | stdClass and Collection are required by Pulse's dashboard cards, which
+    | cache their aggregate query results (row objects and collections of
+    | them) via Cache::remember().
+    |
     */
 
-    'serializable_classes' => [TemporaryFile::class],
+    'serializable_classes' => true,
 
 ];

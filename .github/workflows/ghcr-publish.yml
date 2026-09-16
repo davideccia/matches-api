@@ -1,35 +1,8 @@
-# ==============================================================================
-# Build dell'immagine di produzione e push su GitHub Container Registry (ghcr.io).
-#
-# Traduzione 1:1 di .forgejo/workflows/ghcr-publish.yml per GitHub Actions.
-#
-# Trigger: pubblicazione di una release (non piu' ogni push su main). L'immagine
-# viene taggata `latest` + titolo della release.
-#
-# Il job `tests` gira per primo: `build-push` ha `needs: tests`, quindi
-# nessuna immagine viene pubblicata se la suite PHPUnit fallisce.
-#
-# Runner: `ubuntu-latest` (GitHub-hosted) — a differenza del runner Forgejo
-# (container docker:29-cli / php:8.5-cli nudi) qui git, node e Docker sono
-# già presenti, quindi non serve installarli a mano; PHP e le estensioni sono
-# gestite da shivammathur/setup-php.
-#
-# Auth su ghcr.io: usa il GITHUB_TOKEN generato automaticamente (permessi
-# `packages: write` sotto), non un PAT — a differenza di Forgejo, dove
-# GHCR_USERNAME/GHCR_TOKEN erano necessari perché il runner non ha un token
-# equivalente. Il repo deve avere i package collegati come "public"/visibili
-# secondo le impostazioni desiderate (Settings → Packages).
-#
-# A differenza della dashboard, qui NON ci sono build-arg: l'immagine non
-# incorpora nessuna configurazione. APP_KEY, DB_*, REDIS_*, REVERB_*,
-# HORIZON_*/LOG_VIEWER_* vanno iniettate come environment variable al deploy,
-# quindi la stessa immagine vale per tutti gli ambienti.
-# ==============================================================================
 name: GHCR publish
 
 on:
   release:
-    types: [published]
+    types: [ published ]
   workflow_dispatch:
 
 jobs:
@@ -38,6 +11,8 @@ jobs:
   # (versionato) copiato in .env, e il database e' SQLite su file.
   tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -20,8 +20,9 @@ class PublicTournamentController extends Controller
         $validated = $request->validated();
 
         $tournaments = Tournament::with($validated['with'] ?? [])
-            ->whereIn('status', [TournamentStatusEnum::IN_PROGRESS, TournamentStatusEnum::COMPLETED])
+            ->where('status', TournamentStatusEnum::IN_PROGRESS)
             ->orderByDesc('date')
+            ->orderBy('name')
             ->orderByDesc('id');
 
         if (isset($validated['search'])) {

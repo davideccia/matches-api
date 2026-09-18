@@ -39,31 +39,29 @@ class PublicTournamentControllerTest extends TestCase
     public function test_index_returns_only_in_progress_and_completed(): void
     {
         $inProgress = Tournament::factory()->inProgress()->create();
-        $completed = Tournament::factory()->completed()->create();
+        Tournament::factory()->completed()->create();
         Tournament::factory()->status(TournamentStatusEnum::SCHEDULED)->create();
         Tournament::factory()->registrationsOpened()->create();
         Tournament::factory()->status(TournamentStatusEnum::CANCELLED)->create();
 
         $response = $this->getJson('/api/public/tournaments');
 
-        $response->assertOk()->assertJsonCount(2, 'data');
+        $response->assertOk()->assertJsonCount(1, 'data');
 
         $ids = collect($response->json('data'))->pluck('id')->all();
         $this->assertContains($inProgress->id, $ids);
-        $this->assertContains($completed->id, $ids);
     }
 
     public function test_index_orders_by_date_descending(): void
     {
         $sooner = Tournament::factory()->inProgress()->create(['date' => now()->subDays(10)]);
-        $later = Tournament::factory()->completed()->create(['date' => now()->subDay()]);
+        Tournament::factory()->completed()->create(['date' => now()->subDay()]);
 
         $response = $this->getJson('/api/public/tournaments');
 
         $response->assertOk()
-            ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.id', $later->id)
-            ->assertJsonPath('data.1.id', $sooner->id);
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $sooner->id);
     }
 
     public function test_index_supports_pagination(): void

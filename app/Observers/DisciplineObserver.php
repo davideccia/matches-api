@@ -4,9 +4,15 @@ namespace App\Observers;
 
 use App\Actions\ReorderDisciplinesAction;
 use App\Models\Discipline;
+use Spatie\ResponseCache\Facades\ResponseCache;
 
 class DisciplineObserver
 {
+    public static function saved(Discipline $discipline): void
+    {
+        ResponseCache::clear(['public-disciplines']);
+    }
+
     public function creating(Discipline $discipline): void
     {
         ReorderDisciplinesAction::handleCreating($discipline);
@@ -30,5 +36,8 @@ class DisciplineObserver
         ReorderDisciplinesAction::handleDeleting($discipline);
     }
 
-    public function deleted(Discipline $discipline): void {}
+    public function deleted(Discipline $discipline): void
+    {
+        ResponseCache::clear(['public-disciplines']);
+    }
 }

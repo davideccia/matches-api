@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Actions\ReorderMatchRecordsAction;
 use App\Events\MatchRecordChanged;
 use App\Models\MatchRecord;
+use Spatie\ResponseCache\Facades\ResponseCache;
 
 class MatchRecordObserver
 {
@@ -14,6 +15,8 @@ class MatchRecordObserver
 
         $matchRecord->redCorner?->syncMatchRecordsHistory();
         $matchRecord->blueCorner?->syncMatchRecordsHistory();
+
+        ResponseCache::clear(['public-match-records']);
     }
 
     public function creating(MatchRecord $matchRecord): void
@@ -49,5 +52,7 @@ class MatchRecordObserver
 
         $matchRecord->redCorner?->syncMatchRecordsHistory();
         $matchRecord->blueCorner?->syncMatchRecordsHistory();
+
+        ResponseCache::clear(['public-match-records']);
     }
 }

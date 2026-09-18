@@ -11,6 +11,18 @@ use Tests\TestCase;
 
 class PublicTournamentControllerTest extends TestCase
 {
+    // ---------------------------------------------------------------------
+    // response cache (tournamentsIndex + tournamentMatchRecords)
+    // ---------------------------------------------------------------------
+
+    private function enableResponseCache(): void
+    {
+        config([
+            'responsecache.enabled' => true,
+            'responsecache.debug.enabled' => true,
+        ]);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -245,5 +257,61 @@ class PublicTournamentControllerTest extends TestCase
 
         $this->getJson("/api/public/tournaments/{$tournament->id}/match_records/current")
             ->assertNotFound();
+    }
+
+    public function test_tournaments_index_response_is_cached_on_second_request(): void
+    {
+        $this->enableResponseCache();
+
+        Tournament::factory()->inProgress()->create();
+
+        $this->getJson('/api/public/tournaments')->assertHeader('X-Cache-Status', 'MISS');
+        $this->getJson('/api/public/tournaments')->assertHeader('X-Cache-Status', 'HIT');
+    }
+
+    public function test_tournaments_index_cache_is_invalidated_when_a_tournament_changes(): void
+    {
+        $this->enableResponseCache();
+
+        $tournament = Tournament::factory()->inProgress()->create();
+
+        $this->getJson('/api/public/tournaments')->assertJsonCount(1, 'data');
+        $this->getJson('/api/public/tournaments')->assertHeader('X-Cache-Status', 'HIT');
+
+        $tournament->update(['name' => 'Updated Name']);
+
+        $this->getJson('/api/public/tournaments')
+            ->assertHeader('X-Cache-Status', 'MISS')
+            ->assertJsonPath('data.0.name', 'Updated Name');
+    }
+
+    public function test_match_records_response_is_cached_on_second_request(): void
+    {
+        $this->enableResponseCache();
+
+        $tournament = Tournament::factory()->inProgress()->create();
+        MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records")->assertHeader('X-Cache-Status', 'MISS');
+        $this->getJson("/api/public/tournaments/{$tournament->id}/match_records")->assertHeader('X-Cache-Status', 'HIT');
+    }
+
+    public function test_match_records_cache_is_invalidated_when_a_match_record_changes(): void
+    {
+        $this->enableResponseCache();
+
+        $tournament = Tournament::factory()->inProgress()->create();
+        $matchRecord = MatchRecord::factory()->status(MatchRecordStatusEnum::SCHEDULED)->create(['tournament_id' => $tournament->id]);
+
+        $url = "/api/public/tournaments/{$tournament->id}/match_records";
+
+        $this->getJson($url)->assertJsonPath('data.0.status', MatchRecordStatusEnum::SCHEDULED->value);
+        $this->getJson($url)->assertHeader('X-Cache-Status', 'HIT');
+
+        $matchRecord->update(['status' => MatchRecordStatusEnum::IN_PROGRESS]);
+
+        $this->getJson($url)
+            ->assertHeader('X-Cache-Status', 'MISS')
+            ->assertJsonPath('data.0.status', MatchRecordStatusEnum::IN_PROGRESS->value);
     }
 }

@@ -111,6 +111,10 @@ LABEL org.opencontainers.image.title="matches-api" \
 # nightly `backup:run` scheduled in routes/console.php (gzip is already in the
 # base image, and the zip extension is built in the builder stage).
 #
+# procps provides `top`: laravel/pulse's Servers recorder shells out to
+# `top -bn1` on every pulse:check beat to read CPU usage. Without it the
+# container logs `sh: 1: top: not found` and the CPU card stays at 0.
+#
 # apt reads ASCII-armored keys directly via signed-by, so gnupg is not needed.
 RUN set -eux; \
     apt-get update; \
@@ -121,6 +125,7 @@ RUN set -eux; \
         > /etc/apt/sources.list.d/pgdg.list; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
+        procps \
         libpq5 \
         libicu72 \
         libzip4 \

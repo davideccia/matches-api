@@ -1,4 +1,5 @@
 services:
+
     laravel.test:
         build:
             context: './docker/8.5'
@@ -25,6 +26,32 @@ services:
             - pgsql
             - redis
             - mailpit
+
+    production:
+        profiles:
+            - production
+        build:
+            context: .
+            dockerfile: docker/production/Dockerfile
+        image: matches-api/production
+        env_file:
+            - .env.production
+        ports:
+            - '${PROD_APP_PORT:-8090}:80'
+            - '${PROD_REVERB_PORT:-8091}:8080'
+            - '127.0.0.1:${PROD_ADMIN_PORT:-8092}:8081'
+        volumes:
+            - ./docker/production/volumes/storage/:/var/www/storage
+        networks:
+            - sail
+        depends_on:
+            pgsql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            mailpit:
+                condition: service_started
+
     pgsql:
         image: 'postgres:18-alpine'
         ports:
@@ -50,17 +77,9 @@ services:
                 - '${DB_USERNAME}'
             retries: 3
             timeout: 5s
+
     redis:
         image: 'redis:alpine'
-        # One instance holds the queue (REDIS_DB), the cache (REDIS_CACHE_DB) and
-        # Horizon's metadata, and eviction is global across databases. The policy
-        # is therefore load-bearing, not tuning: 'noeviction' (the Redis default)
-        # would let the unbounded response cache reach the ceiling and then fail
-        # EVERY write, queue pushes included. 'volatile-lru' evicts only keys
-        # carrying a TTL -- the cache and Horizon's metrics -- while the queue
-        # list and the reserved-job set have none and so are never dropped.
-        # Mirror these flags on the production redis container. Note that a bare
-        # number is BYTES: `--maxmemory 256` means 256 bytes, not 256 MB.
         command:
             - redis-server
             - '--maxmemory'
@@ -82,6 +101,7 @@ services:
                 - ping
             retries: 3
             timeout: 5s
+
     mailpit:
         image: 'axllent/mailpit:latest'
         ports:
@@ -89,74 +109,11 @@ services:
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
         networks:
             - sail
-    # Production image, built from docker/production/Dockerfile. Opt-in only:
-    # it sits behind the "production" profile so `sail up` / `docker compose up`
-    # never starts it alongside laravel.test. Launch it explicitly instead:
-    #   docker compose --profile production up --build production
-    # It reuses the same pgsql/redis containers as Sail (different DB/Redis
-    # index, see below) so there is nothing extra to provision.
-    production:
-        profiles:
-            - production
-        build:
-            context: .
-            dockerfile: docker/production/Dockerfile
-        image: matches-api/production
-        ports:
-            - '${PROD_APP_PORT:-8090}:80'
-            - '${PROD_REVERB_PORT:-8091}:8080'
-            - '127.0.0.1:${PROD_ADMIN_PORT:-8092}:8081'
-        volumes:
-            - ./docker/production/volumes/storage/:/var/www/storage
-        environment:
-            APP_NAME: '${APP_NAME:-Laravel}'
-            APP_ENV: production
-            APP_KEY: '${APP_KEY}'
-            APP_DEBUG: 'false'
-            APP_URL: 'http://localhost:${PROD_APP_PORT:-8090}'
-            LOG_CHANNEL: daily
-            DB_CONNECTION: pgsql
-            DB_HOST: pgsql
-            DB_PORT: 5432
-            DB_DATABASE: '${DB_DATABASE}'
-            DB_USERNAME: '${DB_USERNAME}'
-            DB_PASSWORD: '${DB_PASSWORD:-secret}'
-            # Different indexes than Sail's default (0), so cache/session/queue
-            # data and Horizon's job list don't collide between the two stacks.
-            REDIS_HOST: redis
-            REDIS_PORT: 6379
-            REDIS_DB: '${PROD_REDIS_DB:-4}'
-            REDIS_CACHE_DB: '${PROD_REDIS_CACHE_DB:-5}'
-            REDIS_PREFIX: 'matches_production-database-'
-            HORIZON_PREFIX: 'matches_production_horizon:'
-            LARAVEL_PDF_DRIVER: dompdf
-            RUN_MIGRATIONS: '${PROD_RUN_MIGRATIONS:-true}'
-            HORIZON_USERNAME: '${PROD_HORIZON_USERNAME:-admin}'
-            HORIZON_PASSWORD: '${PROD_HORIZON_PASSWORD:-admin}'
-            LOG_VIEWER_USERNAME: '${PROD_LOG_VIEWER_USERNAME:-admin}'
-            LOG_VIEWER_PASSWORD: '${PROD_LOG_VIEWER_PASSWORD:-admin}'
-            PULSE_USERNAME: '${PROD_PULSE_USERNAME:-admin}'
-            PULSE_PASSWORD: '${PROD_PULSE_PASSWORD:-admin}'
-            BACKUP_DISK: '${BACKUP_DISK:-local-backup}'
-            BACKUP_AWS_ACCESS_KEY_ID: '${BACKUP_AWS_ACCESS_KEY_ID}'
-            BACKUP_AWS_SECRET_ACCESS_KEY: '${BACKUP_AWS_SECRET_ACCESS_KEY}'
-            BACKUP_AWS_DEFAULT_REGION: '${BACKUP_AWS_DEFAULT_REGION}'
-            BACKUP_AWS_BUCKET: '${BACKUP_AWS_BUCKET}'
-            BACKUP_AWS_URL: '${BACKUP_AWS_URL}'
-            BACKUP_AWS_ENDPOINT: '${BACKUP_AWS_ENDPOINT}'
-            BACKUP_AWS_USE_PATH_STYLE_ENDPOINT: '${BACKUP_AWS_USE_PATH_STYLE_ENDPOINT}'
-            BACKUP_ARCHIVE_PASSWORD: '${BACKUP_ARCHIVE_PASSWORD}'
-            BACKUP_NOTIFICATION_EMAIL: '${BACKUP_NOTIFICATION_EMAIL}'
-        networks:
-            - sail
-        depends_on:
-            pgsql:
-                condition: service_healthy
-            redis:
-                condition: service_healthy
+
 networks:
     sail:
         driver: bridge
+
 volumes:
     sail-pgsql:
         driver: local

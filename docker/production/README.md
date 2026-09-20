@@ -4,6 +4,11 @@ L'immagine `matches-api` (`Dockerfile`) è la stessa per tutti gli ambienti: **n
 ogni impostazione arriva come variabile d'ambiente al deploy (`entrypoint.sh` fa `artisan optimize` + `migrate --force`
 al boot).
 
+L'elenco autoritativo di quelle variabili è [`.env.production.example`](../../.env.production.example): ha le stesse
+chiavi di `.env.example` con i valori di produzione, e il servizio `production` di `compose.yaml` lo passa al container
+con `env_file` (`cp .env.production.example .env.production`, che è in `.gitignore`). Per un secondo ambiente sullo
+stesso VPS si parte da quella copia e si cambiano solo le variabili elencate qui sotto.
+
 Questo documento descrive come far convivere **produzione e staging su un unico VPS**
 condividendo i container `postgres` e `redis`. Per il dimensionamento e i costi vedi
 [`docs/vps_costs/README.md`](../../docs/vps_costs/README.md) — l'opzione qui descritta è la §6

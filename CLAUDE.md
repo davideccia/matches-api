@@ -290,11 +290,20 @@ alongside `postgres:17-alpine` and `redis:7-alpine`. Inside the app container, s
 the scheduler; `entrypoint.sh` runs `artisan optimize` + `migrate --force` on boot. Local dev is Sail and unaffected by
 these files.
 
-**There is no `compose.production.yml` and no `.env.production.example` in this repo** — `README.md` (Deployment
-section) still claims both, and its `docker compose -f compose.production.yml up -d --build` command will fail. The web
-server is nginx, not Caddy; there is no `Caddyfile` anywhere. No `.env` is baked into the image: every setting
-(`APP_KEY`, `DB_*`, `REDIS_*`, `LOG_CHANNEL=daily`, `LARAVEL_PDF_DRIVER=dompdf`, `HORIZON_*`/`LOG_VIEWER_*` credentials)
-must be injected as an environment variable at deploy time. The orchestration itself is currently undocumented.
+**There is no `compose.production.yml`** — the web server is nginx, not Caddy, and there is no `Caddyfile` anywhere.
+No `.env` is baked into the image (`docker/production/Dockerfile.dockerignore` excludes `.env*`): every setting is
+injected as an environment variable at deploy time, and `.env.production.example` is the authoritative list. It mirrors
+`.env.example` **key for key** from the `APPLICATION` section down — same keys, same order, production values — and only
+diverges on host-side plumbing (Sail ports, `SAIL_XDEBUG_*`, `PROD_*` port mappings and `VITE_*` live only in
+`.env.example`; `RUN_MIGRATIONS`, read by `entrypoint.sh`, only in `.env.production.example`). Add a new variable to
+both files.
+
+The `production` service in `compose.yaml` (behind the `production` profile) is a **local** try-out: it builds that image
+and passes `.env.production` — a gitignored copy of the example — with `env_file` rather than an inline `environment:`
+block, so the variable list is the same locally and on the VPS. A missing `.env.production` fails
+`docker compose --profile production` loudly and is invisible to every other profile, so plain `sail up` is unaffected.
+Host port mappings stay in the root `.env` (`PROD_APP_PORT`/`PROD_REVERB_PORT`/`PROD_ADMIN_PORT`, the last on loopback
+only) because compose interpolates them before the container exists. Real orchestration remains undocumented.
 
 TLS is terminated by a reverse proxy in *front* of the container, which maps hostnames onto the two published ports:
 `api.<domain>` → `:80` (API, `/horizon`, `/log-viewer`) and `reverb.<domain>` → `:8080` (websockets). That is why

@@ -385,11 +385,22 @@ handing off to supervisord.
 DOCKER_BUILDKIT=1 docker build -f docker/production/Dockerfile -t matches-api .
 ```
 
+No `.env` is baked into the image: every setting is injected as an environment variable at runtime.
+`.env.production.example` is the template for that list — it mirrors `.env.example` key for key, with production values:
+
+```bash
+cp .env.production.example .env.production   # gitignored, fill in APP_KEY and the dashboard passwords
+docker compose --profile production up --build production
+```
+
+The `production` service in `compose.yaml` hands that file to the container with `env_file`, and reuses Sail's
+`pgsql`/`redis` containers on separate Redis indexes (4/5). Host ports stay in the root `.env` (`PROD_APP_PORT`,
+`PROD_REVERB_PORT`, `PROD_ADMIN_PORT`), because compose maps them before the container exists.
+
 > [!IMPORTANT]
-> **This repo does not ship a `compose.production.yml` or a `.env.production.example`.** Orchestration and secret
-> delivery are up to your deploy target. No `.env` is baked into the image: every setting (`APP_KEY`, `DB_*`, `REDIS_*`,
-> `LOG_CHANNEL=daily`, `LARAVEL_PDF_DRIVER=dompdf`, `HORIZON_*` / `LOG_VIEWER_*` credentials) must be injected as an
-> environment variable at runtime.
+> **This repo does not ship a `compose.production.yml`.** The `production` profile above is a local try-out on top of
+> the Sail stack; real orchestration and secret delivery are up to your deploy target, which must inject the same
+> variables as `.env.production.example`.
 
 ### TLS and hostnames
 

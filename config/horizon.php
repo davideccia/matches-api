@@ -11,6 +11,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Notification Email
+    |--------------------------------------------------------------------------
+    |
+    | Address that receives the LongWaitDetected alert configured under
+    | 'waits' below. Read through config() rather than env() because
+    | `artisan optimize` caches the configuration at boot. Leave it unset to
+    | disable the alert: the notification's via() filters out a null address.
+    |
+    */
+
+    'notification_email' => env('HORIZON_NOTIFICATION_EMAIL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon Name
     |--------------------------------------------------------------------------
     |
@@ -222,10 +236,24 @@ return [
     'environments' => [
         'production' => [
             'supervisor-1' => [
+                // The only queued work is the three ShouldQueue notifications in
+                // app/Notifications. Three processes cover that with headroom;
+                // the ceiling also bounds worst-case RAM at 3 x 128M, which
+                // matters because php-fpm (pm.max_children x memory_limit),
+                // Reverb, Pulse and the scheduler share the same container.
                 'minProcesses' => 1,
-                'maxProcesses' => 10,
+                'maxProcesses' => 3,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
+                // Mail delivery fails in bursts. Without a backoff the three
+                // tries are spent within seconds of an SMTP outage; the array is
+                // indexed per attempt by Worker::calculateBackoff().
+                'backoff' => [10, 60],
+                // Workers share CPU with php-fpm serving API requests. A
+                // positive niceness keeps queue bursts from delaying responses;
+                // Horizon applies it with proc_nice() on the supervisor and the
+                // worker children inherit it.
+                'nice' => 5,
             ],
         ],
 

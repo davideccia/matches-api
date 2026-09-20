@@ -52,6 +52,23 @@ services:
             timeout: 5s
     redis:
         image: 'redis:alpine'
+        # One instance holds the queue (REDIS_DB), the cache (REDIS_CACHE_DB) and
+        # Horizon's metadata, and eviction is global across databases. The policy
+        # is therefore load-bearing, not tuning: 'noeviction' (the Redis default)
+        # would let the unbounded response cache reach the ceiling and then fail
+        # EVERY write, queue pushes included. 'volatile-lru' evicts only keys
+        # carrying a TTL -- the cache and Horizon's metrics -- while the queue
+        # list and the reserved-job set have none and so are never dropped.
+        # Mirror these flags on the production redis container. Note that a bare
+        # number is BYTES: `--maxmemory 256` means 256 bytes, not 256 MB.
+        command:
+            - redis-server
+            - '--maxmemory'
+            - 256mb
+            - '--maxmemory-policy'
+            - volatile-lru
+            - '--appendonly'
+            - 'yes'
         ports:
             - '${FORWARD_REDIS_PORT:-6379}:6379'
         volumes:

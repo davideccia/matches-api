@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\PublicRegistrationFormController;
+use App\Http\Controllers\Api\PublicSettingController;
 use App\Http\Controllers\Api\PublicTournamentController;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\Route;
@@ -38,3 +39,5 @@ Route::prefix('tournaments')->group(function () {
     Route::get('{tournament}/match_records/current', [PublicTournamentController::class, 'currentMatchRecords']);
 
 });
+
+Route::get('settings/logo', [PublicSettingController::class, 'logo']);

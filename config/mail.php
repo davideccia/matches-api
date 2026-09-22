@@ -115,4 +115,17 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Error Notification Address
+    |--------------------------------------------------------------------------
+    |
+    | When set, a mail is sent to this address every time the application
+    | reports an exception, in addition to the normal log channel. Left
+    | null (the default), the notification is disabled entirely.
+    |
+    */
+
+    'admin_error_address' => env('ERROR_NOTIFICATION_EMAIL'),
+
 ];

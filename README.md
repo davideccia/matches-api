@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="storage/app/public/web-app-manifest-512x512.png" alt="Matches API logo" width="120" />
+<img src="public/logo.svg" alt="Matches API logo" width="120" />
 
 # Matches API
 
@@ -14,7 +14,7 @@ and [Reverb](https://laravel.com/docs/reverb) for real-time WebSocket broadcasti
 ![PHP](https://img.shields.io/badge/PHP-8.5+-777BB4?logo=php&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-PHPUnit_12-3776AB)
 
-[Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Matchmaking](#matchmaking) • [Real-time events](#real-time-events) • [Data retention](#data-retention) • [Development](#development) • [Docs](#documentation)
+[Getting started](#getting-started) • [API reference](#api-reference) • [Data model](#data-model) • [Matchmaking](#matchmaking) • [Real-time events](#real-time-events) • [Data retention](#data-retention) • [Development](#development) • [Deployment](#deployment)
 
 </div>
 
@@ -45,8 +45,8 @@ as bouts change.
   a debutant is never matched against a veteran. Define them globally or override them per tournament.
 - **Real-time broadcasting** — every match-record change broadcasts over a public WebSocket channel, ready for live
   scoreboards.
-- **Public registration form API** — unauthenticated endpoints for athlete self-lookup, self-registration, and PDF
-  export.
+- **Public registration form API** — unauthenticated, email-verified endpoints for athlete self-lookup and
+  self-registration, plus PDF export.
 - **Data retention (GDPR)** — scheduled jobs anonymize athletes past the retention term, prune expired sessions and API
   tokens, and an artisan command exports an athlete's full data as CSV for data-portability requests.
 - **PDF generation** — registration confirmations and tournament fight cards (simple or detailed layouts).
@@ -55,20 +55,21 @@ as bouts change.
 
 ## Tech stack
 
-| Layer           | Technology                                    |
-|-----------------|-----------------------------------------------|
-| Framework       | Laravel 13 (PHP 8.5+)                         |
-| Auth            | Laravel Sanctum 4 (API tokens)                |
-| WebSockets      | Laravel Reverb                                |
-| Queues / jobs   | Laravel Horizon on Redis                      |
-| Database        | PostgreSQL 17                                 |
-| Cache           | Redis                                         |
-| Files           | spatie/laravel-medialibrary (+ S3)            |
-| Backups         | spatie/laravel-backup (nightly, to S3)        |
-| PDF             | spatie/laravel-pdf (+ dompdf)                 |
-| Mail            | Mailpit (local), SMTP (production)            |
-| Dev environment | Laravel Sail (Docker)                         |
-| Testing         | PHPUnit 12                                    |
+| Layer           | Technology                                |
+|------------------|-------------------------------------------|
+| Framework        | Laravel 13 (PHP 8.5+)                     |
+| Auth             | Laravel Sanctum 4 (API tokens)            |
+| WebSockets       | Laravel Reverb                            |
+| Queues / jobs    | Laravel Horizon on Redis                  |
+| Database         | PostgreSQL 17                             |
+| Cache            | Redis                                     |
+| Files            | spatie/laravel-medialibrary (+ S3)        |
+| Backups          | spatie/laravel-backup (nightly, to S3)    |
+| PDF              | spatie/laravel-pdf (+ dompdf)             |
+| Response caching | spatie/laravel-responsecache              |
+| Mail             | Mailpit (local), SMTP (production)        |
+| Dev environment  | Laravel Sail (Docker)                     |
+| Testing          | PHPUnit 12                                |
 
 ## Getting started
 
@@ -101,7 +102,8 @@ The API is then served at **`http://localhost`** under two prefixes:
 
 > [!NOTE]
 > The dev seed loads athletes, disciplines, weight categories, experience tiers, tournaments, registrations, and match
-> records across various statuses. See [`DB_SEED.md`](DB_SEED.md) for the full reference. In production, only the admin user is seeded.
+> records across various statuses. See [`DB_SEED.md`](DB_SEED.md) for the full reference. In production, only the admin
+> user is seeded.
 
 ### Default credentials
 
@@ -121,8 +123,8 @@ curl -X POST http://localhost/api/admin/auth/login \
 ## API reference
 
 > [!IMPORTANT]
-> Routes are **not versioned**. They live under two prefixes mounted in `bootstrap/app.php`: `/api/admin` (
-> Sanctum-authenticated) and `/api/public` (throttled at 10 req/min). All IDs are UUIDs, and all responses are JSON.
+> Routes are **not versioned**. They live under two prefixes mounted in `bootstrap/app.php`: `/api/admin`
+> (Sanctum-authenticated) and `/api/public` (throttled at 10 req/min). All IDs are UUIDs, and all responses are JSON.
 
 ### Authentication
 
@@ -132,70 +134,74 @@ Admin routes (except those below) require a bearer token:
 Authorization: Bearer <token>
 ```
 
-| Method | Path                              | Description                     |
-|--------|-----------------------------------|---------------------------------|
-| `POST` | `/api/admin/auth/login`           | Obtain a Sanctum token          |
-| `POST` | `/api/admin/auth/forgot_password` | Request a password-reset link   |
-| `POST` | `/api/admin/auth/reset_password`  | Reset the password with a token |
-| `GET`  | `/api/admin/auth/user`            | Get the authenticated user      |
-| `POST` | `/api/admin/auth/logout`          | Revoke the current token        |
+| Method | Path                               | Description                      |
+|--------|-------------------------------------|-----------------------------------|
+| `POST` | `/api/admin/auth/login`            | Obtain a Sanctum token           |
+| `POST` | `/api/admin/auth/forgot_password`  | Request a password-reset link    |
+| `POST` | `/api/admin/auth/reset_password`   | Reset the password with a token  |
+| `GET`  | `/api/admin/auth/user`             | Get the authenticated user       |
+| `POST` | `/api/admin/auth/logout`           | Revoke the current token         |
 
 ### Admin resources
 
 Standard CRUD unless noted.
 
-| Resource                     | Base path                                            | Notes                                                                                                |
-|------------------------------|------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| Dashboard                    | `/api/admin/dashboard`                               | Registration and match counts, per active tournament                                                 |
-| Users                        | `/api/admin/users`                                   | Superadmin-only writes                                                                               |
-| Athletes                     | `/api/admin/athletes`                                | Filters: `?search=`, `?tournament_id=`, `?gender=`, `?is_adult=`, `?min_match_records_count=`, `?max_…` |
-| Disciplines                  | `/api/admin/disciplines`                             |                                                                                                      |
-| Weight categories            | `/api/admin/weight_categories`                       |                                                                                                      |
-| Experience tiers             | `/api/admin/experience_tiers`                        | Filters: `?tournament_id=`, `?only_global=`, `?enabled=`                                             |
-| Tournaments                  | `/api/admin/tournaments`                             |                                                                                                      |
-| Registrations                | `/api/admin/registrations`                           | Filters: `?unpaid=`, `?unarrived=`, `?weight_in_exceeded=`                                           |
-| Match records                | `/api/admin/match_records`                           |                                                                                                      |
-| Tournament → registrations   | `/api/admin/tournaments/{id}/registrations`          | `index`, `store`                                                                                     |
-| Tournament → match records   | `/api/admin/tournaments/{id}/match_records`          | `index`, `store`                                                                                     |
-| Tournament → experience tiers | `/api/admin/tournaments/{id}/experience_tiers`      | `index`, `store`                                                                                     |
-| Tournament → disciplines     | `/api/admin/tournaments/{id}/disciplines`            | `index` — the tournament's disciplines (write them via `disciplines` on the tournament itself)        |
-| Generate fight card          | `/api/admin/tournaments/{id}/match_records/generate` | `POST` — run matchmaking over the registrations                                                      |
-| Registration PDF             | `/api/admin/registrations/{id}/pdf`                  | Download                                                                                             |
-| Fight card PDF               | `/api/admin/tournaments/{id}/match_records/pdf`      | `?type=simple\|detailed` (required)                                                                  |
-| Temporary uploads            | `/api/admin/temporary_uploads`                       | `POST` — stage a file for later attachment                                                           |
+| Resource                      | Base path                                            | Notes                                                                                                    |
+|--------------------------------|-------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| Dashboard                     | `/api/admin/dashboard`                               | Registration and match counts, per active tournament                                                    |
+| Users                         | `/api/admin/users`                                   | Superadmin-only writes                                                                                   |
+| Athletes                      | `/api/admin/athletes`                                | Filters: `?search=`, `?tournament_id=`, `?gender=`, `?is_adult=`, `?min_match_records_count=`, `?max_…` |
+| Disciplines                   | `/api/admin/disciplines`                             |                                                                                                            |
+| Weight categories             | `/api/admin/weight_categories`                       |                                                                                                            |
+| Experience tiers              | `/api/admin/experience_tiers`                        | Filters: `?tournament_id=`, `?only_global=`, `?enabled=`                                                 |
+| Tournaments                   | `/api/admin/tournaments`                             |                                                                                                            |
+| Registrations                 | `/api/admin/registrations`                           | Filters: `?unpaid=`, `?unarrived=`, `?weight_in_exceeded=`                                               |
+| Match records                 | `/api/admin/match_records`                           |                                                                                                            |
+| Tournament → registrations    | `/api/admin/tournaments/{id}/registrations`          | `index`, `store`                                                                                          |
+| Tournament → match records    | `/api/admin/tournaments/{id}/match_records`          | `index`, `store`                                                                                          |
+| Tournament → experience tiers | `/api/admin/tournaments/{id}/experience_tiers`       | `index`, `store`                                                                                          |
+| Generate fight card           | `/api/admin/tournaments/{id}/match_records/generate` | `POST` — run matchmaking over the registrations                                                          |
+| Registration PDF              | `/api/admin/registrations/{id}/pdf`                  | Download                                                                                                  |
+| Fight card PDF                | `/api/admin/tournaments/{id}/match_records/pdf`      | `?type=simple\|detailed` (required)                                                                      |
+| Temporary uploads              | `/api/admin/temporary_uploads`                       | `POST` — stage a file for later attachment                                                               |
 
-Each CRUD resource (users, athletes, disciplines, weight categories, experience tiers, tournaments, registrations, match
-records) also exposes a bulk delete:
+Every resource controller (users, athletes, disciplines, weight categories, experience tiers, tournaments,
+registrations, match records) also exposes a bulk delete:
 
 ```
 DELETE /api/admin/{resource}/bulk    {"ids": ["<uuid>", "<uuid>"]}
 ```
 
-### Public endpoints
+### Public registration flow
 
-No authentication required (rate-limited).
+The public registration form is a three-step, email-verified flow — not a plain `POST /registrations`:
 
-| Method | Path                                                   | Description                            |
-|--------|--------------------------------------------------------|----------------------------------------|
-| `GET`  | `/api/public/registration_form/athletes/{tax_number}`  | Look up an athlete by tax number       |
-| `POST` | `/api/public/registration_form/athletes`               | Create/update an athlete               |
-| `GET`  | `/api/public/registration_form/tournaments`            | List tournaments open for registration |
-| `GET`  | `/api/public/registration_form/tournaments/{id}/disciplines` | List a tournament's disciplines  |
-| `GET`  | `/api/public/registration_form/weight_categories`      | List weight categories                 |
-| `POST` | `/api/public/registration_form/registrations`          | Submit a registration                  |
-| `GET`  | `/api/public/registration_form/registrations/{id}/pdf` | Download registration PDF              |
-| `GET`  | `/api/public/tournaments`                              | Public tournament list                 |
-| `GET`  | `/api/public/tournaments/{id}/match_records`           | Live fight card for a tournament       |
+| Method | Path                                                    | Description                                            |
+|--------|-----------------------------------------------------------|---------------------------------------------------------|
+| `POST` | `/api/public/registration_form/athletes/lookup`          | Look up an existing athlete by tax number **and** email |
+| `POST` | `/api/public/registration_form/verification_code`        | Email a 6-digit code to the address on file              |
+| `POST` | `/api/public/registration_form/registrations`             | Verify the code and submit the registration              |
+| `GET`  | `/api/public/registration_form/tournaments`               | List tournaments open for registration                  |
+| `GET`  | `/api/public/registration_form/disciplines`                | List a tournament's disciplines                          |
+| `GET`  | `/api/public/registration_form/weight_categories`         | List weight categories                                   |
+| `GET`  | `/api/public/registration_form/registrations/{id}/pdf`   | Download registration PDF (signed URL)                   |
+| `GET`  | `/api/public/tournaments`                                  | Public tournament list                                   |
+| `GET`  | `/api/public/tournaments/{id}/match_records`               | Live fight card for a tournament                          |
+
+> [!NOTE]
+> An existing athlete's record is never overwritten by the form payload, and the verification code is always sent to
+> the email already on file — never the caller-supplied one. This keeps the endpoint from being usable for account
+> takeover or email enumeration.
 
 ### Operational dashboards
 
 Two web UIs ship with the API, both served from the same host and both behind HTTP basic auth
 (`HorizonBasicAuth` / `LogViewerBasicAuth` — set their credentials via env, they are not part of Sanctum):
 
-| Path          | What it is                                                        |
-|---------------|-------------------------------------------------------------------|
-| `/horizon`    | Queue dashboard — job throughput, failures, retries               |
-| `/log-viewer` | Application log browser, reading the `daily` channel from `storage/logs` |
+| Path          | What it is                                                                |
+|---------------|-----------------------------------------------------------------------------|
+| `/horizon`    | Queue dashboard — job throughput, failures, retries                        |
+| `/log-viewer` | Application log browser, reading the `daily` channel from `storage/logs`  |
 
 > [!NOTE]
 > `/log-viewer` needs `LOG_CHANNEL=daily` to have files to read. In production `storage/logs` should be a persistent
@@ -233,23 +239,23 @@ Discipline, WeightCategory ──< Registration, MatchRecord  (shared reference 
 
 An athlete's experience is tracked per discipline in `match_records_history`, a JSON column shaped as
 `{"total": int, "disciplines": [{"id": ?uuid, "label": string, "manual_total": int, "app_total": int, "total": int}]}`.
-`manual_total` is entered by hand (bouts fought before joining this system); `app_total` is completed bouts tracked here,
-kept in sync automatically and never accepted from client input. The root `total` sums every discipline's `total`
+`manual_total` is entered by hand (bouts fought before joining this system); `app_total` is completed bouts tracked
+here, kept in sync automatically and never accepted from client input. The root `total` sums every discipline's `total`
 (`manual_total + app_total`); matchmaking instead matches experience tiers against the count for the specific
 discipline being contested, not the root total.
 
 **Enums** (stored as strings, cast to PHP-backed enums in models):
 
 | Enum               | Values                                                                                                                                |
-|--------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `TournamentStatus` | `scheduled`, `registrations_opened`, `registrations_closed`, `in_progress`, `completed`, `cancelled`                                  |
-| `MatchStatus`      | `scheduled`, `in_progress`, `completed`, `cancelled`                                                                                  |
-| `EndMethod`        | `victory_unanimous_decision`, `victory_split_decision`, `victory_ko`, `victory_tko`, `victory_disqualification`, `draw`, `no_contest` |
-| `Gender`           | `male`, `female`, `hybrid`                                                                                                            |
+|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `TournamentStatus`  | `scheduled`, `registrations_opened`, `registrations_closed`, `in_progress`, `completed`, `cancelled`                                 |
+| `MatchStatus`       | `scheduled`, `in_progress`, `completed`, `cancelled`                                                                                  |
+| `EndMethod`         | `victory_unanimous_decision`, `victory_split_decision`, `victory_ko`, `victory_tko`, `victory_disqualification`, `draw`, `no_contest` |
+| `Gender`            | `male`, `female`, `hybrid`                                                                                                            |
 
 > [!IMPORTANT]
 > Deleting a tournament that still has registrations or match records is blocked at the application level and returns
-`409 Conflict`.
+> `409 Conflict`.
 
 ## Matchmaking
 
@@ -265,12 +271,12 @@ discipline · weight category · gender · adult or minor · experience tier
 
 Both `red_corner_id` and `blue_corner_id` are nullable. An athlete left over in an otherwise valid group still gets a
 match record with the **red corner only** — a *half bout* — so they are on the fight card while waiting for an
-opponent, and they stay listed in `matchmaking_issues` all the same. Every match record exposes a computed
-`unpaired` boolean, true whenever either corner is still empty.
+opponent, and they stay listed in `matchmaking_issues` all the same. Every match record exposes a computed `unpaired`
+boolean, true whenever either corner is still empty.
 
 Re-running the generation completes existing half bouts instead of duplicating them: a compatible athlete registering
-later is dropped into the empty corner. A bout entered by hand with the blue corner alone is completed the same way,
-on its red corner. Athletes matching **no** tier (`no_tier`) get no match record at all.
+later is dropped into the empty corner. A bout entered by hand with the blue corner alone is completed the same way, on
+its red corner. Athletes matching **no** tier (`no_tier`) get no match record at all.
 
 ### Experience tiers
 
@@ -291,10 +297,10 @@ curl -X POST http://localhost/api/admin/experience_tiers \
 
 Registrations that could not be paired are stored on the tournament as `matchmaking_issues`, each with a reason:
 
-| Reason     | Meaning                                                       |
-|------------|---------------------------------------------------------------|
-| `no_tier`  | The athlete's fight count falls outside every enabled tier     |
-| `unpaired` | The athlete was the odd one out in an otherwise valid group (they hold a half bout) |
+| Reason     | Meaning                                                                               |
+|------------|-----------------------------------------------------------------------------------------|
+| `no_tier`  | The athlete's fight count falls outside every enabled tier                            |
+| `unpaired` | The athlete was the odd one out in an otherwise valid group (they hold a half bout)  |
 
 The list is kept current automatically as match records are created, edited, or deleted.
 
@@ -333,11 +339,11 @@ Echo.channel(`tournaments.${tournamentId}.match_records`)
 
 Three artisan commands cover the athlete-data lifecycle end to end:
 
-| Command                                     | Purpose                                                                                          |
-|----------------------------------------------|---------------------------------------------------------------------------------------------------|
-| `app:anonymize-expired-athletes [--apply]`   | Scrubs name, tax number, email, phone, team, birth date, gender, and photo for athletes whose most recent completed match is more than 5 years old. Dry-run by default (prints a report); pass `--apply` to anonymize. Registrations and match records are left untouched, so tournament history and stats survive. |
-| `app:prune-expired-sessions`                 | Garbage-collects expired rows from the configured session store.                                  |
-| `app:export-athlete-data {athlete} [--disk] [--path]` | Writes a full CSV export (profile, match history, registrations, match records) for one athlete — for data-portability requests. |
+| Command                                                | Purpose                                                                                                                                                                             |
+|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `app:anonymize-expired-athletes [--apply]`             | Scrubs name, tax number, email, phone, team, birth date, gender, and photo for athletes whose most recent completed match is more than 5 years old. Dry-run by default (prints a report); pass `--apply` to anonymize. Registrations and match records are left untouched, so tournament history and stats survive. |
+| `app:prune-expired-sessions`                           | Garbage-collects expired rows from the configured session store.                                                                                                                    |
+| `app:export-athlete-data {athlete} [--disk] [--path]`  | Writes a full CSV export (profile, match history, registrations, match records) for one athlete — for data-portability requests.                                                    |
 
 All three run daily from `routes/console.php`, alongside `sanctum:prune-expired --hours=24` (expired API tokens,
 `SANCTUM_EXPIRATION` defaults to 7 days) and `auth:clear-resets` (expired password-reset tokens).
@@ -386,11 +392,12 @@ DOCKER_BUILDKIT=1 docker build -f docker/production/Dockerfile -t matches-api .
 ```
 
 No `.env` is baked into the image: every setting is injected as an environment variable at runtime.
-`.env.production.example` is the template for that list — it mirrors `.env.example` key for key, with production values:
+`.env.production.example` is the template for that list — it mirrors `.env.example` key for key, with production
+values:
 
 ```bash
 cp .env.production.example .env.production   # gitignored, fill in APP_KEY and the dashboard passwords
-docker compose --profile production up --build production
+make prod
 ```
 
 The `production` service in `compose.yaml` hands that file to the container with `env_file`, and reuses Sail's
@@ -407,10 +414,10 @@ The `production` service in `compose.yaml` hands that file to the container with
 TLS is terminated by a reverse proxy **in front of** the container, which maps hostnames onto the two published ports.
 This is why `docker/production/nginx.conf` has no `server_name`:
 
-| Hostname          | Port    | Serves                                |
-|-------------------|---------|---------------------------------------|
-| `api.<domain>`    | `:80`   | The API, plus `/horizon`, `/log-viewer` |
-| `reverb.<domain>` | `:8080` | Reverb WebSockets                     |
+| Hostname          | Port    | Serves                                    |
+|--------------------|---------|--------------------------------------------|
+| `api.<domain>`    | `:80`   | The API, plus `/horizon`, `/log-viewer`   |
+| `reverb.<domain>` | `:8080` | Reverb WebSockets                          |
 
 > [!WARNING]
 > In `supervisord.conf`, `REVERB_SERVER_PORT` is the port Reverb **listens** on. `REVERB_HOST` / `REVERB_PORT` /
@@ -423,9 +430,9 @@ Worst-case container memory is bounded by two settings that must be tuned **toge
 container with nginx and Reverb — an OOM in either takes down all five processes:
 
 | Setting                                              | Worst case |
-|------------------------------------------------------|------------|
-| `pm.max_children=8` × `memory_limit=256M` (php-fpm)  | ~2 GB      |
-| `maxProcesses=10` × `memory=128` (Horizon, prod)     | ~1.3 GB    |
+|--------------------------------------------------------|------------|
+| `pm.max_children=8` × `memory_limit=256M` (php-fpm)    | ~2 GB      |
+| `maxProcesses=10` × `memory=128` (Horizon, prod)       | ~1.3 GB    |
 
 See [`docs/vps_costs/README.md`](docs/vps_costs/README.md) for the measured footprint, VPS sizing, and a worked cost
 estimate.
@@ -439,20 +446,16 @@ estimate.
 Both storage concerns are S3-compatible disks, and neither has a safe default:
 
 - **Backups** (`BACKUP_DISK`, default `s3`) — `spatie/laravel-backup` dumps the database nightly at 01:30. The schedule
-  in `routes/console.php` is **skipped entirely** when the destination bucket is unconfigured, so a missing `AWS_BUCKET`
-  means silently no backups.
+  in `routes/console.php` is **skipped entirely** when the destination bucket is unconfigured, so a missing
+  `AWS_BUCKET` means silently no backups.
 - **Media** (`MEDIA_DISK`, falling back to `FILESYSTEM_DISK`, then to the **local** `public` disk) — athlete photos and
-  tournament covers. `config/backup.php` backs up the database only (`source.files.include` is empty), so media left on
-  local disk is **not** in any backup.
+  tournament covers. `config/backup.php` backs up the database only (`source.files.include` is empty), so media left
+  on local disk is **not** in any backup.
 
-## Documentation
+## Reference documentation
 
 - [`DB.md`](DB.md) — DBML schema
 - [`DB_SEED.md`](DB_SEED.md) — development seed reference
 - [`CLAUDE.md`](CLAUDE.md) — architecture invariants and conventions
-- [`docs/vps_costs/README.md`](docs/vps_costs/README.md) — production resource footprint, VPS sizing, hosting cost estimate
-
-## License
-
-All rights reserved — see [`LICENSE.md`](LICENSE.md). The source is visible for reading, but any use, copy,
-modification, or distribution requires the author's prior written consent.
+- [`docs/vps_costs/README.md`](docs/vps_costs/README.md) — production resource footprint, VPS sizing, hosting cost
+  estimate

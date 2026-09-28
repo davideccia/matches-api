@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Scopes\WeightCategoryScope;
 use App\Observers\WeightCategoryObserver;
+use App\Traits\HasUserStamps;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ScopedBy([WeightCategoryScope::class])]
 class WeightCategory extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUserStamps, HasUuids;
 
     protected $fillable = [
         'label',

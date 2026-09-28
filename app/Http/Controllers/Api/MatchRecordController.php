@@ -55,7 +55,7 @@ class MatchRecordController extends Controller
     {
         $validated = $request->validated();
 
-        return new MatchRecordResource($matchRecord->loadMissing($validated['with'] ?? []));
+        return new MatchRecordResource($matchRecord->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(MatchRecordUpdateRequest $request, MatchRecord $matchRecord): MatchRecordResource

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Scopes\RegistrationScope;
 use App\Observers\RegistrationObserver;
+use App\Traits\HasUserStamps;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ScopedBy([RegistrationScope::class])]
 class Registration extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUserStamps, HasUuids;
 
     protected $fillable = [
         'athlete_id',

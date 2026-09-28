@@ -45,6 +45,17 @@ bucket an athlete by their experience in the specific discipline being contested
 
 Enums live in `app/Enums/` and are suffixed `...Enum` (e.g. `TournamentPdfTypeEnum`).
 
+**User stamps.** Every domain model (all except `User` and `Media`) uses `App\Traits\HasUserStamps`, which fills the
+nullable `created_user_id` / `updated_user_id` FKs (`users`, `ON DELETE SET NULL`) from `Auth::user()` on
+`creating` (both columns, unless already set) and `updating` (`updated_user_id` only). The value comes only from
+server-side auth, never from input — the columns are not `$fillable`. With no authenticated `User` (public
+registration flow, console, queue) the stamp is `null`. A column missing from the table is silently skipped (column
+listing cached per table per process). Quiet saves (`saveQuietly()`) and query-builder writes (`increment`,
+`->update()`) fire no events and stay unstamped — intentional, they are system updates. The trait's `createdUser()` /
+`updatedUser()` relations select only `id, username` so staff emails never leak through them; each admin `show()`
+always eager-loads both server-side (index/store/update do not). Public resources are explicit whitelists and never
+expose the stamps. When adding a new domain model, add the trait and the two columns to its migration.
+
 ## Architecture Invariants
 
 - **All primary and foreign key IDs are UUIDs** — enforced by the `laravel-scaffold` skill and must be reflected in
@@ -319,9 +330,9 @@ processes.
 
 There is one feature test per controller in `tests/Feature/` (`{Controller}Test.php`), covering every resource plus
 auth, dashboard, nested tournament routes, and both public controllers, plus cross-cutting suites that are *not*
-controller-shaped: `SecurityHeadersTest`, `HorizonTest`, `LogViewerTest` (basic-auth gates), and the retention/export
-commands under `tests/Feature/Commands/` (`AnonymizeExpiredAthletesCommandTest`, `PruneExpiredSessionsCommandTest`,
-`ExportAthleteDataCommandTest`). Unit tests are bootstrap-only.
+controller-shaped: `SecurityHeadersTest`, `HasUserStampsTest`, `HorizonTest`, `LogViewerTest` (basic-auth gates), and
+the retention/export commands under `tests/Feature/Commands/` (`AnonymizeExpiredAthletesCommandTest`,
+`PruneExpiredSessionsCommandTest`, `ExportAthleteDataCommandTest`). Unit tests are bootstrap-only.
 
 `Tests\TestCase` (`tests/TestCase.php`) provides the shared setup: `LazilyRefreshDatabase`, response cache forced off
 (so public-endpoint assertions are deterministic), and `$this->authenticate(?User $user)` which `Sanctum::actingAs()` a

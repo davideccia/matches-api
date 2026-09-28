@@ -63,7 +63,7 @@ class ExperienceTierController extends Controller
     {
         $validated = $request->validated();
 
-        return new ExperienceTierResource($experienceTier->loadMissing($validated['with'] ?? []));
+        return new ExperienceTierResource($experienceTier->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(ExperienceTierUpdateRequest $request, ExperienceTier $experienceTier): ExperienceTierResource

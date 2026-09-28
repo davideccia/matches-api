@@ -83,7 +83,7 @@ class AthleteController extends Controller
     {
         $validated = $request->validated();
 
-        return new AthleteResource($athlete->loadMissing($validated['with'] ?? []));
+        return new AthleteResource($athlete->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(AthleteUpdateRequest $request, Athlete $athlete): AthleteResource

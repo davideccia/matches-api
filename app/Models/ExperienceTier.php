@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Observers\ExperienceTierObserver;
+use App\Traits\HasUserStamps;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ObservedBy([ExperienceTierObserver::class])]
 class ExperienceTier extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUserStamps, HasUuids;
 
     protected $fillable = [
         'tournament_id',

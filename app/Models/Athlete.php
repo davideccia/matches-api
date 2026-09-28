@@ -6,6 +6,7 @@ use App\Enums\AthleteGenderEnum;
 use App\Enums\MatchRecordStatusEnum;
 use App\Models\Scopes\AthleteScope;
 use App\Observers\AthleteObserver;
+use App\Traits\HasUserStamps;
 use App\Traits\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -27,7 +28,7 @@ use Spatie\MediaLibrary\HasMedia;
 #[ScopedBy([AthleteScope::class])]
 class Athlete extends Model implements HasMedia
 {
-    use HasFactory, HasUuids, InteractsWithMedia;
+    use HasFactory, HasUserStamps, HasUuids, InteractsWithMedia;
 
     public const string PHOTO_MEDIA_COLLECTION_NAME = 'athletes:photo';
 

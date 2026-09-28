@@ -63,7 +63,7 @@ class TournamentController extends Controller
     {
         $validated = $request->validated();
 
-        return new TournamentResource($tournament->loadMissing($validated['with'] ?? []));
+        return new TournamentResource($tournament->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(TournamentUpdateRequest $request, Tournament $tournament): TournamentResource

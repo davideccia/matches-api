@@ -7,6 +7,7 @@ use App\Enums\MatchRecordEndMethodEnum;
 use App\Enums\MatchRecordStatusEnum;
 use App\Models\Scopes\MatchRecordScope;
 use App\Observers\MatchRecordObserver;
+use App\Traits\HasUserStamps;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ScopedBy([MatchRecordScope::class])]
 class MatchRecord extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUserStamps, HasUuids;
 
     protected $appends = ['unpaired'];
 

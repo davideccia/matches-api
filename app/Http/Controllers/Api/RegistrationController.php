@@ -72,7 +72,7 @@ class RegistrationController extends Controller
     {
         $validated = $request->validated();
 
-        return new RegistrationResource($registration->loadMissing($validated['with'] ?? []));
+        return new RegistrationResource($registration->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(RegistrationUpdateRequest $request, Registration $registration): RegistrationResource

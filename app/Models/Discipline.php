@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Scopes\DisciplineScope;
 use App\Observers\DisciplineObserver;
+use App\Traits\HasUserStamps;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ScopedBy([DisciplineScope::class])]
 class Discipline extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUserStamps, HasUuids;
 
     protected $fillable = [
         'label',

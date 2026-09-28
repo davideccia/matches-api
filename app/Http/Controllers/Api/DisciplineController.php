@@ -51,7 +51,7 @@ class DisciplineController extends Controller
     {
         $validated = $request->validated();
 
-        return new DisciplineResource($discipline->loadMissing($validated['with'] ?? []));
+        return new DisciplineResource($discipline->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(DisciplineUpdateRequest $request, Discipline $discipline): DisciplineResource

@@ -64,11 +64,13 @@ Table personal_access_tokens {
 }
 
 Table weight_categories {
-  id         uuid        [pk]
-  label      varchar     [not null]
-  value      decimal(8,2) [not null]
-  created_at timestamptz [null]
-  updated_at timestamptz [null]
+  id              uuid         [pk]
+  label           varchar      [not null]
+  value           decimal(8,2) [not null]
+  created_user_id uuid         [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id uuid         [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  created_at      timestamptz  [null]
+  updated_at      timestamptz  [null]
 }
 
 Table disciplines {
@@ -77,6 +79,8 @@ Table disciplines {
   sort              int     [not null]   // contiguous global ordering, maintained by ReorderDisciplinesAction
   rounds            int     [not null]
   minutes_per_round varchar [not null]
+  created_user_id   uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id   uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
   created_at        timestamptz [null]
   updated_at        timestamptz [null]
 }
@@ -93,6 +97,8 @@ Table athletes {
   team_name                      varchar [null]
   phone_number                   varchar [null]
   match_records_history          json    [null]   // per-discipline manual + system match count history
+  created_user_id                uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id                uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
   created_at                     timestamptz [null]
   updated_at                     timestamptz [null]
 }
@@ -105,6 +111,8 @@ Table tournaments {
   location_city    varchar           [not null]
   date             date              [not null]
   status           tournament_status [not null]
+  created_user_id  uuid              [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id  uuid              [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
   created_at       timestamptz       [null]
   updated_at       timestamptz       [null]
 }
@@ -127,6 +135,8 @@ Table experience_tiers {
   min_match_count int         [not null]
   max_match_count int         [null]    // null = unbounded
   enabled         boolean     [not null, default: false]
+  created_user_id uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
   created_at      timestamptz [null]
   updated_at      timestamptz [null]
 }
@@ -141,6 +151,8 @@ Table registrations {
   arrived            boolean     [not null, default: false]
   weight_in          decimal(8,2) [null]
   notes              text        [null]
+  created_user_id    uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id    uuid        [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
   created_at         timestamptz [null]
   updated_at         timestamptz [null]
 }
@@ -166,6 +178,8 @@ Table match_records {
   minutes_per_round  varchar      [not null]
   judges_points      json         [null]   // array of per-round scores: [{round, redCornerJudge1, redCornerJudge2, redCornerJudge3, blueCornerJudge1, blueCornerJudge2, blueCornerJudge3}] — int or null if judge not assigned
   notes              text         [null]
+  created_user_id    uuid         [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
+  updated_user_id    uuid         [null, ref: > users.id]  // HasUserStamps; ON DELETE SET NULL
   created_at         timestamptz  [null]
   updated_at         timestamptz  [null]
 }

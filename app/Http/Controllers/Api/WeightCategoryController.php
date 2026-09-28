@@ -51,7 +51,7 @@ class WeightCategoryController extends Controller
     {
         $validated = $request->validated();
 
-        return new WeightCategoryResource($weightCategory->loadMissing($validated['with'] ?? []));
+        return new WeightCategoryResource($weightCategory->loadMissing([...($validated['with'] ?? []), 'createdUser', 'updatedUser']));
     }
 
     public function update(WeightCategoryUpdateRequest $request, WeightCategory $weightCategory): WeightCategoryResource

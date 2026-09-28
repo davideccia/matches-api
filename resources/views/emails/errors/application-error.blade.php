@@ -1,13 +1,18 @@
-<x-mail::message>
-# Errore applicativo
+<x-mail::message
+    :preheader="$exceptionClass"
+    :reason="__('emails.application_error.reason', ['app' => config('app.name')])"
+>
+# {{ __('emails.application_error.heading') }}
 
-**Eccezione:** {{ $exceptionClass }}
+<span class="badge badge-error">{{ __('emails.application_error.badge') }}</span>
 
-**Messaggio:** {{ $exceptionMessage }}
+<x-mail::info-box monospace :rows="[
+    __('emails.application_error.exception_label') => $exceptionClass,
+    __('emails.application_error.message_label') => $exceptionMessage,
+    __('emails.application_error.file_label') => $file.':'.$line,
+]" />
 
-**File:** {{ $file }}:{{ $line }}
-
-Consulta il log giornaliero o il log viewer per lo stack trace completo.
-
-{{ config('app.name') }}
+<x-mail::subcopy>
+{{ __('emails.application_error.hint') }}
+</x-mail::subcopy>
 </x-mail::message>

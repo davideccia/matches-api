@@ -1,14 +1,20 @@
-<x-mail::message>
-# Ciao, {{ $username }}
+<x-mail::message
+    :preheader="__('emails.user_credentials.preheader', ['app' => config('app.name')])"
+    :reason="__('emails.user_credentials.reason', ['app' => config('app.name')])"
+>
+# {{ __('emails.common.greeting', ['name' => $username]) }}
 
-È stato creato un account per te su {{ config('app.name') }}. Ecco la tua email di accesso:
+{{ __('emails.user_credentials.intro', ['app' => config('app.name')]) }}
 
-<x-mail::panel>
-**Email:** {{ $email }}
-</x-mail::panel>
+<x-mail::info-box :rows="[
+    __('emails.user_credentials.username_label') => $username,
+    __('emails.user_credentials.email_label') => $email,
+]" />
 
-Per motivi di sicurezza, ti invitiamo a eseguire il flusso "Password dimenticata".
+<x-mail::subcopy>
+{{ __('emails.user_credentials.security') }}
+</x-mail::subcopy>
 
-Grazie,<br>
+{{ __('emails.common.thanks') }}<br>
 {{ config('app.name') }}
 </x-mail::message>

@@ -27,4 +27,15 @@ class PublicSettingControllerTest extends TestCase
         $response->assertOk();
         $this->assertStringStartsWith('image/', $response->headers->get('Content-Type'));
     }
+
+    public function test_logo_is_exempt_from_the_public_throttle(): void
+    {
+        Storage::fake('public');
+
+        AppLogo::store(UploadedFile::fake()->image('logo.png'));
+
+        foreach (range(1, 11) as $attempt) {
+            $this->get('/api/public/settings/logo')->assertOk();
+        }
+    }
 }

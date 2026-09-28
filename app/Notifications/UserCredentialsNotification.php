@@ -14,7 +14,9 @@ class UserCredentialsNotification extends Notification implements ShouldQueue
     public function __construct(
         public readonly string $email,
         public readonly string $username,
-    ) {}
+    ) {
+        $this->locale(app()->getLocale());
+    }
 
     /**
      * @return array<int, string>
@@ -26,8 +28,10 @@ class UserCredentialsNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $subject = __('emails.user_credentials.subject');
+
         return (new MailMessage)
-            ->subject('Le tue credenziali di accesso')
+            ->subject($subject)
             ->markdown('emails.auth.user-credentials', [
                 'email' => $this->email,
                 'username' => $this->username,

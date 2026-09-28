@@ -94,6 +94,8 @@ expose the stamps. When adding a new domain model, add the trait and the two col
 `auth-password-reset` (both 5/min keyed *by IP and by email* — per-account, not just per-IP), `public-athlete-lookup`
 and `public-verification-code` (5/min per IP). They stack on top of the group-level `throttle:10,1` while keeping their
 own counter, which an unnamed `throttle:5,1` would not. Add new limits there, not as inline `throttle:n,m`.
+`GET settings/logo` is the one public route *without* the group throttle (`withoutMiddleware`): email clients' image
+proxies fetch it from a few shared IPs.
 
 **Custom actions** (not part of the standard CRUD resource) must be declared *before* the matching `apiResource` so the
 resource's `{id}` wildcard doesn't shadow them:
@@ -252,6 +254,8 @@ key to **both** files.
 
 Password reset is API-driven: `auth/forgot_password` + `auth/reset_password` send `ResetPasswordNotification`
 (`app/Notifications/`), rendered from `resources/views/emails/auth/reset-password.blade.php`.
+Every email is a markdown mail on the light/dark (`prefers-color-scheme`) `mail::` components published in `resources/views/vendor/mail/` (package mails included, through `vendor/notifications/email.blade.php`); use the `email-design` skill when adding or
+restyling one.
 
 API exceptions are always rendered as JSON for `api/*` (`withExceptions` in `bootstrap/app.php`), and
 `trustProxies(at: '*')` is set.

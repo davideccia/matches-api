@@ -1,17 +1,19 @@
-<x-mail::message>
-# Codice di verifica
+<x-mail::message
+    :preheader="__('emails.verification_code.preheader', ['minutes' => $ttlMinutes])"
+    :reason="__('emails.verification_code.reason', ['app' => config('app.name')])"
+>
+# {{ __('emails.verification_code.heading') }}
 
-Hai ricevuto questa email perché è stata avviata un'iscrizione a un torneo con questo indirizzo.
-Inserisci il codice qui sotto per confermarla.
+{{ __('emails.verification_code.intro') }}
 
-<x-mail::panel>
-# {{ $code }}
-</x-mail::panel>
+<x-mail::code :label="__('emails.verification_code.code_label')">{{ $code }}</x-mail::code>
 
-Il codice scade tra {{ $ttlMinutes }} minuti e può essere usato una sola volta.
+<x-mail::subcopy>
+{{ __('emails.verification_code.expiry', ['minutes' => $ttlMinutes]) }}
 
-Se non hai richiesto tu l'iscrizione, ignora questa email: senza il codice non verrà completata.
+{{ __('emails.verification_code.ignore') }}
+</x-mail::subcopy>
 
-Grazie,<br>
+{{ __('emails.common.thanks') }}<br>
 {{ config('app.name') }}
 </x-mail::message>

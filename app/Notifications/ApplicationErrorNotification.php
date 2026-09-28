@@ -26,6 +26,7 @@ class ApplicationErrorNotification extends Notification implements ShouldQueue
         $this->exceptionMessage = $exception->getMessage();
         $this->file = $exception->getFile();
         $this->line = $exception->getLine();
+        $this->locale(app()->getLocale());
     }
 
     /**
@@ -38,8 +39,13 @@ class ApplicationErrorNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $subject = __('emails.application_error.subject', [
+            'app' => config('app.name'),
+            'exception' => $this->exceptionClass,
+        ]);
+
         return (new MailMessage)
-            ->subject('['.config('app.name').'] Errore applicativo: '.$this->exceptionClass)
+            ->subject($subject)
             ->markdown('emails.errors.application-error', [
                 'exceptionClass' => $this->exceptionClass,
                 'exceptionMessage' => $this->exceptionMessage,

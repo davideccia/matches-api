@@ -11,7 +11,10 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public readonly string $url) {}
+    public function __construct(public readonly string $url)
+    {
+        $this->locale(app()->getLocale());
+    }
 
     /**
      * @return array<int, string>
@@ -23,11 +26,14 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $subject = __('emails.reset_password.subject');
+
         return (new MailMessage)
-            ->subject('Recupero password')
+            ->subject($subject)
             ->markdown('emails.auth.reset-password', [
                 'url' => $this->url,
                 'user' => $notifiable,
+                'expiryMinutes' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
             ]);
     }
 }

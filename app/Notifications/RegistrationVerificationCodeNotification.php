@@ -12,7 +12,10 @@ class RegistrationVerificationCodeNotification extends Notification implements S
 {
     use Queueable;
 
-    public function __construct(public readonly string $code) {}
+    public function __construct(public readonly string $code)
+    {
+        $this->locale(app()->getLocale());
+    }
 
     /**
      * @return array<int, string>
@@ -24,8 +27,10 @@ class RegistrationVerificationCodeNotification extends Notification implements S
 
     public function toMail(object $notifiable): MailMessage
     {
+        $subject = __('emails.verification_code.subject');
+
         return (new MailMessage)
-            ->subject('Codice di verifica iscrizione')
+            ->subject($subject)
             ->markdown('emails.registration.verification-code', [
                 'code' => $this->code,
                 'ttlMinutes' => RegistrationVerificationCode::TTL_MINUTES,

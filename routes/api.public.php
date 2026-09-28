@@ -40,4 +40,6 @@ Route::prefix('tournaments')->group(function () {
 
 });
 
-Route::get('settings/logo', [PublicSettingController::class, 'logo']);
+// Fetched by email clients' image proxies, which share a few IPs across many recipients: the group
+// throttle would 429 them.
+Route::get('settings/logo', [PublicSettingController::class, 'logo'])->withoutMiddleware('throttle:10,1');

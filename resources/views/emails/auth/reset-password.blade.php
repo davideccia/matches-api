@@ -1,16 +1,21 @@
-<x-mail::message>
-# Ciao, {{ $user->username }}
+<x-mail::message
+    :preheader="__('emails.reset_password.preheader', ['app' => config('app.name')])"
+    :reason="__('emails.reset_password.reason', ['email' => $user->email])"
+>
+# {{ __('emails.common.greeting', ['name' => $user->username]) }}
 
-Hai ricevuto questa email perché è stata richiesta una reimpostazione della password per il tuo account.
+{{ __('emails.reset_password.intro') }}
 
 <x-mail::button :url="$url">
-Reimposta password
+{{ __('emails.reset_password.action') }}
 </x-mail::button>
 
-Il link scade tra 60 minuti.
+<x-mail::subcopy>
+{{ __('emails.reset_password.expiry', ['minutes' => $expiryMinutes]) }}
 
-Se non hai richiesto il recupero password, ignora questa email.
+{{ __('emails.reset_password.ignore') }}
+</x-mail::subcopy>
 
-Grazie,<br>
+{{ __('emails.common.thanks') }}<br>
 {{ config('app.name') }}
 </x-mail::message>

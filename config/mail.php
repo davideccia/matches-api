@@ -128,4 +128,23 @@ return [
 
     'admin_error_address' => env('ERROR_NOTIFICATION_EMAIL'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Every markdown mail, the application's and the packages' (Horizon,
+    | backups), renders through the dark `mail::` components published in
+    | resources/views/vendor/mail. See the email-design skill for tokens.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

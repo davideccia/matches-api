@@ -13,6 +13,7 @@ use App\Models\Tournament;
 use App\Models\WeightCategory;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use Spatie\ResponseCache\Facades\ResponseCache;
 use Tests\TestCase;
 
 class MatchRecordControllerTest extends TestCase
@@ -52,6 +53,32 @@ class MatchRecordControllerTest extends TestCase
             ->orderBy('sort')
             ->pluck('sort')
             ->all();
+    }
+
+    /**
+     * Fake the broadcast event and replace the response cache so each
+     * `public-match-records` clear records whether the event was already
+     * dispatched at that moment. Call after creating prerequisite records.
+     *
+     * @return \ArrayObject<int, string>
+     */
+    private function fakeEventAndSpyCacheClear(): \ArrayObject
+    {
+        $cacheClears = new \ArrayObject;
+
+        Event::fake([MatchRecordChanged::class]);
+
+        ResponseCache::shouldReceive('clear')
+            ->with(['public-match-records'])
+            ->andReturnUsing(function () use ($cacheClears): bool {
+                $cacheClears[] = Event::dispatched(MatchRecordChanged::class)->isEmpty()
+                    ? 'cleared before event'
+                    : 'cleared after event';
+
+                return true;
+            });
+
+        return $cacheClears;
     }
 
     // ---------------------------------------------------------------------
@@ -423,6 +450,52 @@ class MatchRecordControllerTest extends TestCase
 
         $this->deleteJson("/api/admin/match_records/{$record->id}")->assertNoContent();
 
+        Event::assertDispatched(MatchRecordChanged::class);
+    }
+
+    public function test_create_clears_public_cache_before_dispatching_event(): void
+    {
+        $this->authenticate();
+
+        $payload = $this->validStorePayload(Tournament::factory()->create());
+
+        $cacheClears = $this->fakeEventAndSpyCacheClear();
+
+        $this->postJson('/api/admin/match_records', $payload)->assertCreated();
+
+        $this->assertSame(['cleared before event'], $cacheClears->getArrayCopy());
+        Event::assertDispatched(MatchRecordChanged::class);
+    }
+
+    public function test_update_clears_public_cache_before_dispatching_event(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $record = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+        $payload = $this->validStorePayload($tournament, [
+            'status' => MatchRecordStatusEnum::IN_PROGRESS->value,
+        ]);
+
+        $cacheClears = $this->fakeEventAndSpyCacheClear();
+
+        $this->putJson("/api/admin/match_records/{$record->id}", $payload)->assertOk();
+
+        $this->assertSame(['cleared before event'], $cacheClears->getArrayCopy());
+        Event::assertDispatched(MatchRecordChanged::class);
+    }
+
+    public function test_delete_clears_public_cache_before_dispatching_event(): void
+    {
+        $this->authenticate();
+
+        $record = MatchRecord::factory()->create(['tournament_id' => Tournament::factory()->create()->id]);
+
+        $cacheClears = $this->fakeEventAndSpyCacheClear();
+
+        $this->deleteJson("/api/admin/match_records/{$record->id}")->assertNoContent();
+
+        $this->assertSame(['cleared before event'], $cacheClears->getArrayCopy());
         Event::assertDispatched(MatchRecordChanged::class);
     }
 

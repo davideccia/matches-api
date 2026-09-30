@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AthleteGenderEnum;
 use App\Enums\MatchRecordEndMethodEnum;
 use App\Enums\MatchRecordStatusEnum;
+use App\Events\MatchRecordChanged;
 use App\Models\Scopes\MatchRecordScope;
 use App\Observers\MatchRecordObserver;
 use App\Traits\HasUserStamps;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
+use Spatie\ResponseCache\Facades\ResponseCache;
 
 #[ObservedBy([MatchRecordObserver::class])]
 #[ScopedBy([MatchRecordScope::class])]
@@ -74,6 +77,20 @@ class MatchRecord extends Model
         return Attribute::make(
             get: fn (): bool => $this->red_corner_id === null || $this->blue_corner_id === null,
         );
+    }
+
+    public function syncAfterChange(): void
+    {
+        $this->tournament->syncMatchmakingIssues();
+
+        $this->redCorner?->syncMatchRecordsHistory();
+        $this->blueCorner?->syncMatchRecordsHistory();
+
+        DB::afterCommit(function (): void {
+            ResponseCache::clear(['public-match-records']);
+
+            event(new MatchRecordChanged($this->tournament_id));
+        });
     }
 
     public function tournament(): BelongsTo

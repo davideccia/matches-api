@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\LogApiRequest;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Notifications\ApplicationErrorNotification;
@@ -41,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             SecurityHeaders::class,
+            LogApiRequest::class,
         ]);
 
         $middleware->web(append: [

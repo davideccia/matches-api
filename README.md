@@ -150,6 +150,7 @@ Standard CRUD unless noted.
 |--------------------------------|-------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
 | Dashboard                     | `/api/admin/dashboard`                               | Registration and match counts, per active tournament                                                    |
 | Users                         | `/api/admin/users`                                   | Superadmin-only writes                                                                                   |
+| API request logs              | `/api/admin/api_request_logs`                        | Superadmin-only (403 otherwise), paginated. Filters: `?user_id=`, `?method=`, `?status=`, `?status_class=`, `?path=`, `?date_from=`, `?date_to=` |
 | Athletes                      | `/api/admin/athletes`                                | Filters: `?search=`, `?tournament_id=`, `?gender=`, `?is_adult=`, `?min_match_records_count=`, `?max_…` |
 | Disciplines                   | `/api/admin/disciplines`                             |                                                                                                            |
 | Weight categories             | `/api/admin/weight_categories`                       |                                                                                                            |

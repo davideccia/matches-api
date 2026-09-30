@@ -9,6 +9,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API Request Log Retention
+    |--------------------------------------------------------------------------
+    |
+    | Days the api_request_logs audit rows are kept before
+    | app:prune-api-request-logs deletes them.
+    |
+    */
+
+    'api_request_log_days' => (int) env('API_REQUEST_LOG_DAYS', 90),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Log Channel
     |--------------------------------------------------------------------------
     |

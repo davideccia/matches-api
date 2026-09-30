@@ -284,6 +284,15 @@ destination disk is actually configured, so environments without S3 credentials 
   `auth:clear-resets` (password reset tokens) to cover the "tokens" and "sessions" parts of retention.
   `SANCTUM_EXPIRATION` defaults to 10080 minutes (7 days) — see `config/sanctum.php`.
   `LOG_DAILY_DAYS` (`.env.example`, default 365) bounds how long the `daily` log channel keeps rotated files.
+- **API request audit log** — `App\Http\Middleware\LogApiRequest` (appended to the `api` group) writes one
+  `api_request_logs` row per matched route in `terminate()` (after the response; a failed write is `report()`ed, never
+  surfaced): `user_id` (nullable, `SET NULL`), `method`, `path`, `route_name`, `status`, `duration_ms`, `created_at`.
+  **No personal data by design**: no IP, user agent, body, query string or headers, and `path` is the route *template*
+  (`api/admin/athletes/{athlete}`), never the concrete URL. Unmatched routes, `api/public/settings/logo` and the
+  log endpoint itself (`api/admin/api_request_logs`) are not logged. `PruneApiRequestLogsCommand` (`app:prune-api-request-logs {--days=}`, default `API_REQUEST_LOG_DAYS` = 90 via
+  `config('logging.api_request_log_days')`) deletes in batches of 1000 and runs every 2 days at 06:00. Read access is
+  `GET /api/admin/api_request_logs`, superadmin-only (`ApiRequestLogPolicy::viewAny`, else 403), **always paginated**
+  (unlike other indexes), `?with=user` exposes only `id, username`.
 - **`ExportAthleteDataCommand`** (`app:export-athlete-data {athlete} {--disk=local} {--path=}`) — GDPR data-portability
   export. `ExportAthleteDataAction::handle()` builds CSV sections (profile, match-records history, registrations,
   match records) that the command writes to the given disk as `{path}/{section}.csv` (default path

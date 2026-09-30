@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApiRequestLogController;
 use App\Http\Controllers\Api\AthleteController;
 use App\Http\Controllers\Api\AthleteMatchRecordController;
 use App\Http\Controllers\Api\AuthController;
@@ -37,6 +38,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('auth/user', [AuthController::class, 'user']);
 
     });
+
+    Route::get('api_request_logs', [ApiRequestLogController::class, 'index']);
 
     Route::delete('users/bulk', [UserController::class, 'bulkDestroy']);
     Route::apiResource('users', UserController::class);

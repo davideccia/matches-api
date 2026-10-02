@@ -10,6 +10,7 @@ use App\Observers\TournamentObserver;
 use App\Services\MatchmakingService;
 use App\Traits\HasUserStamps;
 use App\Traits\InteractsWithMedia;
+use App\Traits\Lockable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -27,7 +28,7 @@ use Spatie\MediaLibrary\HasMedia;
 #[ScopedBy([TournamentScope::class])]
 class Tournament extends Model implements HasMedia
 {
-    use HasFactory, HasUserStamps, HasUuids, InteractsWithMedia;
+    use HasFactory, HasUserStamps, HasUuids, InteractsWithMedia, Lockable;
 
     public const string COVER_MEDIA_COLLECTION_NAME = 'tournaments:cover';
 

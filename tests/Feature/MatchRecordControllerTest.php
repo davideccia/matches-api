@@ -11,6 +11,7 @@ use App\Models\Discipline;
 use App\Models\MatchRecord;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Spatie\ResponseCache\Facades\ResponseCache;
@@ -685,5 +686,158 @@ class MatchRecordControllerTest extends TestCase
         $this->deleteJson('/api/admin/match_records/bulk', [
             'ids' => [$record->id],
         ])->assertUnauthorized();
+    }
+
+    // ---------------------------------------------------------------------
+    // locking
+    // ---------------------------------------------------------------------
+
+    public function test_update_returns_409_when_record_is_locked(): void
+    {
+        $this->authenticate();
+        $record = MatchRecord::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.$record->tournament_id, 30);
+        $lock->get();
+
+        $this->putJson("/api/admin/match_records/{$record->id}", $this->validStorePayload($record->tournament))->assertStatus(409);
+
+        $lock->release();
+    }
+
+    public function test_destroy_returns_409_when_record_is_locked_and_keeps_it(): void
+    {
+        $this->authenticate();
+        $record = MatchRecord::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.$record->tournament_id, 30);
+        $lock->get();
+
+        $this->deleteJson("/api/admin/match_records/{$record->id}")->assertStatus(409);
+
+        $this->assertModelExists($record);
+        $lock->release();
+    }
+
+    public function test_lock_is_released_after_destroy(): void
+    {
+        $this->authenticate();
+        $record = MatchRecord::factory()->create();
+
+        $this->deleteJson("/api/admin/match_records/{$record->id}")->assertNoContent();
+
+        $lock = Cache::lock('lock:tournaments:'.$record->tournament_id, 5);
+        $this->assertTrue($lock->get());
+        $lock->release();
+    }
+
+    public function test_bulk_destroy_returns_409_and_deletes_nothing_when_one_is_locked(): void
+    {
+        $this->authenticate();
+        $free = MatchRecord::factory()->create();
+        $locked = MatchRecord::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.$locked->tournament_id, 30);
+        $lock->get();
+
+        $this->deleteJson('/api/admin/match_records/bulk', ['ids' => [$free->id, $locked->id]])->assertStatus(409);
+
+        $this->assertModelExists($free);
+        $this->assertModelExists($locked);
+        $lock->release();
+    }
+
+    public function test_destroy_returns_409_when_another_record_of_the_tournament_is_in_progress(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+        $held = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+        $other = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+        $lock = Cache::lock('lock:tournaments:'.$held->tournament_id, 30);
+        $lock->get();
+
+        $this->deleteJson("/api/admin/match_records/{$other->id}")->assertStatus(409);
+
+        $this->assertModelExists($other);
+        $lock->release();
+    }
+
+    public function test_destroy_is_not_blocked_by_a_lock_on_another_tournament(): void
+    {
+        $this->authenticate();
+        $record = MatchRecord::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.Tournament::factory()->create()->id, 30);
+        $lock->get();
+
+        $this->deleteJson("/api/admin/match_records/{$record->id}")->assertNoContent();
+
+        $lock->release();
+    }
+
+    public function test_bulk_destroy_of_records_in_the_same_tournament_does_not_deadlock(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+        $records = MatchRecord::factory()->count(3)->create(['tournament_id' => $tournament->id]);
+
+        $this->deleteJson('/api/admin/match_records/bulk', ['ids' => $records->pluck('id')->all()])->assertNoContent();
+
+        $this->assertSame(0, MatchRecord::count());
+        $lock = Cache::lock('lock:tournaments:'.$tournament->id, 5);
+        $this->assertTrue($lock->get());
+        $lock->release();
+    }
+
+    public function test_update_moving_to_another_tournament_locks_both_tournaments(): void
+    {
+        $this->authenticate();
+        $source = Tournament::factory()->create();
+        $target = Tournament::factory()->create();
+        $record = MatchRecord::factory()->create(['tournament_id' => $source->id]);
+
+        foreach ([$source, $target] as $held) {
+            $lock = Cache::lock('lock:tournaments:'.$held->id, 30);
+            $lock->get();
+
+            $this->putJson("/api/admin/match_records/{$record->id}", $this->validStorePayload($target))->assertStatus(409);
+
+            $lock->release();
+        }
+
+        $this->assertSame($source->id, $record->fresh()->tournament_id);
+    }
+
+    public function test_update_applies_pending_changes_after_acquiring_the_lock(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+        $record = MatchRecord::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->putJson("/api/admin/match_records/{$record->id}", $this->validStorePayload($tournament, ['notes' => 'locked edit']))
+            ->assertOk();
+
+        $this->assertSame('locked edit', $record->fresh()->notes);
+    }
+
+    public function test_store_returns_409_when_the_tournament_is_locked(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.$tournament->id, 30);
+        $lock->get();
+
+        $this->postJson('/api/admin/match_records', $this->validStorePayload($tournament))->assertStatus(409);
+
+        $this->assertDatabaseCount('match_records', 0);
+        $lock->release();
+    }
+
+    public function test_store_releases_the_tournament_lock(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+
+        $this->postJson('/api/admin/match_records', $this->validStorePayload($tournament))->assertCreated();
+
+        $lock = Cache::lock('lock:tournaments:'.$tournament->id, 5);
+        $this->assertTrue($lock->get());
+        $lock->release();
     }
 }

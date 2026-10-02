@@ -43,14 +43,14 @@ class TournamentMatchRecordController extends Controller
         $validated = $request->validated();
 
         $matchRecord = new MatchRecord;
-        $matchRecord->fill($validated)->saveOrFail();
+        $matchRecord->fill($validated)->withLock(static fn () => $matchRecord->saveOrFail());
 
         return new MatchRecordResource($matchRecord->loadMissing($validated['with'] ?? []));
     }
 
     public function generateMatchRecords(TournamentGenerateMatchRecordsRequest $request, Tournament $tournament): ResourceCollection
     {
-        $tournament->runMatchmaking();
+        $tournament->withLock(static fn () => $tournament->runMatchmaking());
 
         return MatchRecordResource::collection($tournament->matchRecords()->get());
     }

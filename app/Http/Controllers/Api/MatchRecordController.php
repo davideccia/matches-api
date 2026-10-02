@@ -46,7 +46,7 @@ class MatchRecordController extends Controller
         $validated = $request->validated();
 
         $matchRecord = new MatchRecord;
-        $matchRecord->fill($validated)->saveOrFail();
+        $matchRecord->fill($validated)->withLock(static fn () => $matchRecord->saveOrFail());
 
         return new MatchRecordResource($matchRecord->loadMissing($validated['with'] ?? []));
     }
@@ -62,32 +62,34 @@ class MatchRecordController extends Controller
     {
         $validated = $request->validated();
 
-        $matchRecord->fill($validated)->saveOrFail();
+        $matchRecord->fill($validated)->withLock(static fn () => $matchRecord->saveOrFail());
 
         return new MatchRecordResource($matchRecord->loadMissing($validated['with'] ?? []));
     }
 
     public function destroy(MatchRecordDestroyRequest $request, MatchRecord $matchRecord): JsonResponse
     {
-        $matchRecord->deleteOrFail();
+        $matchRecord->withLock(static fn () => $matchRecord->deleteOrFail());
 
         return response()->json([], 204);
     }
 
     public function bulkDestroy(MatchRecordBulkDestroyRequest $request): JsonResponse
     {
-        DB::beginTransaction();
+        MatchRecord::withLocks(MatchRecord::whereIn('id', $request->validated('ids'))->get(), static function () use ($request) {
+            DB::beginTransaction();
 
-        try {
-            MatchRecord::whereIn('id', $request->validated('ids'))
-                ->each(static fn (MatchRecord $matchRecord) => $matchRecord->deleteOrFail());
-        } catch (Throwable $e) {
-            DB::rollBack();
+            try {
+                MatchRecord::whereIn('id', $request->validated('ids'))
+                    ->each(static fn (MatchRecord $matchRecord) => $matchRecord->deleteOrFail());
+            } catch (Throwable $e) {
+                DB::rollBack();
 
-            throw $e;
-        }
+                throw $e;
+            }
 
-        DB::commit();
+            DB::commit();
+        });
 
         return response()->json([], 204);
     }

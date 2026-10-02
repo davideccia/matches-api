@@ -12,6 +12,7 @@ use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
 use DateTimeInterface;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class TournamentNestedControllerTest extends TestCase
@@ -1063,5 +1064,55 @@ class TournamentNestedControllerTest extends TestCase
 
         $this->getJson("/api/admin/tournaments/{$tournament->id}/match_records/pdf?type=simple")
             ->assertUnauthorized();
+    }
+
+    public function test_generate_returns_409_when_the_tournament_is_locked(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.$tournament->id, 30);
+        $lock->get();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertStatus(409);
+
+        $lock->release();
+    }
+
+    public function test_generate_releases_the_tournament_lock(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+
+        $lock = Cache::lock('lock:tournaments:'.$tournament->id, 5);
+        $this->assertTrue($lock->get());
+        $lock->release();
+    }
+
+    public function test_nested_match_record_store_returns_409_when_the_tournament_is_locked(): void
+    {
+        $this->authenticate();
+        $tournament = Tournament::factory()->create();
+        $lock = Cache::lock('lock:tournaments:'.$tournament->id, 30);
+        $lock->get();
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records", [
+            'red_corner_id' => Athlete::factory()->create()->id,
+            'blue_corner_id' => Athlete::factory()->create()->id,
+            'weight_category_id' => WeightCategory::factory()->create()->id,
+            'discipline_id' => Discipline::factory()->create()->id,
+            'gender' => AthleteGenderEnum::MALE->value,
+            'forced' => false,
+            'red_corner_team' => 'Team Red',
+            'blue_corner_team' => 'Team Blue',
+            'status' => MatchRecordStatusEnum::SCHEDULED->value,
+            'rounds' => 3,
+            'minutes_per_round' => '03:00',
+        ])->assertStatus(409);
+
+        $this->assertDatabaseCount('match_records', 0);
+
+        $lock->release();
     }
 }

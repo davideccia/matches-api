@@ -79,32 +79,34 @@ class RegistrationController extends Controller
     {
         $validated = $request->validated();
 
-        $registration->fill($validated)->saveOrFail();
+        $registration->fill($validated)->withLock(static fn () => $registration->saveOrFail());
 
         return new RegistrationResource($registration->loadMissing($validated['with'] ?? []));
     }
 
     public function destroy(RegistrationDestroyRequest $request, Registration $registration): JsonResponse
     {
-        $registration->deleteOrFail();
+        $registration->withLock(static fn () => $registration->deleteOrFail());
 
         return response()->json([], 204);
     }
 
     public function bulkDestroy(RegistrationBulkDestroyRequest $request): JsonResponse
     {
-        DB::beginTransaction();
+        Registration::withLocks(Registration::whereIn('id', $request->validated('ids'))->get(), static function () use ($request) {
+            DB::beginTransaction();
 
-        try {
-            Registration::whereIn('id', $request->validated('ids'))
-                ->each(static fn (Registration $registration) => $registration->deleteOrFail());
-        } catch (Throwable $e) {
-            DB::rollBack();
+            try {
+                Registration::whereIn('id', $request->validated('ids'))
+                    ->each(static fn (Registration $registration) => $registration->deleteOrFail());
+            } catch (Throwable $e) {
+                DB::rollBack();
 
-            throw $e;
-        }
+                throw $e;
+            }
 
-        DB::commit();
+            DB::commit();
+        });
 
         return response()->json([], 204);
     }

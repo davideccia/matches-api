@@ -9,6 +9,7 @@ use App\Events\MatchRecordChanged;
 use App\Models\Scopes\MatchRecordScope;
 use App\Observers\MatchRecordObserver;
 use App\Traits\HasUserStamps;
+use App\Traits\Lockable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -25,7 +26,7 @@ use Spatie\ResponseCache\Facades\ResponseCache;
 #[ScopedBy([MatchRecordScope::class])]
 class MatchRecord extends Model
 {
-    use HasFactory, HasUserStamps, HasUuids;
+    use HasFactory, HasUserStamps, HasUuids, Lockable;
 
     protected $appends = ['unpaired'];
 
@@ -77,6 +78,20 @@ class MatchRecord extends Model
         return Attribute::make(
             get: fn (): bool => $this->red_corner_id === null || $this->blue_corner_id === null,
         );
+    }
+
+    /**
+     * `sort` and the matchmaking issues are shared by the whole tournament, so
+     * a bout is locked through its tournament. If the tournament is being
+     * changed, both the old and the new one are locked.
+     *
+     * @return list<string>
+     */
+    protected function lockKeys(): array
+    {
+        $tournamentIds = array_unique(array_filter([$this->tournament_id, $this->getOriginal('tournament_id')]));
+
+        return array_map(fn (string $id) => "lock:tournaments:{$id}", array_values($tournamentIds));
     }
 
     public function syncAfterChange(): void

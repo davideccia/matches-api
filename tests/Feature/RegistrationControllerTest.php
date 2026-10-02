@@ -8,6 +8,7 @@ use App\Models\MatchRecord;
 use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class RegistrationControllerTest extends TestCase
@@ -493,5 +494,67 @@ class RegistrationControllerTest extends TestCase
         $registration = Registration::factory()->create();
 
         $this->getJson("/api/admin/registrations/{$registration->id}/pdf")->assertUnauthorized();
+    }
+
+    // ---------------------------------------------------------------------
+    // locking
+    // ---------------------------------------------------------------------
+
+    public function test_update_returns_409_when_record_is_locked(): void
+    {
+        $this->authenticate();
+        $record = Registration::factory()->create();
+        $lock = Cache::lock('lock:registrations:'.$record->id, 30);
+        $lock->get();
+
+        $this->putJson("/api/admin/registrations/{$record->id}", [
+            'athlete_id' => $record->athlete_id,
+            'tournament_id' => $record->tournament_id,
+            'discipline_id' => $record->discipline_id,
+            'weight_category_id' => $record->weight_category_id,
+            'arrived' => $record->arrived,
+        ])->assertStatus(409);
+
+        $lock->release();
+    }
+
+    public function test_destroy_returns_409_when_record_is_locked_and_keeps_it(): void
+    {
+        $this->authenticate();
+        $record = Registration::factory()->create();
+        $lock = Cache::lock('lock:registrations:'.$record->id, 30);
+        $lock->get();
+
+        $this->deleteJson("/api/admin/registrations/{$record->id}")->assertStatus(409);
+
+        $this->assertModelExists($record);
+        $lock->release();
+    }
+
+    public function test_lock_is_released_after_destroy(): void
+    {
+        $this->authenticate();
+        $record = Registration::factory()->create();
+
+        $this->deleteJson("/api/admin/registrations/{$record->id}")->assertNoContent();
+
+        $lock = Cache::lock('lock:registrations:'.$record->id, 5);
+        $this->assertTrue($lock->get());
+        $lock->release();
+    }
+
+    public function test_bulk_destroy_returns_409_and_deletes_nothing_when_one_is_locked(): void
+    {
+        $this->authenticate();
+        $free = Registration::factory()->create();
+        $locked = Registration::factory()->create();
+        $lock = Cache::lock('lock:registrations:'.$locked->id, 30);
+        $lock->get();
+
+        $this->deleteJson('/api/admin/registrations/bulk', ['ids' => [$free->id, $locked->id]])->assertStatus(409);
+
+        $this->assertModelExists($free);
+        $this->assertModelExists($locked);
+        $lock->release();
     }
 }

@@ -9,10 +9,24 @@ use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\WeightCategory;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class RegistrationControllerTest extends TestCase
 {
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function foreignKeys(): array
+    {
+        return [
+            'athlete_id' => ['athlete_id'],
+            'tournament_id' => ['tournament_id'],
+            'discipline_id' => ['discipline_id'],
+            'weight_category_id' => ['weight_category_id'],
+        ];
+    }
     // ---------------------------------------------------------------------
     // index
     // ---------------------------------------------------------------------
@@ -67,6 +81,53 @@ class RegistrationControllerTest extends TestCase
         $response->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $wanted->id);
+    }
+
+    #[DataProvider('foreignKeys')]
+    public function test_index_filters_by_single_foreign_key(string $foreignKey): void
+    {
+        $this->authenticate();
+
+        $wanted = Registration::factory()->create();
+        Registration::factory()->create();
+
+        $response = $this->getJson("/api/admin/registrations?{$foreignKey}={$wanted->{$foreignKey}}");
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wanted->id);
+    }
+
+    #[DataProvider('foreignKeys')]
+    public function test_index_filters_by_multiple_foreign_keys(string $foreignKey): void
+    {
+        $this->authenticate();
+
+        $wanted = Registration::factory()->count(2)->create();
+        Registration::factory()->create();
+
+        $query = http_build_query(["{$foreignKey}s" => $wanted->pluck($foreignKey)->all()]);
+
+        $response = $this->getJson("/api/admin/registrations?{$query}");
+
+        $response->assertOk()->assertJsonCount(2, 'data');
+        $this->assertEqualsCanonicalizing($wanted->pluck('id')->all(), collect($response->json('data'))->pluck('id')->all());
+    }
+
+    #[DataProvider('foreignKeys')]
+    public function test_index_rejects_invalid_foreign_key_filters(string $foreignKey): void
+    {
+        $this->authenticate();
+
+        $this->getJson("/api/admin/registrations?{$foreignKey}=not-a-uuid")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([$foreignKey]);
+
+        $query = http_build_query(["{$foreignKey}s" => [Str::uuid()->toString()]]);
+
+        $this->getJson("/api/admin/registrations?{$query}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(["{$foreignKey}s.0"]);
     }
 
     public function test_index_eager_loads_allowed_relations(): void

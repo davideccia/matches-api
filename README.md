@@ -156,7 +156,7 @@ Standard CRUD unless noted.
 | Weight categories             | `/api/admin/weight_categories`                       |                                                                                                            |
 | Experience tiers              | `/api/admin/experience_tiers`                        | Filters: `?tournament_id=`, `?only_global=`, `?enabled=`                                                 |
 | Tournaments                   | `/api/admin/tournaments`                             |                                                                                                            |
-| Registrations                 | `/api/admin/registrations`                           | Filters: `?unpaid=`, `?unarrived=`, `?weight_in_exceeded=`                                               |
+| Registrations                 | `/api/admin/registrations`                           | Filters: `?unpaid=`, `?unarrived=`, `?weight_in_exceeded=`, `?{athlete,tournament,discipline,weight_category}_id=` or `_ids[]=` |
 | Match records                 | `/api/admin/match_records`                           |                                                                                                            |
 | Tournament → registrations    | `/api/admin/tournaments/{id}/registrations`          | `index`, `store`                                                                                          |
 | Tournament → match records    | `/api/admin/tournaments/{id}/match_records`          | `index`, `store`                                                                                          |

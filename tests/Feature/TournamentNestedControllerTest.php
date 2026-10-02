@@ -102,6 +102,40 @@ class TournamentNestedControllerTest extends TestCase
             ->assertJsonPath('data.0.id', $wanted->id);
     }
 
+    public function test_registrations_index_filters_by_single_foreign_key(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $wanted = Registration::factory()->create(['tournament_id' => $tournament->id]);
+        Registration::factory()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?athlete_id={$wanted->athlete_id}&discipline_id={$wanted->discipline_id}&weight_category_id={$wanted->weight_category_id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $wanted->id);
+    }
+
+    public function test_registrations_index_filters_by_multiple_foreign_keys(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $wanted = Registration::factory()->count(2)->create(['tournament_id' => $tournament->id]);
+        Registration::factory()->create(['tournament_id' => $tournament->id]);
+
+        $query = http_build_query([
+            'athlete_ids' => $wanted->pluck('athlete_id')->all(),
+            'discipline_ids' => $wanted->pluck('discipline_id')->all(),
+            'weight_category_ids' => $wanted->pluck('weight_category_id')->all(),
+        ]);
+
+        $response = $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?{$query}");
+
+        $response->assertOk()->assertJsonCount(2, 'data');
+        $this->assertEqualsCanonicalizing($wanted->pluck('id')->all(), collect($response->json('data'))->pluck('id')->all());
+    }
+
     public function test_registrations_index_supports_pagination(): void
     {
         $this->authenticate();

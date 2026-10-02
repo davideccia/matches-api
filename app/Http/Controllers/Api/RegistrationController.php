@@ -33,8 +33,36 @@ class RegistrationController extends Controller
             $registrations->search($validated['search']);
         }
 
+        if (isset($validated['athlete_id'])) {
+            $registrations->where('registrations.athlete_id', $validated['athlete_id']);
+        }
+
+        if (isset($validated['athlete_ids'])) {
+            $registrations->whereIn('registrations.athlete_id', $validated['athlete_ids']);
+        }
+
         if (isset($validated['tournament_id'])) {
             $registrations->where('registrations.tournament_id', $validated['tournament_id']);
+        }
+
+        if (isset($validated['tournament_ids'])) {
+            $registrations->whereIn('registrations.tournament_id', $validated['tournament_ids']);
+        }
+
+        if (isset($validated['discipline_id'])) {
+            $registrations->where('registrations.discipline_id', $validated['discipline_id']);
+        }
+
+        if (isset($validated['discipline_ids'])) {
+            $registrations->whereIn('registrations.discipline_id', $validated['discipline_ids']);
+        }
+
+        if (isset($validated['weight_category_id'])) {
+            $registrations->where('registrations.weight_category_id', $validated['weight_category_id']);
+        }
+
+        if (isset($validated['weight_category_ids'])) {
+            $registrations->whereIn('registrations.weight_category_id', $validated['weight_category_ids']);
         }
 
         if (isset($validated['unpaid'])) {

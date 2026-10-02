@@ -372,6 +372,7 @@ vendor/bin/sail artisan test --compact tests/Feature/UserControllerTest.php
 vendor/bin/sail bin pint --dirty --format agent                 # format changed PHP files
 vendor/bin/sail artisan route:list --path=api --except-vendor   # inspect API routes
 vendor/bin/sail artisan migrate:fresh --seed                    # reset + seed the dev DB
+vendor/bin/sail artisan app:import-registrations {path} {tournament} [--apply]  # Excel → athletes/disciplines/weight categories/registrations, idempotent, dry-run by default
 ```
 
 Laravel Boost is wired as an MCP server (`.mcp.json` → `sail artisan boost:mcp`). Prefer its `search-docs`,

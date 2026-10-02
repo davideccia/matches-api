@@ -185,8 +185,11 @@ push is needed for future resources.
 
 **Pairing key.** Registrations whose athlete is already paired in this tournament are excluded, then the rest are
 grouped by `discipline_id | weight_category_id | gender | adult-or-minor` and, within each group, sub-bucketed by
-**experience tier label**. Each bucket is chunked in twos; the first of a pair is the red corner. All five dimensions
-must match for two athletes to be paired.
+**experience tier label**. Each bucket pairs off in registration order; the earlier of a pair is the red corner. All five
+dimensions must match for two athletes to be paired, and they must **not be teammates**: two non-empty
+`Athlete::normalizeTeamName()` slugs (trimmed `team_name`) that are equal never meet. The opponent is taken from the team
+with the most athletes still free, so a crowded team isn't left facing only itself; anyone left with only teammates gets
+a half bout and an `unpaired` issue.
 
 **Tier resolution** (`MatchmakingService::tiers()`): if the tournament has any `enabled` tiers of its own they **replace
 the global set entirely** (not merged); otherwise the enabled `tournament_id IS NULL` globals are used. Tiers are matched

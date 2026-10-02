@@ -61,6 +61,21 @@ class TournamentNestedControllerTest extends TestCase
         return $athlete;
     }
 
+    private function registerAdultMaleTeamAthleteAt(Tournament $tournament, Discipline $discipline, WeightCategory $weightCategory, ?string $teamName, DateTimeInterface $registeredAt): Athlete
+    {
+        $athlete = Athlete::factory()->adult()->male()->create(['team_name' => $teamName]);
+
+        Registration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'athlete_id' => $athlete->id,
+            'discipline_id' => $discipline->id,
+            'weight_category_id' => $weightCategory->id,
+            'created_at' => $registeredAt,
+        ]);
+
+        return $athlete;
+    }
+
     private function registerAdultMaleAthletesAt(Tournament $tournament, Discipline $discipline, WeightCategory $weightCategory, DateTimeInterface $registeredAt): void
     {
         foreach (range(1, 2) as $i) {
@@ -769,6 +784,120 @@ class TournamentNestedControllerTest extends TestCase
         ]);
 
         $this->assertEmpty($tournament->fresh()->matchmaking_issues);
+    }
+
+    public function test_generate_never_pairs_athletes_of_the_same_team(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // Spacing, case and punctuation differ, the slug does not.
+        $first = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, ' Team Alpha ', now()->subMinutes(2));
+        $second = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'team-alpha', now()->subMinute());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.blue_corner_id', null)
+            ->assertJsonPath('data.1.blue_corner_id', null);
+
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $first->id, 'blue_corner_id' => null]);
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $second->id, 'blue_corner_id' => null]);
+
+        $issues = $tournament->fresh()->matchmaking_issues;
+
+        $this->assertCount(2, $issues);
+        $this->assertSame(['unpaired', 'unpaired'], array_column($issues, 'reason'));
+    }
+
+    public function test_generate_pairs_a_teammate_with_the_next_athlete_of_another_team(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $alphaFirst = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Alpha', now()->subMinutes(3));
+        $alphaSecond = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Alpha', now()->subMinutes(2));
+        $bravo = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Bravo', now()->subMinute());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $alphaFirst->id, 'blue_corner_id' => $bravo->id]);
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $alphaSecond->id, 'blue_corner_id' => null]);
+    }
+
+    public function test_generate_maximises_bouts_when_avoiding_teammates(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        // Pairing Alpha with Bravo first would leave the two Charlies facing each other.
+        $alpha = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Alpha', now()->subMinutes(4));
+        $bravo = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Bravo', now()->subMinutes(3));
+        $charlieFirst = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Charlie', now()->subMinutes(2));
+        $charlieSecond = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Charlie', now()->subMinute());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $alpha->id, 'blue_corner_id' => $charlieFirst->id]);
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $bravo->id, 'blue_corner_id' => $charlieSecond->id]);
+        $this->assertEmpty($tournament->fresh()->matchmaking_issues);
+    }
+
+    public function test_generate_does_not_complete_a_half_bout_with_a_teammate(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $waiting = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'Alpha', now()->subMinutes(2));
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+
+        $teammate = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, 'ALPHA', now()->subMinute());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")->assertOk();
+
+        $this->assertDatabaseCount('match_records', 2);
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $waiting->id, 'blue_corner_id' => null]);
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $teammate->id, 'blue_corner_id' => null]);
+    }
+
+    public function test_generate_pairs_athletes_without_a_team(): void
+    {
+        $this->authenticate();
+        $this->seedGlobalExperienceTiers();
+
+        $tournament = Tournament::factory()->create();
+        $discipline = Discipline::factory()->create();
+        $weightCategory = WeightCategory::factory()->create();
+
+        $red = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, null, now()->subMinutes(2));
+        $blue = $this->registerAdultMaleTeamAthleteAt($tournament, $discipline, $weightCategory, '  ', now()->subMinute());
+
+        $this->postJson("/api/admin/tournaments/{$tournament->id}/match_records/generate")
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->assertDatabaseHas('match_records', ['red_corner_id' => $red->id, 'blue_corner_id' => $blue->id]);
     }
 
     public function test_generate_fills_the_red_corner_of_a_hand_entered_blue_only_bout(): void

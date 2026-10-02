@@ -60,6 +60,15 @@ class Athlete extends Model implements HasMedia
         return Str::of($email)->trim()->lower()->value();
     }
 
+    /**
+     * Slug of the trimmed team name, so spacing, case and punctuation variants of
+     * the same team compare equal. An empty string means the athlete has no team.
+     */
+    public static function normalizeTeamName(?string $teamName): string
+    {
+        return Str::of($teamName)->trim()->slug()->value();
+    }
+
     public static function normalizeMatchRecordsHistory(?array $input, ?array $existing): array
     {
         $existingByDisciplineId = collect($existing['disciplines'] ?? [])->keyBy('id');

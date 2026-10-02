@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\MatchRecordStatusEnum;
+use App\Models\Athlete;
 use App\Models\ExperienceTier;
 use App\Models\MatchRecord;
 use App\Models\Registration;
@@ -104,6 +105,9 @@ class MatchmakingService
      * - `fills`:   existing half bouts an athlete is now available to complete;
      * - `orphans`: the `matchmaking_issues` payload, half bouts included.
      *
+     * Two athletes of the same team (see `Athlete::normalizeTeamName()`) are never
+     * paired: whoever is left with only teammates gets a half bout instead.
+     *
      * The pairing runs only here: deriving the issues separately would mean
      * chunking the same buckets twice and letting the two answers drift apart.
      *
@@ -192,7 +196,7 @@ class MatchmakingService
                 // Athletes already sitting in a half bout get the first pick of opponents.
                 foreach ($waiting as $registration) {
 
-                    $opponent = array_shift($free);
+                    $opponent = $this->takeOpponent($registration, $free);
 
                     if ($opponent === null) {
                         $orphans[] = $this->describeOrphan($registration, $tier);
@@ -206,20 +210,17 @@ class MatchmakingService
                     );
                 }
 
-                // Whoever is left pairs off two at a time, first of a pair in the red corner.
-                foreach (array_chunk($free, 2) as $pair) {
+                // Whoever is left pairs off in registration order, the earlier one in the red corner.
+                while (($red = array_shift($free)) !== null) {
 
-                    // The odd one out gets a half bout, and is reported all the same.
-                    if (count($pair) < 2) {
-                        $creates[] = $this->describeMatchRecord($pair[0], null);
-                        $orphans[] = $this->describeOrphan($pair[0], $tier);
-
-                        continue;
-                    }
-
-                    [$red, $blue] = $pair;
+                    $blue = $this->takeOpponent($red, $free);
 
                     $creates[] = $this->describeMatchRecord($red, $blue);
+
+                    // No opponent from another team: a half bout, reported all the same.
+                    if ($blue === null) {
+                        $orphans[] = $this->describeOrphan($red, $tier);
+                    }
                 }
             }
         }
@@ -229,6 +230,60 @@ class MatchmakingService
             'fills' => $fills,
             'orphans' => $orphans,
         ];
+    }
+
+    /**
+     * Teammates never meet. Athletes without a team (empty slug) clash with nobody.
+     */
+    private function isSameTeam(Registration $registration, Registration $other): bool
+    {
+        $team = Athlete::normalizeTeamName($registration->athlete->team_name);
+
+        return $team !== '' && $team === Athlete::normalizeTeamName($other->athlete->team_name);
+    }
+
+    /**
+     * Removes and returns from `$free` the opponent for `$registration`: someone
+     * from another team, taken from the team with the most athletes still free so
+     * a crowded team is not left with only teammates to face (ties go to the
+     * earliest entrant). Null when everyone left is a teammate.
+     *
+     * @param  array<int, Registration>  $free
+     */
+    private function takeOpponent(Registration $registration, array &$free): ?Registration
+    {
+        $teamSizes = array_count_values(array_map(
+            static fn (Registration $candidate) => Athlete::normalizeTeamName($candidate->athlete->team_name),
+            $free,
+        ));
+
+        $bestIndex = null;
+        $bestTeamSize = 0;
+
+        foreach ($free as $index => $candidate) {
+
+            if ($this->isSameTeam($registration, $candidate)) {
+                continue;
+            }
+
+            $team = Athlete::normalizeTeamName($candidate->athlete->team_name);
+
+            // Athletes without a team are not a crowded team: count each one alone.
+            $teamSize = $team === '' ? 1 : $teamSizes[$team];
+
+            if ($teamSize > $bestTeamSize) {
+                $bestIndex = $index;
+                $bestTeamSize = $teamSize;
+            }
+        }
+
+        if ($bestIndex === null) {
+            return null;
+        }
+
+        [$opponent] = array_splice($free, $bestIndex, 1);
+
+        return $opponent;
     }
 
     /**

@@ -91,6 +91,12 @@ class Registration extends Model
     }
 
     #[Scope]
+    public function athleteAdult(Builder $query, bool $isAdult): Builder
+    {
+        return $query->whereHas('athlete', fn (Builder $q) => $q->adult($isAdult));
+    }
+
+    #[Scope]
     public function weightInExceeded(Builder $query, bool $value): Builder
     {
         $operator = $value ? '>' : '<=';

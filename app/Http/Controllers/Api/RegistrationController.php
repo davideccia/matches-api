@@ -77,6 +77,10 @@ class RegistrationController extends Controller
             $registrations->weightInExceeded($validated['weight_in_exceeded']);
         }
 
+        if (isset($validated['is_adult'])) {
+            $registrations->athleteAdult($validated['is_adult']);
+        }
+
         if ($validated['paginate'] ?? false) {
             $registrations = $registrations->paginate(($validated['per_page'] ?? null), ['*'], 'page', ($validated['page'] ?? null));
         } else {

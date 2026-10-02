@@ -229,6 +229,24 @@ class RegistrationControllerTest extends TestCase
             ->assertJsonPath('data.0.id', $under->id);
     }
 
+    public function test_index_is_adult_filters_by_athlete_age_both_directions(): void
+    {
+        $this->authenticate();
+
+        $adult = Registration::factory()->create(['athlete_id' => Athlete::factory()->adult()->create()->id]);
+        $minor = Registration::factory()->create(['athlete_id' => Athlete::factory()->minor()->create()->id]);
+
+        $this->getJson('/api/admin/registrations?is_adult=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $adult->id);
+
+        $this->getJson('/api/admin/registrations?is_adult=0')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $minor->id);
+    }
+
     public function test_index_requires_authentication(): void
     {
         $this->getJson('/api/admin/registrations')->assertUnauthorized();

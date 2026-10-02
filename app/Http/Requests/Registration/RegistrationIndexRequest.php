@@ -44,6 +44,7 @@ class RegistrationIndexRequest extends FormRequest
             'unpaid' => ['nullable', 'boolean'],
             'unarrived' => ['nullable', 'boolean'],
             'weight_in_exceeded' => ['nullable', 'boolean'],
+            'is_adult' => ['nullable', 'boolean'],
         ];
     }
 }

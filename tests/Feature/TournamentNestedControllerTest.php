@@ -154,6 +154,84 @@ class TournamentNestedControllerTest extends TestCase
             ->assertJsonPath('meta.total', 3);
     }
 
+    public function test_registrations_index_unpaid_scope_filters_both_directions(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $unpaid = Registration::factory()->create(['tournament_id' => $tournament->id]);
+        $paid = Registration::factory()->paid()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?unpaid=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $unpaid->id);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?unpaid=0")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $paid->id);
+    }
+
+    public function test_registrations_index_unarrived_scope_filters_both_directions(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $unarrived = Registration::factory()->create(['tournament_id' => $tournament->id]);
+        $arrived = Registration::factory()->arrived()->create(['tournament_id' => $tournament->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?unarrived=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $unarrived->id);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?unarrived=0")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $arrived->id);
+    }
+
+    public function test_registrations_index_weight_in_exceeded_scope_filters_both_directions(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $weightCategory = WeightCategory::factory()->create(['value' => 70]);
+
+        $over = Registration::factory()->weightIn(75)->create(['tournament_id' => $tournament->id, 'weight_category_id' => $weightCategory->id]);
+        $under = Registration::factory()->weightIn(65)->create(['tournament_id' => $tournament->id, 'weight_category_id' => $weightCategory->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?weight_in_exceeded=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $over->id);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?weight_in_exceeded=0")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $under->id);
+    }
+
+    public function test_registrations_index_is_adult_filters_by_athlete_age_both_directions(): void
+    {
+        $this->authenticate();
+
+        $tournament = Tournament::factory()->create();
+        $adult = Registration::factory()->create(['tournament_id' => $tournament->id, 'athlete_id' => Athlete::factory()->adult()->create()->id]);
+        $minor = Registration::factory()->create(['tournament_id' => $tournament->id, 'athlete_id' => Athlete::factory()->minor()->create()->id]);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?is_adult=1")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $adult->id);
+
+        $this->getJson("/api/admin/tournaments/{$tournament->id}/registrations?is_adult=0")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $minor->id);
+    }
+
     public function test_registrations_index_requires_authentication(): void
     {
         $tournament = Tournament::factory()->create();

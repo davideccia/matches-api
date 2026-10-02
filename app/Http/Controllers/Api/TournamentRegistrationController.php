@@ -16,7 +16,7 @@ class TournamentRegistrationController extends Controller
     {
         $validated = $request->validated();
 
-        $registrations = $tournament->registrations()->with($validated['with'] ?? []);
+        $registrations = $tournament->registrations()->with($validated['with'] ?? [])->orderByDesc('registrations.created_at')->orderByDesc('registrations.id');
 
         if (isset($validated['search'])) {
             $registrations->search($validated['search']);
@@ -44,6 +44,22 @@ class TournamentRegistrationController extends Controller
 
         if (isset($validated['weight_category_ids'])) {
             $registrations->whereIn('registrations.weight_category_id', $validated['weight_category_ids']);
+        }
+
+        if (isset($validated['unpaid'])) {
+            $registrations->unpaid($validated['unpaid']);
+        }
+
+        if (isset($validated['unarrived'])) {
+            $registrations->unarrived($validated['unarrived']);
+        }
+
+        if (isset($validated['weight_in_exceeded'])) {
+            $registrations->weightInExceeded($validated['weight_in_exceeded']);
+        }
+
+        if (isset($validated['is_adult'])) {
+            $registrations->athleteAdult($validated['is_adult']);
         }
 
         if ($validated['paginate'] ?? false) {

@@ -34,6 +34,10 @@ class LogApiRequest
      */
     public function terminate(Request $request, Response $response): void
     {
+        if ($request->user()?->superadmin ?? false) {
+            return;
+        }
+
         $route = $request->route();
 
         if ($route === null || in_array($route->uri(), self::EXCLUDED_ROUTE_URIS, true)) {
